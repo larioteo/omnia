@@ -1,2 +1,1 @@
-# omnialib
-Omnia Library
+# Omnia Library

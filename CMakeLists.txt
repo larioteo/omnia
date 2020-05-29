@@ -3,6 +3,7 @@ project ("Omnia" LANGUAGES C CXX)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/Build/${CMAKE_BUILD_TYPE}")
 
-add_library(Omnia SHARED "Source/Omnia.cpp" "Source/Omnia.h")
+include(CMakeSources.cmake)
+add_library(Omnia SHARED ${OMNIA_HEADERS} ${OMNIA_SOURCES})
 
 set_property(TARGET Omnia PROPERTY FOLDER Library)

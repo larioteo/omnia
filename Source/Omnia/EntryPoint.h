@@ -1,16 +1,23 @@
 #pragma once
-#include "Core.h"
 
-#ifdef APP_PLATFORM_WINDOWS
+#include "Omnia/Omnia.pch"
+#include "Omnia/Core.h"
 
-extern Omnia::Application *Omnia::CreateApplication();
+extern Omnia::Application *CreateApplication();
 
 int main(int argc, char **argv) {
-	auto app = Omnia::CreateApplication();
-	app->Run();
-	delete app;
+	// Preparation
+	#ifdef APP_PLATFORM_WINDOWS
+		system("chcp 65001 >nul"); // Switch to UTF-8 codepage
+	#endif
 
+	// Initialization
+	auto app = CreateApplication();
+
+	// Main
+	app->Run();
+	
+	// Termination
+	delete app;
 	return 0;
 }
-
-#endif

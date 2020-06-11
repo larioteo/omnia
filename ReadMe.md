@@ -20,8 +20,11 @@
 An usefull, modern, modular collection of extensions for daily app development.
 
 ## Project Goal
+
 This project wasn't created to reinvent the wheel, see it as another alternative which may suite your needs better than the existing libraries.
 - Support for any platform
+
+> If you are interested in my odyssey feel free to follow it.
 
 ## Features
 > Note: Windows implementation will be the first implemented.

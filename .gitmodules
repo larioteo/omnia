@@ -1,0 +1,9 @@
+[submodule "3rd-Party/glad"]
+	path = 3rd-Party/glad
+	url = https://github.com/Dav1dde/glad
+[submodule "3rd-Party/imgui"]
+	path = 3rd-Party/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "3rd-Party/OpenGL-Registry"]
+	path = 3rd-Party/OpenGL-Registry
+	url = https://github.com/KhronosGroup/OpenGL-Registry

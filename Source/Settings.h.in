@@ -1,0 +1,25 @@
+#pragma once
+
+namespace @PROJECT_NAME@ {
+
+// Information
+static inline constexpr auto LibCaption = "@LibCaption@";
+static inline constexpr auto LibDescription = "@LibDescription@";
+static inline constexpr auto LibRelease = "@LibRelease@";
+static inline constexpr auto LibVersion = "@LibVersion@";
+static inline constexpr auto LibVersionMajor = "@LibVersionMajor@";
+static inline constexpr auto LibVersionMinor = "@LibVersionMinor@";
+static inline constexpr auto LibVersionPatch = "@LibVersionPatch@";
+
+// Properties
+@AppLibraryGfxApi@
+
+// Switches
+@AppLibraryPrimeExtensions@
+@AppLibraryDebugExtensions@
+@AppLibraryGraphicExtensions@
+@AppLibrarySystemExtensions@
+@AppLibraryUIExtensions@
+@AppLibraryUtilitiesExtensions@
+
+}

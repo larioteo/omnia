@@ -4,8 +4,7 @@
 #include "Omnia/Application.h"
 #include "Omnia/Log.h"
 
-#include "Platform/Graphics/OpenGL/GLGuiRenderer.h"
-#include "Platform/UI/WinApi/WinGuiApi.h"
+#include "Omnia/UI/GuiBuilder.h"
 
 namespace Omnia {
 

@@ -88,7 +88,7 @@ ContextData CreateContext(Omnia::Window *window, ContextProperties &properties) 
 	// Platform specific stuff
 	if constexpr (AppPlatformAPI == "WinAPI") {
 		GetExtensions(0);
-		data.hWindow = (HWND)window->GetNativeHandle();
+		data.hWindow = static_cast<HWND>(window->GetNativeWindow());
 
 		// Get Device Context
 		//hDeviceContext and hWindow!!!

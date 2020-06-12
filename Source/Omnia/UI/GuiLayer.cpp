@@ -39,7 +39,7 @@ void GuiLayer::Attach() {
 		applog << Log::Success << "OpenGLInit: Success\n";
 	}
 	
-	if (ImGui_ImplWin32_Init((HWND)app.GetWindow().GetNativeHandle())) {
+	if (ImGui_ImplWin32_Init((HWND)app.GetWindow().GetNativeWindow())) {
 		applog << Log::Success << "Win32Init: Success\n";
 	}
 
@@ -87,33 +87,26 @@ void GuiLayer::KeyboardEvent(KeyboardEventData data) {
 	io.KeyShift = data.Modifier.Shift;
 	io.KeySuper = data.Modifier.Super;
 
-	switch (data.State) {
-		case KeyState::Input: {
-			io.AddInputCharacter((uint32_t)data.Key);
+	switch (data.Action) {
+		case KeyboardAction::Input: {
+			io.AddInputCharacterUTF16((uint32_t)data.Key);
 			break;
 		}
-
-		case KeyState::Press: {
-			io.KeysDown[(uint32_t)data.Key] = true;
-			break;
-		}
-
-		case KeyState::Release: {
-			io.KeysDown[(uint32_t)data.Key] = false;
-
-			switch (data.Key) {
-				case KeyCode::Escape: {
+		case KeyboardAction::Default: {
+			switch (data.State) {
+				case KeyState::Press: {
+					io.KeysDown[(uint32_t)data.Key] = true;
 					break;
 				}
-
+				case KeyState::Release: {
+					io.KeysDown[(uint32_t)data.Key] = false;
+					break;
+				}
 				default: {
 					break;
 				}
 			}
-
-			break;
 		}
-
 		default: {
 			break;
 		}
@@ -124,7 +117,16 @@ void GuiLayer::MouseEvent(MouseEventData data) {
 	if (ImGui::GetCurrentContext() == NULL) return;
 	ImGuiIO &io = ImGui::GetIO();
 
+	io.KeyAlt = data.Modifier.Alt;
+	io.KeyCtrl = data.Modifier.Control;
+	io.KeyShift = data.Modifier.Shift;
+	io.KeySuper = data.Modifier.Super;
+
 	switch (data.Action) {
+		case MouseAction::Move:	{
+			io.MousePos = ImVec2(data.X, data.Y);
+		}
+
 		case MouseAction::Wheel: {
 			io.MouseWheel += data.DeltaWheelY;
 			io.MouseWheelH += data.DeltaWheelX;
@@ -135,8 +137,8 @@ void GuiLayer::MouseEvent(MouseEventData data) {
 			switch (data.State) {
 				case ButtonState::Press: {
 					if (data.Button == MouseButton::Left)	io.MouseDown[0] = true;
-					if (data.Button == MouseButton::Middle)	io.MouseDown[1] = true;
-					if (data.Button == MouseButton::Right)	io.MouseDown[2] = true;
+					if (data.Button == MouseButton::Right)	io.MouseDown[1] = true;
+					if (data.Button == MouseButton::Middle)	io.MouseDown[2] = true;
 					if (data.Button == MouseButton::X1)		io.MouseDown[3] = true;
 					if (data.Button == MouseButton::X2)		io.MouseDown[4] = true;
 					break;
@@ -157,7 +159,6 @@ void GuiLayer::MouseEvent(MouseEventData data) {
 			}
 		}
 	}
-
 }
 
 void GuiLayer::TouchEvent(TouchEventData data) {

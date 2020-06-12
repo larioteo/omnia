@@ -7,38 +7,32 @@ namespace Omnia {
 class WinWindow: public Window {
 	// Properties
 	WindowProperties Properties;
-	struct WindowData {
-		unsigned prevMouseX;
-		unsigned prevMouseY;
-	} ___Data;
-
+	
 public:
 	// Default
 	WinWindow(const WindowProperties &properties);
-	~WinWindow();
+	virtual ~WinWindow();
 
-	void Update() override;
+	// Events
+	virtual void Update() override;
 	intptr_t Message(void *event);
 
 	// Accessors
-	virtual void *GetNativeHandle() const override;
-	WindowProperties GetProperties() const override;
-	WindowSize GetContexttSize() const override;
-	WindowPosition GetDisplayPosition() const override;
-	WindowSize GetDisplaySize() const override;
-	WindowSize GetScreentSize() const override;
-	string GetTitle() const override;
+	virtual void *GetNativeWindow() const override;
+	virtual WindowProperties GetProperties() const override;
+	virtual WindowSize GetContexttSize() const override;
+	virtual WindowPosition GetDisplayPosition() const override;
+	virtual WindowSize GetDisplaySize() const override;
+	virtual WindowSize GetScreentSize() const override;
+	virtual string GetTitle() const override;
 
 	// Modifiers
-	void SetProperties(const WindowProperties &properties) override;
-	void SetCursorPosition(long x, long y) override;
-	void SetDisplayPosition(const int x, const int y) override;
-	void SetDisplaySize(const unsigned int width, const unsigned int height) override;
-	void SetProgress(float progress) override;
-	void SetTitle(const std::string &title) override;
+	virtual void SetProperties(const WindowProperties &properties) override;
+	virtual void SetCursorPosition(const int32_t x, const int32_t y) override;
+	virtual void SetDisplayPosition(const int32_t x, const int32_t y) override;
+	virtual void SetDisplaySize(const uint32_t width, const uint32_t height) override;
+	virtual void SetProgress(const float progress) override;
+	virtual void SetTitle(const string_view title) override;
 };
-
-static thread_local inline WinWindow *pCurrentWindow = nullptr;
-static thread_local inline std::unordered_map<void *, WinWindow *> pWindowList = {};
 
 }

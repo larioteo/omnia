@@ -70,16 +70,24 @@ private:
 	* @brief	These methods are used internally to handle critical events or pass them to the provided layers.
 	*/
 
+	/** This method dispatches device events. */
+	void AutoDeviceEvent(DeviceEventData data);
+	/** This method dispatches power events. */
+	void AutoPowerEvent(PowerEventData data);
+
 	/** This method dispatches controller events. */
 	void AutoControllerEvent(ControllerEventData data);
 	/** This method dispatches keyboard events. */
 	void AutoKeyboardEvent(KeyboardEventData data);
-	/** This method dispatches you mouse events. */
+	/** This method dispatches mouse events. */
 	void AutoMouseEvent(MouseEventData data);
 	/** This method dispatches controller events. */
 	void AutoTouchEvent(TouchEventData data);
-	/** This method dispatches you window events. */
+	/** This method dispatches window events. */
 	void AutoWindowEvent(WindowEventData data);
+
+	/** This method dispatches context events. */
+	void AutoContextEvent(ContextEventData data);
 };
 
 }

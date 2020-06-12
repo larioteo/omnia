@@ -12,20 +12,6 @@
 
 > **Info**: Glad must be generated here: <https://glad.dav1d.de/>, the version is the latest commit on the github page.
 
-## Inspiration ##
-> This project is inspired by several other projects, therefore they are listet honorarily.<br>
-> **Note**: They are not part of this project, neither their complete source, only some parts of the code or structure may be used.
-
-| Project | License | Release | Version |
-| :------ | :-----: | :-----: | :------ |
-| [Hazel-Engine](https://github.com/TheCherno/Hazel.git "Hazel")      | Apache-2.0    | 2020-06-09 | commit\{cc54dbe9f3efba356f2d7dcc7246fedb16888660} |
-
-## Story
-You wonder why I choose exactly them over the thousend available sources out there?
-
-###### Hazel
-In my opinion the developer of Hazel known as "TheCherno" is one of the best teachers related to game engine development. I'm following his exams on youtube and got a good overview on how to even structure a game engine or how to write efficient code.
-> Therefore big thanks to you and your community!
 
 <!-- These are leftovers which where used in the prototype, left them here, cause maybe they will be needed again.
 | [EGL-Registry](https://github.com/KhronosGroup/EGL-Registry.git "EGL-Registry")               | MIT?          | 2020-05-05 | commit\{90b78b0662e2f0548cfd1926fb77bf628933541b} |
@@ -36,6 +22,12 @@ In my opinion the developer of Hazel known as "TheCherno" is one of the best tea
 -->
 
 <!-- These are leftovers which where used in the prototype, left them here, cause maybe they will be needed again.
+## Inspiration ##
+> This project is inspired by several other projects, therefore they are listet honorarily.<br>
+> **Note**: They are not part of this project, neither their complete source, only some parts of the code or structure may be used.
+
+| Project | License | Release | Version |
+| :------ | :-----: | :-----: | :------ |
 | [CrossWindow](https://github.com/alaingalvan/CrossWindow.git "CrossWindow")                               | MIT        | 2020-01-06 | commit\{90e6f9f0d05151609a5b1f49c80cd7653b1bda3f} |
 | [CrossWindow-Graphics](https://github.com/alaingalvan/CrossWindow-Graphics.git "CrossWindow-Graphics")    | MIT        | 2020-01-06 | commit\{d44babefc50dffdc0be047131d729abd0d0e611e} |
 | [CrossShader](https://github.com/alaingalvan/CrossShader.git "CrossShader")                               | MIT        | 2020-01-02 | commit\{1653192b580e64d4d463f2155f668ace640a0456} |

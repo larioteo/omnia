@@ -70,6 +70,30 @@ inline std::ostream &operator<<(std::ostream &stream, EventSource source) {
 /**
 * @brief	Actions
 */
+enum class DeviceAction {
+	Null		= 0x00,
+	Undefined   = 0xFF,
+};
+inline std::ostream &operator<<(std::ostream &stream, DeviceAction action) {
+	switch (action) {
+		case DeviceAction::Null:		{ stream << "Null";			break; }
+		case DeviceAction::Undefined:	{ stream << "-";			break; }
+	}
+	return stream;
+}
+
+enum class PowerAction {
+	Null		= 0x00,
+	Undefined   = 0xFF,
+};
+inline std::ostream &operator<<(std::ostream &stream, PowerAction action) {
+	switch (action) {
+		case PowerAction::Null:			{ stream << "Null";			break; }
+		case PowerAction::Undefined:	{ stream << "-";			break; }
+	}
+	return stream;
+}
+
 
 enum class ControllerAction: uint8_t {
 	Null		= 0x00,
@@ -159,11 +183,13 @@ enum class WindowAction: uint8_t {
 	Focus		= 0x11,
 	Maximize	= 0x12,
 	Minimize	= 0x13,
+	Show		= 0x14,
 
 	Draw		= 0x20,
 	DpiUpdate	= 0x21,
 	Move		= 0x22,
 	Resize		= 0x23,
+	Restore		= 0x24,
 	
 	DragNDrop	= 0x31,
 
@@ -178,10 +204,12 @@ inline std::ostream &operator<<(std::ostream &stream, WindowAction action) {
 		case WindowAction::Focus:		{ stream << "Focus";		break; }
 		case WindowAction::Maximize:	{ stream << "Maximize";		break; }
 		case WindowAction::Minimize:	{ stream << "Minimize";		break; }
+		case WindowAction::Show:		{ stream << "Show";			break; }
 		case WindowAction::Draw:		{ stream << "Draw";			break; }
 		case WindowAction::DpiUpdate:	{ stream << "DpiUpdate";	break; }
 		case WindowAction::Move:		{ stream << "Move";			break; }
 		case WindowAction::Resize:		{ stream << "Resize";		break; }
+		case WindowAction::Restore:		{ stream << "Restore";		break; }
 		case WindowAction::DragNDrop:	{ stream << "DragNDrop";	break; }
 		case WindowAction::Undefined:	{ stream << "-";			break; }
 	}
@@ -813,7 +841,6 @@ enum class KeyState: uint8_t {
 	Press		= 0x01,
 	Hold		= 0x02,
 	Release		= 0x03,
-	Input		= 0x10,
 	Undefined   = 0xFF,
 };
 inline std::ostream &operator<<(std::ostream &stream, KeyState state) {
@@ -822,7 +849,6 @@ inline std::ostream &operator<<(std::ostream &stream, KeyState state) {
 		case KeyState::Press:		{ stream << "Press";		break; }
 		case KeyState::Hold:		{ stream << "Hold";			break; }
 		case KeyState::Release:		{ stream << "Release";		break; }
-		case KeyState::Input:		{ stream << "Input";		break; }
 		case KeyState::Undefined:	{ stream << "-";			break; }
 	}
 	return stream;
@@ -835,10 +861,10 @@ struct ModifierState {
 	bool Super = false;
 };
 inline std::ostream &operator<<(std::ostream &stream, ModifierState state) {
-	stream	<< "ALT:"	<< state.Alt		<< " | "
-			<< "CTR:"	<< state.Control	<< " | "
-			<< "SHI:"	<< state.Shift		<< " | "
-			<< "SUP:"	<< state.Super		<< "\n";
+	stream	<< "Alt:"		<< state.Alt		<< "|"
+			<< "Control:"	<< state.Control	<< "|"
+			<< "Shift:"		<< state.Shift		<< "|"
+			<< "Super:"		<< state.Super;
 	return stream;
 }
 
@@ -852,6 +878,22 @@ public:
 	EventData() {};
 	virtual ~EventData() {};
 };
+
+
+struct DeviceEventData {
+	static const EventCategory Category = EventCategory::System;
+	static const EventSource Source = EventSource::Device;
+
+	DeviceAction Action = DeviceAction::Undefined;
+};
+
+struct PowerEventData {
+	static const EventCategory Category = EventCategory::System;
+	static const EventSource Source = EventSource::Power;
+
+	PowerAction Action = PowerAction::Undefined;
+};
+
 
 struct ControllerEventData {
 	static const EventCategory Category = EventCategory::Application;
@@ -877,11 +919,13 @@ struct ControllerEventData {
 struct KeyboardEventData {
 	static const EventCategory Category = EventCategory::Application;
 	static const EventSource Source = EventSource::Keyboard;
-
+	
 	KeyboardAction Action = KeyboardAction::Undefined;
+	char Character = 0;
 	KeyCode Key = KeyCode::Undefined;
 	KeyState State = KeyState::Undefined;
 	ModifierState Modifier;
+
 };
 
 struct MouseEventData {
@@ -931,6 +975,7 @@ struct WindowEventData {
 
 	bool Active = false;
 	bool Focus = false;
+	bool Visible = true;
 
 	float DpiValue = 0.0f;
 	uint32_t Height = 0;

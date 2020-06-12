@@ -21,15 +21,21 @@
 
 namespace Omnia {
 
+// Properties
 HWND pWindow;
 RAWINPUTDEVICE RawInputDevice[1];
 
+
+// Default
 WinEventListener::WinEventListener() {}
 WinEventListener::~WinEventListener() {}
 
 
-void WinEventListener::Callback(void *event) {
-	Register(event);
+// Events
+bool WinEventListener::Callback(void *event) {
+	intptr_t result = Register(event);
+	if (!result) { return true; }
+	return false;
 }
 
 void WinEventListener::Update() {
@@ -39,7 +45,6 @@ void WinEventListener::Update() {
 		DispatchMessage(&message);
 	}
 }
-
 
 intptr_t WinEventListener::Register(void *event) {
 	static MSG msg; // = *reinterpret_cast<MSG *>(event);
@@ -112,24 +117,21 @@ intptr_t WinEventListener::Register(void *event) {
 		}
 		
 		// Keyboard
-		case WM_KEYDOWN:
-		case WM_SYSKEYDOWN:
-		case WM_KEYUP:
-		case WM_SYSKEYUP: {
+		case WM_KEYDOWN:	case WM_SYSKEYDOWN:
+		case WM_KEYUP:		case WM_SYSKEYUP: {
 			if (KeyboardEvent.Empty()) return result;
 
 			// Perparation
 			KeyboardEventData data;
+			data.Action = KeyboardAction::Default;
 
 			// Get Key State
 			switch (msg.message) {
-				case WM_KEYDOWN:
-				case WM_SYSKEYDOWN: {
+				case WM_KEYDOWN:	case WM_SYSKEYDOWN: {
 					data.State = KeyState::Press;
 					break;
 				}
-				case WM_KEYUP:
-				case WM_SYSKEYUP: {
+				case WM_KEYUP:		case WM_SYSKEYUP: {
 					data.State = KeyState::Release;
 					break;
 				}
@@ -149,10 +151,7 @@ intptr_t WinEventListener::Register(void *event) {
 		}
 		
 		// Mouse
-		case WM_LBUTTONDBLCLK:
-		case WM_MBUTTONDBLCLK:
-		case WM_RBUTTONDBLCLK:
-		case WM_XBUTTONDBLCLK: {
+		case WM_LBUTTONDBLCLK:		case WM_MBUTTONDBLCLK:		case WM_RBUTTONDBLCLK:		case WM_XBUTTONDBLCLK: {
 			if (MouseEvent.Empty()) return result;
 
 			MouseEventData data;
@@ -186,15 +185,8 @@ intptr_t WinEventListener::Register(void *event) {
 			MouseEvent.Publish(data);
 			break;
 		}
-
-		case WM_LBUTTONDOWN:
-		case WM_MBUTTONDOWN:
-		case WM_RBUTTONDOWN:
-		case WM_XBUTTONDOWN:
-		case WM_LBUTTONUP:
-		case WM_MBUTTONUP:
-		case WM_RBUTTONUP:
-		case WM_XBUTTONUP: {
+		case WM_LBUTTONDOWN:		case WM_MBUTTONDOWN:		case WM_RBUTTONDOWN:		case WM_XBUTTONDOWN:
+		case WM_LBUTTONUP:			case WM_MBUTTONUP:			case WM_RBUTTONUP:			case WM_XBUTTONUP: {
 			if (MouseEvent.Empty()) return result;
 
 			MouseEventData data;
@@ -238,7 +230,6 @@ intptr_t WinEventListener::Register(void *event) {
 			short modifiers = LOWORD(msg.wParam);
 			//event = Event(MouseInputData(MouseInput::Left, ButtonState::Pressed, ModifierState(modifiers & MK_CONTROL, modifiers & MK_ALT, modifiers & MK_SHIFT, modifiers & 0)), window);
 		}
-
 		case WM_MOUSEMOVE: {
 			if (MouseEvent.Empty()) return result;
 			static int32_t lastX = 0;
@@ -353,33 +344,30 @@ intptr_t WinEventListener::Register(void *event) {
 			}
 			}*/
 		}
-
-		case WM_MOUSEHWHEEL: {
-			if (MouseEvent.Empty()) return result;
-
-			MouseEventData data;
-			data.Action = MouseAction::Wheel;
-			data.Button = MouseButton::Wheel;
-
-			data.DeltaWheelY = GET_WHEEL_DELTA_WPARAM(msg.wParam) / WHEEL_DELTA;
-
-			MouseEvent.Publish(data);
-			break;
-		}
 		case WM_MOUSEWHEEL: {
 			if (MouseEvent.Empty()) return result;
-
 			MouseEventData data;
 			data.Action = MouseAction::Wheel;
-			data.Button = MouseButton::Wheel;
 
-			data.DeltaWheelX = GET_WHEEL_DELTA_WPARAM(msg.wParam) / WHEEL_DELTA;
+			data.DeltaWheelY =(float) GET_WHEEL_DELTA_WPARAM(msg.wParam) / (float)WHEEL_DELTA;
 
 			MouseEvent.Publish(data);
 			break;
 		}
-		
+		case WM_MOUSEHWHEEL: {
+			if (MouseEvent.Empty()) return result;
+			MouseEventData data;
+			data.Action = MouseAction::Wheel;
+
+			data.DeltaWheelX = (float)GET_WHEEL_DELTA_WPARAM(msg.wParam) / (float)WHEEL_DELTA;
+
+			MouseEvent.Publish(data);
+			break;
+		}
+
+		// Touch
 		case WM_TOUCH: {
+			if (TouchEvent.Empty()) return result;
 			TouchEventData data;
 
 			TouchEvent.Publish(data);
@@ -387,16 +375,14 @@ intptr_t WinEventListener::Register(void *event) {
 		}
 
 		// System
-		case WM_CHAR:
-		case WM_SYSCHAR:
-		case WM_UNICHAR:
-		case WM_DEADCHAR:
-		case WM_SYSDEADCHAR: {
+		case WM_CHAR:		case WM_SYSCHAR:		case WM_UNICHAR: {
 			// Perparation
 			KeyboardEventData data;
-			data.State = KeyState::Input;
+			data.Action = KeyboardAction::Input;
+			data.State = KeyState::Undefined;
 
 			// Get Key Code
+			data.Character = msg.wParam;
 			data.Key = KeyCode{ (unsigned int)msg.wParam };
 
 			// Finalization
@@ -406,15 +392,28 @@ intptr_t WinEventListener::Register(void *event) {
 		}
 
 		/**
-		 *	Window Events (they serve only for notification purposes, the window handles the events on his own)
+		 *	Window Events (they serve only for notification purposes, every window handles the events on their own)
 		*/
 		case WM_NULL: {
+			break;
+		}
+		
+		// Information
+		case WM_DPICHANGED: {
+			WindowEventData data;
+			data.Action = WindowAction::DpiUpdate;
+			// ToDo: Something like DPI data would be nice.
+			WindowEvent.Publish(data);
+			break;
+		}
+		case WM_GETMINMAXINFO: {
+			// ToDo: Restrict Container to bounds
 			break;
 		}
 
 		// Creation and Destruction
 		case WM_CLOSE: {
-			if (WindowEvent.Empty()) return result;
+			// Currently there is no use for this event.
 			break;
 		}
 		case WM_CREATE: {
@@ -430,10 +429,10 @@ intptr_t WinEventListener::Register(void *event) {
 			break;
 		}
 
-		// Lifetime
-		case WM_DPICHANGED: {
+		// Drawing
+		case WM_PAINT: {
 			WindowEventData data;
-			data.Action = WindowAction::DpiUpdate;
+			data.Action = WindowAction::Draw;
 			WindowEvent.Publish(data);
 			break;
 		}
@@ -449,16 +448,30 @@ intptr_t WinEventListener::Register(void *event) {
 		}
 		case WM_SHOWWINDOW: {
 			WindowEventData data;
-			// ToDo: Action
+			data.Action == WindowAction::Show;
+			data.Visible = (bool)msg.wParam;
 			WindowEvent.Publish(data);
 			break;
 		}
 		case WM_SIZE: {
-			//WindowEventData data;
-			//data.Action = WindowAction::Resize;
-			//data.Width = static_cast<unsigned>((UINT64)msg.lParam & 0xFFFF);
-			//data.Height = static_cast<unsigned>((UINT64)msg.lParam >> 16);
-			//WindowEvent.Publish(data);
+			WindowEventData data;
+			data.Action == WindowAction::Show;
+			switch (msg.wParam) {
+				case SIZE_MAXIMIZED: {
+					data.Action == WindowAction::Maximize;
+					break;
+				}
+				case SIZE_MINIMIZED: {
+					data.Action == WindowAction::Minimize;
+					break;
+				}
+				case SIZE_RESTORED: {
+					data.Action == WindowAction::Restore;
+				}
+			}
+			data.Width = static_cast<uint32_t>((UINT64)msg.lParam & 0xFFFF);
+			data.Height = static_cast<uint32_t>((UINT64)msg.lParam >> 16);
+			WindowEvent.Publish(data);
 			break;
 		}
 		case WM_SIZING: {
@@ -475,8 +488,10 @@ intptr_t WinEventListener::Register(void *event) {
 			break;
 		}
 		
+		// State
 		case WM_ACTIVATE: {
 			WindowEventData data;
+			data.Action = WindowAction::Activate;
 			
 			data.Active = (bool)msg.wParam;;
 
@@ -501,16 +516,28 @@ intptr_t WinEventListener::Register(void *event) {
 			WindowEvent.Publish(data);
 			break;
 		}
-		
-		case WM_PAINT: {
-			WindowEventData data;
-			data.Action = WindowAction::Draw;
 
-			WindowEvent.Publish(data);
+		// System
+		case WM_SYSCOMMAND: {
+			switch (msg.wParam) {
+				// Devices
+				case SC_MONITORPOWER: {
+					DeviceEventData data;
+					data.Action = DeviceAction::Null;
+					DeviceEvent.Publish(data);
+					break;
+				}
+
+				// Power
+				case SC_SCREENSAVE: {
+					PowerEventData data;
+					data.Action = PowerAction::Null;
+					PowerEvent.Publish(data);
+				}
+			}
 			break;
 		}
 		
-		// Anything else
 		default: {
 			break;
 		}

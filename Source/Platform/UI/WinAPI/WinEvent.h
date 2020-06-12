@@ -9,10 +9,11 @@ class WinEventListener: public EventListener {
 public:
 	// Default
 	WinEventListener();
-	~WinEventListener();
+	virtual ~WinEventListener();
 
-	void Callback(void *event = nullptr) override;
-	void Update() override;
+	// Events
+	virtual bool Callback(void *event = nullptr) override;
+	virtual void Update() override;
 
 private:
 	intptr_t Register(void *event);

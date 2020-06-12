@@ -13,18 +13,23 @@ public:
 	// Default
 	EventListener() {};
 	virtual ~EventListener() = default;
-
 	static Scope<EventListener> Create();
-	virtual void Callback(void *event = nullptr) = 0;
+
+	// Events
+	virtual bool Callback(void *event = nullptr) = 0;
 	virtual void Update() = 0;
 
 	// Subjects
+	Subject<DeviceEventData> DeviceEvent;
+	Subject<PowerEventData> PowerEvent;
+
 	Subject<ControllerEventData> ControllerEvent;
-	Subject<ContextEventData> ContextEvent;
 	Subject<KeyboardEventData> KeyboardEvent;
 	Subject<MouseEventData> MouseEvent;
 	Subject<TouchEventData> TouchEvent;
 	Subject<WindowEventData> WindowEvent;
+
+	Subject<ContextEventData> ContextEvent;
 };
 
 }

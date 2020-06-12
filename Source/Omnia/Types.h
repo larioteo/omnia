@@ -15,6 +15,7 @@ using std::uint64_t;
 
 using std::shared_ptr;
 using std::string;
+using std::string_view;
 using std::stringstream;
 using std::unique_ptr;
 using std::vector;

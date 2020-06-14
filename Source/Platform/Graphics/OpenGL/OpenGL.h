@@ -1,12 +1,13 @@
 #pragma once
 
-#define APP_PLATFORM_API_WIN32
+#include "Omnia/Utility/Property.h"
+
 #define VC_EXTRALEAN
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include <Windows.h>
+#undef APIENTRY
 
-#include "Omnia/Utility/Property.h"
+#include <Windows.h>
 
 namespace Omnia {
 

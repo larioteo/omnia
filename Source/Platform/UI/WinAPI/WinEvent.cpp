@@ -5,6 +5,8 @@
 #define VC_EXTRALEAN
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
+#undef APIENTRY
+
 #include <Windows.h>
 
 #ifndef HID_USAGE_PAGE_GENERIC
@@ -142,7 +144,7 @@ intptr_t WinEventListener::Register(void *event) {
 			}
 
 			// Get Key Code
-			data.Key = KeyCode{ msg.wParam };
+			data.Key = KeyCode{msg.wParam };
 			
 			// Finalization
 			KeyboardEvent.Publish(data);
@@ -448,25 +450,25 @@ intptr_t WinEventListener::Register(void *event) {
 		}
 		case WM_SHOWWINDOW: {
 			WindowEventData data;
-			data.Action == WindowAction::Show;
+			data.Action = WindowAction::Show;
 			data.Visible = (bool)msg.wParam;
 			WindowEvent.Publish(data);
 			break;
 		}
 		case WM_SIZE: {
 			WindowEventData data;
-			data.Action == WindowAction::Show;
+			data.Action = WindowAction::Show;
 			switch (msg.wParam) {
 				case SIZE_MAXIMIZED: {
-					data.Action == WindowAction::Maximize;
+					data.Action = WindowAction::Maximize;
 					break;
 				}
 				case SIZE_MINIMIZED: {
-					data.Action == WindowAction::Minimize;
+					data.Action = WindowAction::Minimize;
 					break;
 				}
 				case SIZE_RESTORED: {
-					data.Action == WindowAction::Restore;
+					data.Action = WindowAction::Restore;
 				}
 			}
 			data.Width = static_cast<uint32_t>((UINT64)msg.lParam & 0xFFFF);

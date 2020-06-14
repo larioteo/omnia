@@ -3,6 +3,9 @@
 // Library
 #include <ostream>
 
+#pragma warning(push)
+#pragma warning(disable: 26812)
+
 // CLI Modifiers
 namespace Omnia { namespace Cli {
 
@@ -82,3 +85,5 @@ inline std::ostream &operator<<(std::ostream &os, Styles style) {
 }
 
 }}
+
+#pragma warning(pop)

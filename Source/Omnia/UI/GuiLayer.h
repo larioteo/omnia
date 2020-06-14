@@ -6,22 +6,24 @@ namespace Omnia {
 
 class GuiLayer: public Layer {
 	Reference<EventListener> listener;
+	uint32_t Width;
+	uint32_t Height;
 
 public:
 	GuiLayer();
-	~GuiLayer();
+	virtual ~GuiLayer();
 
-	void Attach();
-	void Detach();
-	void Event(void *event);
-	void Update();
-	void GuiRender();
+	virtual void Attach() override;
+	virtual void Detach() override;
+	virtual void Event(void *event) override;
+	virtual void Update() override;
+	virtual void GuiRender() override;
 
-	void ControllerEvent(ControllerEventData data) override;
-	void KeyboardEvent(KeyboardEventData data) override;
-	void MouseEvent(MouseEventData data) override;
-	void TouchEvent(TouchEventData data) override;
-	void WindowEvent(WindowEventData data) override;
+	virtual void ControllerEvent(ControllerEventData data) override;
+	virtual void KeyboardEvent(KeyboardEventData data) override;
+	virtual void MouseEvent(MouseEventData data) override;
+	virtual void TouchEvent(TouchEventData data) override;
+	virtual void WindowEvent(WindowEventData data) override;
 };
 
 }

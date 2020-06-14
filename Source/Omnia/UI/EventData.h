@@ -308,6 +308,7 @@ inline std::ostream &operator<<(std::ostream &stream, ControllerButton button) {
 		case ControllerButton::Button10:			{ stream << "Button10";			break; }
 		case ControllerButton::Button11:			{ stream << "Button11";			break; }
 		case ControllerButton::Button12:			{ stream << "Button12";			break; }
+		case ControllerButton::Button13:			{ stream << "Button13";			break; }
 		case ControllerButton::Button14:			{ stream << "Button14";			break; }
 		case ControllerButton::Button15:			{ stream << "Button15";			break; }
 		case ControllerButton::ShoulderLeft1:		{ stream << "ShoulderLeft1";	break; }
@@ -806,6 +807,7 @@ inline std::ostream &operator<<(std::ostream &stream, TouchStyle style) {
 		case TouchStyle::DoubleTap:		{ stream << "DoubleTap";	break; }
 		case TouchStyle::Expand:		{ stream << "Expand";		break; }
 		case TouchStyle::Swipe:			{ stream << "Swipe";		break; }
+		case TouchStyle::Pich:			{ stream << "Pich";			break; }
 		case TouchStyle::Rotate:		{ stream << "Rotate";		break; }
 		case TouchStyle::Undefined:		{ stream << "-";			break; }
 	}
@@ -956,7 +958,7 @@ struct TouchEventData {
 	TouchAction Action = TouchAction::Undefined;
 	TouchStyle Style = TouchStyle::Undefined;
 
-	size_t ID;
+	size_t ID = {};
 	float DeltaTime = 0.0f;
 	
 	int32_t DeltaX = 0;

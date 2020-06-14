@@ -61,7 +61,6 @@ namespace Omnia {
 	#define APP_COMPILER_PATCH		0
 	#define APP_COMPILER_VERSION	"v" TOSTRING(APP_COMPILER_MAJOR) "." TOSTRING(APP_COMPILER_MINOR) "." TOSTRING(APP_COMPILER_PATCH)
 #endif
-#pragma message("#> Compiler: " APP_COMPILER " [" APP_COMPILER_VERSION "]")
 
 // Platform
 #if defined(_WIN32) || defined(_WIN64)
@@ -103,7 +102,6 @@ namespace Omnia {
 	#define APP_PLATFORM "Unknown"
 	static constexpr auto AppPlatform = "Unknown";
 #endif
-#pragma message("#> Platform: " APP_PLATFORM)
 
 // PlatformAPI
 #if defined(APP_PLATFORM_WINDOWS)
@@ -127,7 +125,6 @@ namespace Omnia {
 	#define APP_PLATFORM_API	"Unknown"
 	static constexpr auto AppPlatformAPI = "Unknown";
 #endif
-#pragma message("#> PlatformAPI: " APP_PLATFORM_API)
 
 // GraphicsAPI
 #if defined(APP_GRAPHICS_API_AUTO)
@@ -144,6 +141,13 @@ namespace Omnia {
 	#define APP_GRAPHICS_API_OPENGL
 	#define APP_GRAPHICS_API "OpenGL"
 #endif
-#pragma message("#> GraphicsAPI: " APP_GRAPHICS_API)
 
+
+
+#if 0
+	#pragma message(once: "#> Compiler: " APP_COMPILER " [" APP_COMPILER_VERSION "]")
+	#pragma message(once: "#> Platform: " APP_PLATFORM)
+	#pragma message(once: "#> PlatformAPI: " APP_PLATFORM_API)
+	#pragma message(once: "#> GraphicsAPI: " APP_GRAPHICS_API)
+#endif
 }

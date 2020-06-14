@@ -19,9 +19,10 @@ class Application {
 
 	Reference<EventListener> Listener;
 	Reference<Window> Window;
-	gfx::ContextData Context;
 
 public:
+	gfx::ContextData Context;
+
 	Application();
 	virtual ~Application();
 

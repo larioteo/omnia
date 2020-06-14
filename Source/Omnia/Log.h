@@ -1,10 +1,12 @@
 ﻿#pragma once
-
 #include "Omnia.pch"
 
 #include "Types.h"
-#include "System/CLI.h"
+#include "System/Cli.h"
 #include "Utility/DateTime.h"
+
+#pragma warning(push)
+#pragma warning(disable: 26812)
 
 namespace Omnia {
 
@@ -50,7 +52,7 @@ class Log {
 
 	// Operators
 	Log &operator=(const Log &) {}
-	Log &operator=(const Log &&) {}
+	Log &operator=(const Log &&) noexcept {}
 
 public:
 	// Enumerations
@@ -224,3 +226,5 @@ inline Log &appout = Log::Instance();
 #endif
 
 }
+
+#pragma warning(pop)

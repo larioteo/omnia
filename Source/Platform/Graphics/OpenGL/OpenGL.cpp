@@ -17,10 +17,12 @@
 	#define VC_EXTRALEAN
 	#define WIN32_LEAN_AND_MEAN
 	#define NOMINMAX
-	#include <Windows.h>
+	#undef APIENTRY
+
+	//#include <Windows.h>
 	#include <glad/glad.h>
 	//#include <GL/gl.h>
-	#define GL_EXT_color_subtable
+	//#define GL_EXT_color_subtable
 	#include <GL/glext.h>
 	#include "GL/wglext.h"
 #endif

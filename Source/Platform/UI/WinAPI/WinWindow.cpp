@@ -5,6 +5,7 @@
 #define VC_EXTRALEAN
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
+#undef APIENTRY
 
 #include <DwmApi.h>
 #include <ShObjIdl.h>
@@ -26,14 +27,14 @@ ITaskbarList3 *TaskbarList;
 static intptr_t __stdcall MessageCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 // Internal Styles
-enum class Styles {
+enum class Styles: uint64_t {
 	// NEHE SetWindowLongPtr(window, GWL_STYLE, WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 	Default = WS_OVERLAPPEDWINDOW,		// Contains: WS_SYSMENU | WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_VISIBLE
 	Aero = WS_POPUP | WS_THICKFRAME,
 	Borderless = WS_POPUP | WS_VISIBLE,
 	Full = WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_POPUP | WS_VISIBLE
 };
-enum class StylesX {
+enum class StylesX: uint64_t {
 	// WindowStyleEx &= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE)
 	// NEHE SetWindowLongPtr(window, GWL_EXSTYLE, WS_EX_APPWINDOW);
 	DefaultX = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE,
@@ -49,7 +50,7 @@ struct PlatformWindowStyle {
 WinWindow::WinWindow(const WindowProperties &properties):
 	Properties{ properties } {
 	// Properties
-	PlatformWindowStyle windowStyle;
+	PlatformWindowStyle windowStyle = {};
 	HBRUSH ClearColor = CreateSolidBrush(RGB(0, 0, 0));
 
 	// Get Application Information
@@ -104,7 +105,7 @@ WinWindow::WinWindow(const WindowProperties &properties):
 			// If the switching fails, offer the user an option to switch to windowed mode
 			if (ChangeDisplaySettings(&screenProperties, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL) {
 				if (MessageBox(NULL, "The requested FullScreen Mode isn't supported by\n<our graphics card. Switch to windowed mode Instead?", __FUNCTION__, MB_YESNO | MB_ICONEXCLAMATION) == IDYES) {
-					Properties.Style == WindowStyle::Default;
+					Properties.Style = WindowStyle::Default;
 				} else {
 					applog << Log::Error << __FUNCTION__ << ": Switching to fullscreen mode failed!" << std::endl;
 					return;

@@ -13,14 +13,14 @@
 # ☷ Build
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 # The needed headers and sources to build the library.
-set(GLAD_HEADRES
+set(GLAD_HEADERS
 	".Library/glad/glad.h"
 	".Library/KHR/khrplatform.h"
 )
 set(GLAD_SOURCES
 	".Library/glad/glad.c"
 )
-add_library(glad STATIC ${GLAD_HEADRS} ${GLAD_SOURCES})
+add_library(glad STATIC ${GLAD_HEADERS} ${GLAD_SOURCES})
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 # ☷ IDE
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐

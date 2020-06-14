@@ -1,5 +1,4 @@
 ﻿#pragma once
-
 /**
 * @brief	This file should only be included by an external application.
 */

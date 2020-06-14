@@ -85,6 +85,7 @@ public:
 
 		std::stringstream ss;
 		ss << std::put_time(std::localtime(&time), format.c_str());
+		
 		return ss.str();
 	}
 	static std::string GetIsoTime() {

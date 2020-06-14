@@ -5,67 +5,125 @@
 #include "Omnia/Log.h"
 
 #include "Omnia/UI/GuiBuilder.h"
+#include "Omnia/Graphics/Graphics.h"
 
 namespace Omnia {
 
 GuiLayer::GuiLayer():
-	Layer("GuiLayer") {
+	Layer("GuiLayer"),
+	Width{ 0 },
+	Height{ 0 } {
 }
 
 GuiLayer::~GuiLayer() {
-	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplWin32_Shutdown();
-	ImGui::DestroyContext();
 }
 
 
 void GuiLayer::Attach() {
+	// Decide GL+GLSL versions
+	Application &app = Application::Get();
+	const char *glsl_version = "#version 130";
+
+	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGui::StyleColorsClassic();
-
-	const char *glsl_version = "#version 410";
-	Application &app = Application::Get();
-
-	ImGuiIO &io = ImGui::GetIO();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+	//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+	//io.ConfigViewportsNoAutoMerge = true;
+	//io.ConfigViewportsNoTaskBarIcon = true;
 	io.IniFilename = "Designer.ini";
 	io.LogFilename = "Designer.log";
-	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
-	io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
-	io.DisplaySize = ImVec2(app.GetWindow().GetDisplaySize().Width, app.GetWindow().GetDisplaySize().Height);
+	////io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
+	////io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
+	////io.DisplaySize = ImVec2(app.GetWindow().GetDisplaySize().Width, app.GetWindow().GetDisplaySize().Height);
 
-	if (ImGui_ImplOpenGL3_Init(glsl_version)) {
-		applog << Log::Success << "OpenGLInit: Success\n";
+	// Setup Dear ImGui style
+	//ImGui::StyleColorsDark();
+	ImGui::StyleColorsClassic();
+
+	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+	ImGuiStyle& style = ImGui::GetStyle();
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		style.WindowRounding = 0.0f;
+		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
-	
-	if (ImGui_ImplWin32_Init((HWND)app.GetWindow().GetNativeWindow())) {
-		applog << Log::Success << "Win32Init: Success\n";
-	}
+
+	Width = app.GetWindow().GetDisplaySize().Width;
+	Height = app.GetWindow().GetDisplaySize().Height;
+
+	ImGui_ImplWin32_Init((HWND)app.GetWindow().GetNativeWindow());
+	ImGui_ImplOpenGL3_Init(glsl_version);
+
+	// Load Fonts
+	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
+	// - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
+	// - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
+	// - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
+	// - Read 'docs/FONTS.md' for more instructions and details.
+	// - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
+	//io.Fonts->AddFontDefault();
+	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
+	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
+	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
+	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
+	//ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
+	//IM_ASSERT(font != NULL);
 
 }
 
 void GuiLayer::Detach() {
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 }
 
 void GuiLayer::Event(void *event) {
 }
 
 void GuiLayer::Update() {
-	// Start the Dear ImGui frame
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
+	Application &app = Application::Get();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+	RECT clientRect;
+	GetClientRect((HWND)app.Get().GetWindow().GetNativeWindow(), &clientRect);
+	int windowWidth = clientRect.right - clientRect.left;
+	int windowHeight = clientRect.bottom - clientRect.top;
+	io.DisplaySize = ImVec2(Width, Height);
+	static bool show_demo_window = true;
 
 	//GetDeltaTime...
 	//ImGuiIO &= = ImGui::GetIO();
 	//io.DeltaTime = Time > 0.0f ? (time - Time) : (1.0f / 60.0f);
 
-	static bool show = true;
-	ImGui::ShowDemoWindow(&show);
+	// Start the Dear ImGui frame
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	if (show_demo_window)
+		ImGui::ShowDemoWindow(&show_demo_window);
 
 	// Rendering
 	ImGui::Render();
+	glViewport(0, 0, windowWidth, windowHeight);
+	//glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+	glClear(GL_COLOR_BUFFER_BIT);
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+	// Update and Render additional Platform Windows
+	// (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
+	//  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+		gfx::ContextData Context = app.Get().Context;
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
+		//gfx::SetContext(Context);
+		SwapBuffers(Context.hDeviceContext);
+	}
 }
 
 void GuiLayer::GuiRender() {

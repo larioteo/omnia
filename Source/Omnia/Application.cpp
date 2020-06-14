@@ -71,8 +71,8 @@ void Application::Run() {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		if (Paused) continue;
-		for (Layer *layer : Layers) layer->Update();
 		Listener->Update();
+		for (Layer *layer : Layers) layer->Update();
 
 		Update();
 		gfx::SwapBuffers(Context);

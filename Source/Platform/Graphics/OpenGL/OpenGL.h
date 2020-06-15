@@ -1,5 +1,6 @@
 #pragma once
 
+#include <glad/glad.h>
 #include "Omnia/Utility/Property.h"
 
 #define VC_EXTRALEAN
@@ -13,7 +14,7 @@ namespace Omnia {
 
 class Window;
 
-namespace gfx {
+namespace Gfx {
 
 // Context Data and Properties
 struct ContextData {

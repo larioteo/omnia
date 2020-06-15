@@ -23,6 +23,7 @@ void GuiLayer::Attach() {
 	// Decide GL+GLSL versions
 	Application &app = Application::Get();
 	const char *glsl_version = "#version 130";
+	//ImGui_ImplWin32_EnableDpiAwareness();
 
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
@@ -31,7 +32,7 @@ void GuiLayer::Attach() {
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-	//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
 	//io.ConfigViewportsNoAutoMerge = true;
 	//io.ConfigViewportsNoTaskBarIcon = true;
 	io.IniFilename = "Designer.ini";
@@ -55,7 +56,7 @@ void GuiLayer::Attach() {
 	Width = app.GetWindow().GetDisplaySize().Width;
 	Height = app.GetWindow().GetDisplaySize().Height;
 
-	ImGui_ImplWin32_Init((HWND)app.GetWindow().GetNativeWindow());
+	ImGui_ImplWin32_Init((HWND)app.GetWindow().GetNativeWindow(), app.GetContext().hRenderingContext);
 	ImGui_ImplOpenGL3_Init(glsl_version);
 
 	// Load Fonts
@@ -72,7 +73,6 @@ void GuiLayer::Attach() {
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
 	//ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
 	//IM_ASSERT(font != NULL);
-
 }
 
 void GuiLayer::Detach() {
@@ -86,13 +86,8 @@ void GuiLayer::Event(void *event) {
 
 void GuiLayer::Update() {
 	Application &app = Application::Get();
+	if (!app.GetWindow().GetProperties().State.Alive) return;
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
-
-	RECT clientRect;
-	GetClientRect((HWND)app.Get().GetWindow().GetNativeWindow(), &clientRect);
-	int windowWidth = clientRect.right - clientRect.left;
-	int windowHeight = clientRect.bottom - clientRect.top;
-	io.DisplaySize = ImVec2(Width, Height);
 	static bool show_demo_window = true;
 
 	//GetDeltaTime...
@@ -104,32 +99,49 @@ void GuiLayer::Update() {
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	if (show_demo_window)
-		ImGui::ShowDemoWindow(&show_demo_window);
+	if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
 
 	// Rendering
 	ImGui::Render();
-	glViewport(0, 0, windowWidth, windowHeight);
 	//glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-	glClear(GL_COLOR_BUFFER_BIT);
+	//glClear(GL_COLOR_BUFFER_BIT);
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 	// Update and Render additional Platform Windows
 	// (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
 	//  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-		gfx::ContextData Context = app.Get().Context;
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
-		//gfx::SetContext(Context);
-		SwapBuffers(Context.hDeviceContext);
+		
+		wglMakeCurrent(app.Get().GetContext().hDeviceContext, app.Get().GetContext().hRenderingContext);
 	}
+
+	//SwapBuffers(app.Context.hDeviceContext);
 }
 
 void GuiLayer::GuiRender() {
 
 }
 
+
+void GuiLayer::Begin() {
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+}
+
+void GuiLayer::End() {
+	Application &app = Application::Get();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
+
+		wglMakeCurrent(app.Get().GetContext().hDeviceContext, app.Get().GetContext().hRenderingContext);
+	}
+}
 
 
 void GuiLayer::ControllerEvent(ControllerEventData data) {

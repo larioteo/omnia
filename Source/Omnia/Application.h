@@ -4,6 +4,9 @@
 #include "Omnia/LayerStack.h"
 #include "Omnia/UI/Event.h"
 #include "Omnia/UI/Window.h"
+
+#include "Omnia/UI/GuiLayer.h"
+
 #include "Omnia/Graphics/Graphics.h"
 
 namespace Omnia {
@@ -19,15 +22,16 @@ class Application {
 
 	Reference<EventListener> Listener;
 	Reference<Window> Window;
+	GuiLayer *CoreLayer;
+	Gfx::ContextData Context;
 
 public:
-	gfx::ContextData Context;
-
 	Application();
 	virtual ~Application();
 
 	inline static Application &Get() { return *AppInstance; }
 	inline Omnia::Window &GetWindow() { return *Window; }
+	inline Omnia::Gfx::ContextData &GetContext() { return Context; }
 
 	/**
 	* @brief	With this method, everything begins.

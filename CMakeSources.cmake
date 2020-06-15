@@ -52,12 +52,18 @@ list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_DEBUG_SOURCES})
 
 # Graphic Extensions
 set(OMNIA_LIBRARY_GRAPHICS_HEADERS
+	"Source/Omnia/Graphics/Context.h"
+	"Source/Platform/Graphics/OpenGL/GLContext.h"
+
 	"Source/Omnia/Graphics/Graphics.h"
 	"Source/Platform/Graphics/OpenGL/OpenGL.h"
 )
 list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_GRAPHICS_HEADERS})
 
 set(OMNIA_LIBRARY_GRAPHICS_SOURCES
+	"Source/Omnia/Graphics/Context.cpp"
+	"Source/Platform/Graphics/OpenGL/GLContext.cpp"
+
 	"Source/Platform/Graphics/OpenGL/OpenGL.cpp"
 )
 list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_GRAPHICS_SOURCES})

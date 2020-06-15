@@ -2,6 +2,7 @@
 
 #include "Omnia/Omnia.pch"
 #include "Omnia/Log.h"
+#include "UI/GuiLayer.h"
 #include "Omnia/Utility/Timer.h"
 
 #include "Omnia/Debug/Instrumentor.h"
@@ -23,8 +24,8 @@ Application::Application():
 	Window = Window::Create(WindowProperties("Ultra"s, 1024, 768));
 
 	// Register Components
-	Context = gfx::CreateContext(Window.get(), gfx::ContextProperties());
-	gfx::SetContext(Context);
+	Context = Gfx::CreateContext(Window.get(), Gfx::ContextProperties());
+	Gfx::SetContext(Context);
 
 	// Load GL Library
 	if (!gladLoadGL()) {
@@ -35,7 +36,9 @@ Application::Application():
 
 	// Information
 	printf("OpenGL Version %d.%d loaded\n", GLVersion.major, GLVersion.minor);
+	CoreLayer = new GuiLayer();
 
+	PushOverlay(CoreLayer);
 }
 
 Application::~Application() {}
@@ -43,7 +46,6 @@ Application::~Application() {}
 void Application::Run() {
 	APP_PROFILE_BEGIN_SESSION("Playground", "AppProfile.json");
 	// Initialization
-	Create();
 	auto oDispatcher = Window->EventCallback.Subscribe([&](void *event) { Listener->Callback(event); });
 
 	// Subscribe to all events (internal)
@@ -66,21 +68,24 @@ void Application::Run() {
 	auto oWindowEvent = Listener->WindowEvent.Subscribe([&](WindowEventData data) { this->WindowEvent(data); });
 
 	// Main Logic
+	Create();
+	//PrintMemoryUsage();
 	while (Running) {
-		glClearColor(1, 0, 1, 1);
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		if (Paused) continue;
 		Listener->Update();
+		Update();
+		
 		for (Layer *layer : Layers) layer->Update();
 
-		Update();
-		gfx::SwapBuffers(Context);
+
+		Gfx::SwapBuffers(Context);
 	}
 
 	// Termination
 	Destroy();
-	//PrintMemoryUsage();
 	APP_PROFILE_END_SESSION();
 }
 

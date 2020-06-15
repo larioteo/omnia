@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Omnia/Layer.h"
+#include <imgui/imgui.h>
 
 namespace Omnia {
 
@@ -18,6 +19,9 @@ public:
 	virtual void Event(void *event) override;
 	virtual void Update() override;
 	virtual void GuiRender() override;
+
+	void Begin();
+	void End();
 
 	virtual void ControllerEvent(ControllerEventData data) override;
 	virtual void KeyboardEvent(KeyboardEventData data) override;

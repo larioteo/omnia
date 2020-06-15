@@ -27,7 +27,7 @@
 	#include "GL/wglext.h"
 #endif
 
-namespace Omnia { namespace gfx {
+namespace Omnia { namespace Gfx {
 
 // Get Extension
 #if defined(APP_PLATFORM_API_WIN32)

@@ -133,8 +133,8 @@ add_subdirectory(3rd-Party)
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 # ☷ Libraries
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-set(Libraries glad imgui)
-foreach(Library ${Libraries})
+set(OmniaLibraries glad imgui)
+foreach(Library ${OmniaLibraries})
 	message("    - ${Library}")
 	target_link_libraries(${PROJECT_NAME} PRIVATE ${Library})
 endforeach()

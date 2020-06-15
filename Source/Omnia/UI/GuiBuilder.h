@@ -6,6 +6,6 @@
 #pragma warning(push, 0)
 
 #include <imgui/examples/imgui_impl_opengl3.h>
-#include <imgui/examples/imgui_impl_win32.h>
+#include <imgui/examples/imgui_impl_win32-patch.h>
 
 #pragma warning(pop)

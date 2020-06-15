@@ -6,7 +6,6 @@
 #define APP_GFX_API_OPENGL
 
 #if defined(APP_GFX_API_OPENGL)
-	#include <glad/glad.h>
     #include "Platform/Graphics/OpenGL/OpenGL.h"
 #elif defined(APP_GFX_API_DIRECTX11) && defined(APP_PLATFORM_WINDOWS)
 	#include "Platform/Graphics/DirectX/DirectX11.h"

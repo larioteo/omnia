@@ -88,9 +88,11 @@ set(OMNIA_LIBRARY_UI_HEADERS
 
 	"Source/Omnia/UI/EventData.h"
 	"Source/Omnia/UI/Event.h"
+	"Source/Omnia/UI/Input.h"
 	"Source/Omnia/UI/WindowData.h"
 	"Source/Omnia/UI/Window.h"
 	"Source/Platform/UI/WinAPI/WinEvent.h"
+	"Source/Platform/UI/WinAPI/WinInput.h"
 	"Source/Platform/UI/WinAPI/WinWindow.h"
 )
 list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_UI_HEADERS})
@@ -100,8 +102,10 @@ set(OMNIA_LIBRARY_UI_SOURCES
 	"Source/Omnia/UI/GuiLayer.cpp"
 
 	"Source/Omnia/UI/Event.cpp"
+	"Source/Omnia/UI/Input.cpp"
 	"Source/Omnia/UI/Window.cpp"
 	"Source/Platform/UI/WinAPI/WinEvent.cpp"
+	"Source/Platform/UI/WinAPI/WinInput.cpp"
 	"Source/Platform/UI/WinAPI/WinWindow.cpp"
 )
 list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_UI_SOURCES})

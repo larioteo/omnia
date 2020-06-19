@@ -10,7 +10,7 @@ Scope<EventListener> EventListener::Create() {
 	#ifdef APP_PLATFORM_WINDOWS
 		return CreateScope<WinEventListener>();
 	#else
-		static_assert("Platform not supported!");
+		// ToDo: Show assertation message!
 	#endif
 }
 

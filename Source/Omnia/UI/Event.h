@@ -11,7 +11,7 @@ namespace Omnia {
 class EventListener {
 public:
 	// Default
-	EventListener() {};
+	EventListener() = default;
 	virtual ~EventListener() = default;
 	static Scope<EventListener> Create();
 
@@ -20,16 +20,16 @@ public:
 	virtual void Update() = 0;
 
 	// Subjects
-	Subject<DeviceEventData> DeviceEvent;
-	Subject<PowerEventData> PowerEvent;
+	Subject<DeviceEventData &> DeviceEvent;
+	Subject<PowerEventData &> PowerEvent;
 
-	Subject<ControllerEventData> ControllerEvent;
-	Subject<KeyboardEventData> KeyboardEvent;
-	Subject<MouseEventData> MouseEvent;
-	Subject<TouchEventData> TouchEvent;
-	Subject<WindowEventData> WindowEvent;
+	Subject<ControllerEventData &> ControllerEvent;
+	Subject<KeyboardEventData &> KeyboardEvent;
+	Subject<MouseEventData &> MouseEvent;
+	Subject<TouchEventData &> TouchEvent;
+	Subject<WindowEventData &> WindowEvent;
 
-	Subject<ContextEventData> ContextEvent;
+	Subject<ContextEventData &> ContextEvent;
 };
 
 }

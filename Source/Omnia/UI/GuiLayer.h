@@ -17,7 +17,7 @@ public:
 	virtual void Attach() override;
 	virtual void Detach() override;
 	virtual void Event(void *event) override;
-	virtual void Update() override;
+	virtual void Update(Timestep deltaTime) override;
 	virtual void GuiRender() override;
 
 	void Begin();

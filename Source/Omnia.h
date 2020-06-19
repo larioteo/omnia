@@ -37,6 +37,7 @@
 // UI Extensions
 #if defined(APP_LIBRARY_UI_EXTENSIONS)
 	#include "Omnia/UI/Event.h"
+	#include "Omnia/UI/Input.h"
 	#include "Omnia/UI/Window.h"
 #endif
 

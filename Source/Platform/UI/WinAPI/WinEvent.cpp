@@ -6,7 +6,6 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #undef APIENTRY
-
 #include <Windows.h>
 
 #ifndef HID_USAGE_PAGE_GENERIC
@@ -71,7 +70,7 @@ intptr_t WinEventListener::Register(void *event) {
 	// Do the magic
 	// Sources:
 	// - Raw Input:			https://docs.microsoft.com/en-us/windows/win32/inputdev/raw-input-notifications
-	// - Keyboard Input:	
+	// - Keyboard Input:	https://docs.microsoft.com/en-us/windows/win32/inputdev/keyboard-input-notifications
 	// - Mouse Input:		https://docs.microsoft.com/en-us/windows/win32/inputdev/mouse-input-notifications
 	// Pre-Flight-Test: Check if there are any observers in the goups, so the user gets only what he needs.
 	switch (uMsg) {
@@ -82,39 +81,39 @@ intptr_t WinEventListener::Register(void *event) {
 		case WM_INPUT: {
 			if (MouseEvent.Empty()) break; // || KeyboardEvent.Empty()
 			break;
-			static int32_t lastX = 0;
-			static int32_t lastY = 0;
+			//static int32_t lastX = 0;
+			//static int32_t lastY = 0;
 
-			MouseEventData data;
-			data.Action = MouseAction::Raw;
-			data.LastX = lastX;
-			data.LastY = lastY;
-			UINT dwSize = 40;
-			static BYTE lpb[40];
+			//MouseEventData data;
+			//data.Action = MouseAction::Raw;
+			//data.LastX = lastX;
+			//data.LastY = lastY;
+			//UINT dwSize = 40;
+			//static BYTE lpb[40];
 
-			// Get Data
-			uint32_t result = GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
-			//if (result != dwSize) OutputDebugString(TEXT("GetRawInputData does not return correct size !\n"));
-			RAWINPUT *raw = (RAWINPUT *)lpb;
+			//// Get Data
+			//uint32_t lr = GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
+			//if (lr != dwSize) OutputDebugString(TEXT("GetRawInputData does not return correct size !\n"));
+			//RAWINPUT *raw = (RAWINPUT *)lpb;
 
-			// Extract raw data
-			switch (raw->header.dwType) {
-				case RIM_TYPEKEYBOARD: {
-					break;
-				}
-				case RIM_TYPEMOUSE: {
-					data.X = raw->data.mouse.lLastX;
-					data.Y = raw->data.mouse.lLastY;
-					break;
-				}
-			}
-			data.DeltaX = data.X - data.LastX;
-			data.DeltaY = data.Y - data.LastY;
-			lastX = data.X;
-			lastY = data.Y;
+			//// Extract raw data
+			//switch (raw->header.dwType) {
+			//	case RIM_TYPEKEYBOARD: {
+			//		break;
+			//	}
+			//	case RIM_TYPEMOUSE: {
+			//		data.X = raw->data.mouse.lLastX;
+			//		data.Y = raw->data.mouse.lLastY;
+			//		break;
+			//	}
+			//}
+			//data.DeltaX = data.X - data.LastX;
+			//data.DeltaY = data.Y - data.LastY;
+			//lastX = data.X;
+			//lastY = data.Y;
 
-			// Finalization
-			MouseEvent.Publish(data);
+			//// Finalization
+			//MouseEvent.Publish(data);
 			break;
 		}
 		
@@ -126,6 +125,18 @@ intptr_t WinEventListener::Register(void *event) {
 			// Perparation
 			KeyboardEventData data;
 			data.Action = KeyboardAction::Default;
+
+			// Get Key Code
+			data.Key = KeyCode{ msg.wParam };
+			if (HIWORD(msg.lParam) & KF_EXTENDED) {
+				switch (msg.wParam) {
+					case VK_CONTROL:	{ data.Key = KeyCode::RControl;	break; }
+					case VK_SHIFT:		{ data.Key = KeyCode::RShift;	break; }
+					case VK_MENU:		{ data.Key = KeyCode::RAlt;		break; }
+					case VK_RETURN:		{ data.Key = KeyCode::Return;	break; }
+					default:			{ break; }
+				}
+			}
 
 			// Get Key State
 			switch (msg.message) {
@@ -143,9 +154,15 @@ intptr_t WinEventListener::Register(void *event) {
 				}
 			}
 
-			// Get Key Code
-			data.Key = KeyCode{msg.wParam };
-			
+			// Get Modifiers
+			data.Modifier.Alt		= (bool)GetAsyncKeyState(VK_MENU);
+			data.Modifier.Control	= (bool)GetAsyncKeyState(VK_CONTROL);
+			data.Modifier.Shift		= (bool)GetAsyncKeyState(VK_SHIFT);
+			data.Modifier.Super		= (bool)(GetAsyncKeyState(VK_LWIN) | GetAsyncKeyState(VK_RWIN));
+			if (GetSystemMetrics(SM_SWAPBUTTON)) {
+				// Mouse Buttons as modifiers ... yes we can :)
+			}
+
 			// Finalization
 			KeyboardEvent.Publish(data);
 			result = 0;
@@ -153,12 +170,20 @@ intptr_t WinEventListener::Register(void *event) {
 		}
 		
 		// Mouse
+		case WM_MOUSEACTIVATE: {
+			if (HIWORD(msg.lParam) == WM_LBUTTONDBLCLK) {
+				if (LOWORD(msg.lParam) == HTCLIENT) {
+					// Don't capture mouse on title click
+				}
+			}
+		}
 		case WM_LBUTTONDBLCLK:		case WM_MBUTTONDBLCLK:		case WM_RBUTTONDBLCLK:		case WM_XBUTTONDBLCLK: {
 			if (MouseEvent.Empty()) return result;
 
 			MouseEventData data;
 			data.Action = MouseAction::DoubleClick;
 
+			// Get MouseButton
 			switch (msg.message) {
 				case WM_LBUTTONDBLCLK: {
 					data.Button = MouseButton::Left;
@@ -173,15 +198,22 @@ intptr_t WinEventListener::Register(void *event) {
 					break;
 				}
 				case WM_XBUTTONDBLCLK: {
-					short button = HIWORD(msg.wParam);
-					data.Button = MouseButton(button & XBUTTON1 ? MouseButton::X1 : MouseButton::X2);
+					short button = GET_XBUTTON_WPARAM(msg.wParam);
+					data.Button = (button == XBUTTON1 ? MouseButton::X1 : MouseButton::X2);
+					break;
 				}
 				default: {
 					data.Button = MouseButton::Undefined;
 					break;
 				}
 			}
-			
+
+			// Get Modifiers
+			data.Modifier.Control	= GetKeyState(VK_CONTROL);
+			data.Modifier.Shift		= GetKeyState(VK_SHIFT);
+			data.Modifier.Alt		= GetKeyState(VK_MENU);
+			data.Modifier.Super		= (GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN));
+
 			data.State = ButtonState::Press;
 
 			MouseEvent.Publish(data);
@@ -194,29 +226,26 @@ intptr_t WinEventListener::Register(void *event) {
 			MouseEventData data;
 			data.Action = MouseAction::Click;
 
+			// Get MouseButton
 			switch (msg.message) {
-				case WM_LBUTTONDOWN:
-				case WM_LBUTTONUP: {
+				case WM_LBUTTONDOWN:	case WM_LBUTTONUP: {
 					data.Button = MouseButton::Left;
 					data.State = (msg.message == WM_LBUTTONDOWN ? ButtonState::Press : ButtonState::Release);
 					break;
 				}
-				case WM_MBUTTONDOWN:
-				case WM_MBUTTONUP: {
+				case WM_MBUTTONDOWN:	case WM_MBUTTONUP: {
 					data.Button = MouseButton::Middle;
 					data.State = (msg.message == WM_MBUTTONDOWN ? ButtonState::Press : ButtonState::Release);
 					break;
 				}
-				case WM_RBUTTONDOWN:
-				case WM_RBUTTONUP: {
+				case WM_RBUTTONDOWN:	case WM_RBUTTONUP: {
 					data.Button = MouseButton::Right;
 					data.State = (msg.message == WM_RBUTTONDOWN ? ButtonState::Press : ButtonState::Release);
 					break;
 				}
-				case WM_XBUTTONDOWN:
-				case WM_XBUTTONUP: {
-					short button = HIWORD(msg.wParam);
-					data.Button = MouseButton(button & XBUTTON1 ? MouseButton::X1 : MouseButton::X2);
+				case WM_XBUTTONDOWN:	case WM_XBUTTONUP: {
+					short button = GET_XBUTTON_WPARAM(msg.wParam);
+					data.Button = (button & XBUTTON1 ? MouseButton::X1 : MouseButton::X2);
 					data.State = (msg.message == WM_XBUTTONDOWN ? ButtonState::Press : ButtonState::Release);
 				}
 				default: {
@@ -226,11 +255,14 @@ intptr_t WinEventListener::Register(void *event) {
 				}
 			}
 
+			// Get Modifiers
+			data.Modifier.Control	= GetKeyState(VK_CONTROL);
+			data.Modifier.Shift		= GetKeyState(VK_SHIFT);
+			data.Modifier.Alt		= GetKeyState(VK_MENU);
+			data.Modifier.Super		= (GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN));
+
 			MouseEvent.Publish(data);
 			break;
-
-			short modifiers = LOWORD(msg.wParam);
-			//event = Event(MouseInputData(MouseInput::Left, ButtonState::Pressed, ModifierState(modifiers & MK_CONTROL, modifiers & MK_ALT, modifiers & MK_SHIFT, modifiers & 0)), window);
 		}
 		case WM_MOUSEMOVE: {
 			if (MouseEvent.Empty()) return result;
@@ -256,37 +288,35 @@ intptr_t WinEventListener::Register(void *event) {
 			switch (msg.wParam) {
 				case MK_CONTROL: {
 					data.Modifier.Control = true;
-					break;
 				}
 				case MK_SHIFT: {
 					data.Modifier.Shift = true;
-					break;
 				}
 				case MK_LBUTTON: {
 					data.Button = MouseButton::Left;
-					break;
 				}
 				case MK_MBUTTON: {
 					data.Button = MouseButton::Middle;
-					break;
 				}
 				case MK_RBUTTON: {
 					data.Button = MouseButton::Right;
-					break;
 				}
 				case MK_XBUTTON1: {
 					data.Button = MouseButton::X1;
-					break;
 				}
 				case MK_XBUTTON2: {
 					data.Button = MouseButton::X2;
-					break;
 				}
 				default: {
 					data.Button = MouseButton::Undefined;
-					break;
 				}
 			}
+
+			// Get Modifiers
+			data.Modifier.Control	= GetKeyState(VK_CONTROL);
+			data.Modifier.Shift		= GetKeyState(VK_SHIFT);
+			data.Modifier.Alt		= GetKeyState(VK_MENU);
+			data.Modifier.Super		= (GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN));
 
 			MouseEvent.Publish(data);
 			break;
@@ -384,7 +414,7 @@ intptr_t WinEventListener::Register(void *event) {
 			data.State = KeyState::Undefined;
 
 			// Get Key Code
-			data.Character = msg.wParam;
+			data.Character = (char)msg.wParam;
 			data.Key = KeyCode{ (unsigned int)msg.wParam };
 
 			// Finalization
@@ -408,16 +438,8 @@ intptr_t WinEventListener::Register(void *event) {
 			WindowEvent.Publish(data);
 			break;
 		}
-		case WM_GETMINMAXINFO: {
-			// ToDo: Restrict Container to bounds
-			break;
-		}
-
+		
 		// Creation and Destruction
-		case WM_CLOSE: {
-			// Currently there is no use for this event.
-			break;
-		}
 		case WM_CREATE: {
 			WindowEventData data;
 			data.Action = WindowAction::Create;
@@ -438,16 +460,6 @@ intptr_t WinEventListener::Register(void *event) {
 			WindowEvent.Publish(data);
 			break;
 		}
-		case WM_MOVE: {
-			WindowEventData data;
-			data.Action = WindowAction::Move;
-
-			data.X = (int)(short) LOWORD(msg.lParam);   // horizontal position 
-			data.Y = (int)(short) HIWORD(msg.lParam);   // vertical position 
-
-			WindowEvent.Publish(data);
-			break;
-		}
 		case WM_SHOWWINDOW: {
 			WindowEventData data;
 			data.Action = WindowAction::Show;
@@ -455,9 +467,34 @@ intptr_t WinEventListener::Register(void *event) {
 			WindowEvent.Publish(data);
 			break;
 		}
+		
+		case WM_SIZING: {
+			WindowEventData data;
+			data.Action = WindowAction::Resize;
+
+			PRECT pWindowDimension = reinterpret_cast<PRECT>(msg.lParam);
+			data.X = pWindowDimension->left;
+			data.Y = pWindowDimension->top;
+			data.Width = pWindowDimension->right - pWindowDimension->left;
+			data.Height = pWindowDimension->bottom - pWindowDimension->top;
+
+			WindowEvent.Publish(data);
+			break;
+		}
+		case WM_MOVE: {
+			WindowEventData data;
+			data.Action = WindowAction::Move;
+
+			data.X = GET_X_LPARAM(msg.lParam);
+			data.Y = GET_Y_LPARAM(msg.lParam);
+
+			WindowEvent.Publish(data);
+			break;
+		}
 		case WM_SIZE: {
 			WindowEventData data;
 			data.Action = WindowAction::Show;
+
 			switch (msg.wParam) {
 				case SIZE_MAXIMIZED: {
 					data.Action = WindowAction::Maximize;
@@ -473,19 +510,6 @@ intptr_t WinEventListener::Register(void *event) {
 			}
 			data.Width = static_cast<uint32_t>((UINT64)msg.lParam & 0xFFFF);
 			data.Height = static_cast<uint32_t>((UINT64)msg.lParam >> 16);
-			WindowEvent.Publish(data);
-			break;
-		}
-		case WM_SIZING: {
-			WindowEventData data;
-			data.Action = WindowAction::Resize;
-
-			PRECT pWindowDimension = (PRECT)msg.lParam;
-			data.X = pWindowDimension->left;
-			data.Y = pWindowDimension->top;
-			data.Width = pWindowDimension->right - pWindowDimension->left;
-			data.Height = pWindowDimension->bottom - pWindowDimension->top;
-
 			WindowEvent.Publish(data);
 			break;
 		}
@@ -536,8 +560,12 @@ intptr_t WinEventListener::Register(void *event) {
 					data.Action = PowerAction::Null;
 					PowerEvent.Publish(data);
 				}
+				
+				// Default
+				default: {
+					break;
+				}
 			}
-			break;
 		}
 		
 		default: {

@@ -1,7 +1,11 @@
 #pragma once
 
+#include <bitset>
+
 #include "Omnia/Omnia.pch"
 #include "Omnia/Core.h"
+
+#include "Omnia/Utility/Enum.h"
 
 namespace Omnia {
 
@@ -341,6 +345,7 @@ enum class KeyCode: uint8_t {
 	Capital		= 0x14,
 	
 	KanaMode	= 0x15,
+	HanguelMode	= 0x15,
 	HangulMode	= 0x15,
 	ImeOn		= 0x16,
 	JunjaMode	= 0x17,
@@ -864,11 +869,38 @@ struct ModifierState {
 };
 inline std::ostream &operator<<(std::ostream &stream, ModifierState state) {
 	stream	<< "Alt:"		<< state.Alt		<< "|"
-			<< "Control:"	<< state.Control	<< "|"
-			<< "Shift:"		<< state.Shift		<< "|"
-			<< "Super:"		<< state.Super;
+		<< "Control:"	<< state.Control	<< "|"
+		<< "Shift:"		<< state.Shift		<< "|"
+		<< "Super:"		<< state.Super;
 	return stream;
 }
+enum class ModifierStateE: uint16_t {
+	Ctrl	= BitMask(0),	Control		= Ctrl,
+	Shift	= BitMask(1),
+	Alt		= BitMask(2),	Alternate	= Alt,		Option	= Alt,
+	AltGr	= BitMask(3),	AlternateGraphic	= AltGr,
+	Meta	= BitMask(4),
+	Super	= BitMask(5),	Windows		= Super,	Command	= Super,
+	Fn		= BitMask(6),	Function	= Fn,
+
+	MouseLeft	= BitMask(7),
+	MouseMiddle	= BitMask(8),
+	MouseRight  = BitMask(9),
+	MouseX1		= BitMask(10),
+	MouseX2		= BitMask(11),
+};
+struct ModifierStateMask {
+	uint16_t Mask = 0;
+};
+;inline std::ostream &operator<<(std::ostream &stream, ModifierStateMask state) {
+	//stream	<< "Alt:"		<< (state.Mask & (uint16_t)ModifierStateE::Alt)		<< "|"
+	//		<< "Ctrl:"		<< (state.Mask & (uint16_t)ModifierStateE::Ctrl)	<< "|"
+	//		<< "Shift:"		<< (state.Mask & (uint16_t)ModifierStateE::Shift)	<< "|"
+	//		<< "Super:"		<< (state.Mask & (uint16_t)ModifierStateE::Super)	;
+	stream << std::bitset<8>(state.Mask);
+	return stream;
+}
+
 
 
 /**

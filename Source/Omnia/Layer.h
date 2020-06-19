@@ -2,6 +2,7 @@
 
 #include "Omnia/Core.h"
 #include "Omnia/UI/Event.h"
+#include "Omnia/Utility/Timer.h"
 
 namespace Omnia {
 
@@ -18,7 +19,10 @@ public:
 	virtual void Attach() {}
 	virtual void Detach() {}
 	virtual void Event(void *event) {}
-	virtual void Update() {}
+
+	virtual void Create() {}
+	virtual void Update(Timestep deltaTime) {}
+	virtual void Destroy() {}
 	virtual void GuiRender() {}
 
 	inline const string &GetName() const { return DebugName; }

@@ -10,7 +10,7 @@ Scope<Window> Window::Create(const WindowProperties &properties) {
 	#ifdef APP_PLATFORM_WINDOWS
 		return CreateScope<WinWindow>(properties);
 	#else
-		static_assert("Platform not supported!");
+		// ToDo: Show assertation message!
 	#endif
 }
 

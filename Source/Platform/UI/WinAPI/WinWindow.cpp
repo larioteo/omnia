@@ -1,46 +1,54 @@
-#include "WinWindow.h"
-
-#include "Omnia/Log.h"
+#pragma comment(lib, "dwmapi.lib")
+#pragma comment(lib, "uxtheme.lib")
 
 #define VC_EXTRALEAN
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #undef APIENTRY
-
 #include <DwmApi.h>
 #include <ShObjIdl.h>
 #include <Windows.h>
 #include <WindowsX.h>
 
-#pragma comment(lib, "dwmapi.lib")
-#pragma comment(lib, "uxtheme.lib")
+#include "Omnia/Log.h"
+#include "WinWindow.h"
+
 
 namespace Omnia {
+
+// Internal Callbacks
+static LRESULT CALLBACK MessageCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 // Internal Properties
 HINSTANCE hApplication;
 HWND hWindow;
 HICON AppIcon;
 ITaskbarList3 *TaskbarList;
-
-// Internal Message Callback
-static intptr_t __stdcall MessageCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+HBRUSH ClearColor = (HBRUSH)GetStockObject(NULL_BRUSH);
 
 // Internal Styles
-enum class Styles: uint64_t {
+enum class ClassStyle: uint32_t {
+	Application	= CS_DBLCLKS | CS_OWNDC | CS_HREDRAW | CS_VREDRAW,
+	Global		= CS_GLOBALCLASS | CS_DBLCLKS | CS_OWNDC | CS_HREDRAW | CS_VREDRAW,
+};
+
+enum class Styles: uint32_t {
 	// NEHE SetWindowLongPtr(window, GWL_STYLE, WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
 	Default = WS_OVERLAPPEDWINDOW,		// Contains: WS_SYSMENU | WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_VISIBLE
 	Aero = WS_POPUP | WS_THICKFRAME,
 	Borderless = WS_POPUP | WS_VISIBLE,
 	Full = WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_POPUP | WS_VISIBLE
 };
-enum class StylesX: uint64_t {
+
+enum class StylesX: uint32_t {
 	// WindowStyleEx &= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE)
 	// NEHE SetWindowLongPtr(window, GWL_EXSTYLE, WS_EX_APPWINDOW);
 	DefaultX = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE,
 	FullX = WS_EX_APPWINDOW
 };
+
 struct PlatformWindowStyle {
+	uint32_t ClassStyle;
 	uint32_t WindowStyle;
 	uint32_t WindowStyleEx;
 };
@@ -51,15 +59,15 @@ WinWindow::WinWindow(const WindowProperties &properties):
 	Properties{ properties } {
 	// Properties
 	PlatformWindowStyle windowStyle = {};
-	HBRUSH ClearColor = CreateSolidBrush(RGB(0, 0, 0));
 
 	// Get Application Information
 	hApplication = GetModuleHandle(NULL);
-	LPSTR lpCmdLine = GetCommandLineA();
+	LPSTR lpCmdLine = GetCommandLine();
 	STARTUPINFOA StartupInfo;
 	GetStartupInfoA(&StartupInfo);
 
 	// Settings
+	windowStyle.ClassStyle = (DWORD)ClassStyle::Application;
 	//SetThreadExecutionState(ES_DISPLAY_REQUIRED && ES_SYSTEM_REQUIRED);
 
 	// Load Ressources
@@ -67,18 +75,18 @@ WinWindow::WinWindow(const WindowProperties &properties):
 
 	// Register Window Class
 	WNDCLASSEX classProperties = {
-		.cbSize	= sizeof(WNDCLASSEX),					// Structure Size (in bytes)
-		.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW,	// Seperate device context for window and redraw on move
-		.lpfnWndProc = MessageCallback,					// Message Callback (WndProc)
-		.cbClsExtra = 0,								// Extra class data
-		.cbWndExtra = WS_EX_NOPARENTNOTIFY,				// Extra window data
-		.hInstance = hApplication,						// Application Intance
-		.hIcon = AppIcon,								// Load Icon (Default: LoadIcon(NULL, IDI_APPLICATION);)
-		.hCursor = LoadCursor(NULL, IDC_ARROW),			// Load Cursor (Default: IDC_ARROW)
-		.hbrBackground = ClearColor,					// Background (Not required for GL -> NULL)
-		.lpszMenuName = NULL,							// We Don't Want A Menu
-		.lpszClassName = Properties.ID.c_str(),			// Class Name should be unique per window
-		.hIconSm = AppIcon,								// Load Icon Symbol (Default: LoadIcon(NULL, IDI_WINLOGO);)
+		.cbSize	= sizeof(WNDCLASSEX),			// Structure Size (in bytes)
+		.style = windowStyle.ClassStyle,		// Seperate device context for window and redraw on move
+		.lpfnWndProc = MessageCallback,			// Message Callback (WndProc)
+		.cbClsExtra = 0,						// Extra class data
+		.cbWndExtra = WS_EX_TOPMOST,			// Extra window data
+		.hInstance = hApplication,				// Application Intance
+		.hIcon = AppIcon,						// Load Icon (Default: LoadIcon(NULL, IDI_APPLICATION);)
+		.hCursor = LoadCursor(NULL, IDC_ARROW),	// Load Cursor (Default: IDC_ARROW)
+		.hbrBackground = ClearColor,			// Background (Not required for GL -> NULL)
+		.lpszMenuName = NULL,					// We Don't Want A Menu
+		.lpszClassName = Properties.ID.c_str(),	// Class Name should be unique per window
+		.hIconSm = AppIcon,						// Load Icon Symbol (Default: LoadIcon(NULL, IDI_WINLOGO);)
 	};
 	if (!RegisterClassEx(&classProperties)) {
 		applog << Log::Error << __FUNCTION__ << ": Failed to register the window class." << std::endl;
@@ -184,7 +192,6 @@ WinWindow::WinWindow(const WindowProperties &properties):
 	// Taskbar Settings
 	RegisterWindowMessage("TaskbarButtonCreated");
 	HRESULT hrf = CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList3, (LPVOID *)&TaskbarList);
-	//SetProgress(0.f);
 
 	// Flash on Taskbar
 	FlashWindow(hWindow, true);
@@ -218,7 +225,7 @@ WinWindow::~WinWindow() {
 
 
 // Events
-intptr_t __stdcall MessageCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK MessageCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	// Properties
 	WinWindow *pCurrentWindow = nullptr;
 
@@ -243,14 +250,17 @@ intptr_t __stdcall MessageCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		};
 		return pCurrentWindow->Message(&message);
 	}
-
 	// ... return it as unhandeld
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
 intptr_t WinWindow::Message(void *event) {
 	// Preparation
-	MSG &msg = *(MSG*)(event);
+	MSG &msg = *(reinterpret_cast<MSG *>(event));
+	//HWND &hWnd = msg.hwnd;
+	//UINT &uMsg = msg.message;
+	//WPARAM &wParam = msg.wParam;
+	//LPARAM &lParam = msg.lParam;
 
 	// Publish events to an external event system
 	if (!EventCallback.Empty()) { EventCallback.Publish(event); }
@@ -262,73 +272,24 @@ intptr_t WinWindow::Message(void *event) {
 	*			https://docs.microsoft.com/en-us/windows/win32/inputdev/keyboard-input-notifications
 	*			https://docs.microsoft.com/en-us/windows/win32/gdi/painting-and-drawing-messages
 	*/
+	// Process important window related events internally
 	switch (msg.message) {
-		// Default: This message doesn't belong to the current window
+		// Pre-Check: Does this message belong to the current window?
 		case WM_NULL: {
+			// Note: Could be usefull in the future.
 			break;
 		}
-
+		
 		// Preparation
-		case WM_NCCALCSIZE: {
-			//if (msg.lParam) {
-			//	NCCALCSIZE_PARAMS *sz = (NCCALCSIZE_PARAMS *)msg.lParam;
-			//	if (msg.wParam) {
-			//		sz->rgrc[0].bottom +=
-			//			window->BorderWidth;  // rgrc[0] is what makes this work, don't know
-			//						  // what others (rgrc[1], rgrc[2]) do, but why
-			//						  // not change them all?
-			//		sz->rgrc[0].right += window->BorderWidth;
-			//		sz->rgrc[1].bottom += window->BorderWidth;
-			//		sz->rgrc[1].right += window->BorderWidth;
-			//		sz->rgrc[2].bottom += window->BorderWidth;
-			//		sz->rgrc[2].right += window->BorderWidth;
-			//		return 0;
-			//	}
-			//}
+		case WM_NCCREATE: {
+			// Note: Could be usefull in the future.
 			break;
 		}
-		case WM_NCHITTEST: {
-			//RECT WindowRect;
-			//int x, y;
-			//GetWindowRect(msg.hwnd, &WindowRect);
-			//x = GET_X_LPARAM(msg.lParam) - WindowRect.left;
-			//y = GET_Y_LPARAM(msg.lParam) - WindowRect.top;
-			//if (x >= pWindow->BorderWidth && x <= WindowRect.right - WindowRect.left - pWindow->BorderWidth && y >= pWindow->BorderWidth && y <= pWindow->TitleBarWidth)
-			//	result = HTCAPTION;
-			//else if (x < pWindow->BorderWidth && y < pWindow->BorderWidth)
-			//	result = HTTOPLEFT;
-			//else if (x > WindowRect.right - WindowRect.left - pWindow->BorderWidth && y < pWindow->BorderWidth)
-			//	result = HTTOPRIGHT;
-			//else if (x > WindowRect.right - WindowRect.left - pWindow->BorderWidth && y > WindowRect.bottom - WindowRect.top - pWindow->BorderWidth)
-			//	result = HTBOTTOMRIGHT;
-			//else if (x < pWindow->BorderWidth && y > WindowRect.bottom - WindowRect.top - pWindow->BorderWidth)
-			//	result = HTBOTTOMLEFT;
-			//else if (x < pWindow->BorderWidth)
-			//	result = HTLEFT;
-			//else if (y < pWindow->BorderWidth)
-			//	result = HTTOP;
-			//else if (x > WindowRect.right - WindowRect.left - pWindow->BorderWidth)
-			//	result = HTRIGHT;
-			//else if (y > WindowRect.bottom - WindowRect.top - pWindow->BorderWidth)
-			//	result = HTBOTTOM;
-			//else
-			//	result = HTCLIENT;
+		case WM_NCDESTROY : {
+			// Note: Could be usefull in the future.
 			break;
 		}
-
-		// Information
-		case WM_DPICHANGED: {
-			// ToDo: Update Widnow
-			break;
-		}
-		case WM_GETMINMAXINFO: {
-			// ToDo: Restrict WS_POPUP window size
-			//MINMAXINFO *pBounds = reinterpret_cast<MINMAXINFO*>(msg.lParam);
-			//pBounds->ptMinTrackSize.x = this->Properties->MinMaxX;
-			//pBounds->ptMinTrackSize.y = this->Properties->MinMaxY;
-			break;
-		}
-
+		
 		// Creation and Destruction
 		case WM_CLOSE: {
 			DestroyWindow(msg.hwnd);
@@ -345,68 +306,40 @@ intptr_t WinWindow::Message(void *event) {
 			return 0;
 		}
 
+		 // Information
+		case WM_DPICHANGED: {
+			// Note: Could be usefull in the future.
+			break;
+		}
+		case WM_GETMINMAXINFO: {
+			if (Properties.Style == WindowStyle::FullScreen) {
+				break;
+			} else {
+				MINMAXINFO *bounds = reinterpret_cast<MINMAXINFO *>(msg.lParam);
+				if (this->Properties.MaxSize.Width > 0 && this->Properties.MaxSize.Height > 0) {
+					bounds->ptMaxTrackSize.x = this->Properties.MaxSize.Width;
+					bounds->ptMaxTrackSize.y = this->Properties.MaxSize.Height;
+				}
+				if (this->Properties.MinSize.Width > 0 && this->Properties.MinSize.Height > 0) {
+					bounds->ptMinTrackSize.x = this->Properties.MinSize.Width;
+					bounds->ptMinTrackSize.y = this->Properties.MinSize.Height;
+				}
+				return 0;
+			}
+		}
+
 		// Drawing
 		case WM_PAINT: {
 			Properties.State.Decorated = true;
-
 			PAINTSTRUCT ps;
 			HDC hdc = BeginPaint(msg.hwnd, &ps);
-			FillRect(hdc, &ps.rcPaint, (HBRUSH)CreateSolidBrush(RGB(0, 0, 0)));
+			FillRect(hdc, &ps.rcPaint, ClearColor);
 			EndPaint(msg.hwnd, &ps);
 			return 0;
-
-
-			//PAINTSTRUCT ps;
-			//HDC hdc = BeginPaint(msg.hwnd, &ps);
-
-			/*
-			BP_PAINTPARAMS params = {sizeof(params), BPPF_NOCLIP | BPPF_ERASE};
-			HDC memdc;
-			HPAINTBUFFER hbuffer =
-			BeginBufferedPaint(hdc, &rc, BPBF_TOPDOWNDIB, &params, &memdc);
-
-			HBRUSH brush = CreateSolidBrush(RGB(23, 26, 30));
-			FillRect(hdc, &rc, brush);
-			DeleteObject(brush);
-
-			BufferedPaintSetAlpha(hbuffer, &rc, 255);
-			EndBufferedPaint(hbuffer, TRUE);
-
-			*/
-
-			RECT ClientRect;
-			RECT rc = ps.rcPaint;
-			GetClientRect(msg.hwnd, &ClientRect);
-
-			//RECT BorderRect = { pWindow->BorderWidth, pWindow->BorderWidth, ClientRect.right - pWindow->BorderWidth - pWindow->BorderWidth, ClientRect.bottom - pWindow->BorderWidth - pWindow->BorderWidth };
-			//RECT TitleRect = { pWindow->BorderWidth, pWindow->BorderWidth, ClientRect.right - pWindow->BorderWidth - pWindow->BorderWidth, pWindow->TitleBarWidth };
-
-			//HBRUSH BorderBrush = CreateSolidBrush(RGB(23, 26, 30));
-			//FillRect(ps.hdc, &ClientRect, BorderBrush);
-			//FillRect(ps.hdc, &BorderRect, BorderBrush);
-			//FillRect(ps.hdc, &TitleRect, BorderBrush);
-			//DeleteObject(BorderBrush);
-
-			EndPaint(msg.hwnd, &ps);
-
 		}
 		case WM_MOVE: {
-			// Store pointer to associated Window class as userdata in Win32 window
-			//CREATESTRUCT *WindowInfo = reinterpret_cast<CREATESTRUCT *>(msg.lParam);
-			//void *WindowClass = reinterpret_cast<Window *>(WindowInfo->lpCreateParams);
-			//if (WindowClass = pWindow) {
-			//	applog << "Same" << std::endl;
-			//}
-			//pWindow = reinterpret_cast<Window *>(WindowInfo->lpCreateParams);
-			//SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pWindow));
-			//pWindow->hWindow = hWnd;
-			//MoveWindow(msg.hwnd, WindowInfo->x, WindowInfo->y, WindowInfo->cx, WindowInfo->cy, TRUE);
-			//MoveWindow(msg.hwnd, WindowInfo->x, WindowInfo->y, WindowInfo->cx - pWindow->BorderWidth, WindowInfo->cy - pWindow->BorderWidth, TRUE);
-			//data.X = WindowInfo->x;
-			//data.Y = WindowInfo->y;
-			//data.Width = WindowInfo->cx - pWindow->BorderWidth;
-			//data.Height = WindowInfo->cy - pWindow->BorderWidth;
-			return 1;
+			// Note: Could be usefull in the future.
+			break;
 		}
 		case WM_SHOWWINDOW: {
 			Properties.State.Visible = (bool)msg.wParam;
@@ -432,8 +365,8 @@ intptr_t WinWindow::Message(void *event) {
 			return 0;
 		}
 		case WM_SIZING: {
-			RedrawWindow(msg.hwnd, NULL, NULL, RDW_UPDATENOW | RDW_INVALIDATE | RDW_NOERASE | RDW_INTERNALPAINT);
-			return 0;
+			RedrawWindow(msg.hwnd, NULL, NULL, RDW_UPDATENOW | RDW_NOERASE);
+			break;
 		}
 
 		// State
@@ -459,15 +392,24 @@ intptr_t WinWindow::Message(void *event) {
 
 		// System
 		case WM_SYSCOMMAND: {
+
 			switch (msg.wParam) {
-				// Prevent ScreenSaver or Monitor PowerSaver
+				// FulLScree-Mode: Prevent ScreenSaver or Monitor PowerSaver
 				case SC_SCREENSAVE: case SC_MONITORPOWER: {
-					return 0;
+					if (Properties.Style == WindowStyle::FullScreen) {
+						return 0;
+					} else {
+						break;
+					}
+				}
+
+				default: {
+					break;
 				}
 			}
-			break;
 		}
-
+		
+		// Default: Currently nothing of interest
 		default: {
 			break;
 		}
@@ -476,10 +418,10 @@ intptr_t WinWindow::Message(void *event) {
 }
 
 void WinWindow::Update() {
-	MSG message = {};
-	while (PeekMessage(&message, hWindow, 0, 0, PM_NOREMOVE)) {
-		TranslateMessage(&message);
-		DispatchMessage(&message);
+	MSG msg = {};
+	while (PeekMessage(&msg, hWindow, 0, 0, PM_NOREMOVE)) {
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
 }
 
@@ -489,39 +431,39 @@ void *WinWindow::GetNativeWindow() const {
 	return (void *)hWindow;
 }
 
-WindowProperties WinWindow::GetProperties() const {
+const WindowProperties WinWindow::GetProperties() const {
 	return Properties;
 }
 
-WindowSize WinWindow::GetContexttSize() const {
+const WindowSize WinWindow::GetContexttSize() const {
 	RECT area;
 	GetClientRect(hWindow, &area);
 
 	return WindowSize(area.right - area.left, area.bottom - area.top);
 }
 
-WindowPosition WinWindow::GetDisplayPosition() const {
+const WindowPosition WinWindow::GetDisplayPosition() const {
 	//WINDOWPLACEMENT position;
 	//GetWindowPlacement(hWindow, &position);
 	//WindowPosition(position.ptMinPosition.x, position.ptMinPosition.y);
 	return Properties.Position;
 }
 
-WindowSize WinWindow::GetDisplaySize() const {
+const WindowSize WinWindow::GetDisplaySize() const {
 	//RECT area;
 	//GetWindowRect(hWindow, &area);
 	//WindowSize(area.right - area.left, area.bottom - area.top);
 	return Properties.Size;
 }
 
-WindowSize WinWindow::GetScreentSize() const {
+const WindowSize WinWindow::GetScreentSize() const {
 	int32_t width = GetSystemMetrics(SM_CXSCREEN);
 	int32_t height = GetSystemMetrics(SM_CYSCREEN);
 
 	return WindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 }
 
-string WinWindow::GetTitle() const {
+const string WinWindow::GetTitle() const {
 	//char title[1024];
 	//memset(title, 0, sizeof(char) * 1024);
 	//GetWindowText(hWindow, title, sizeof(char) * 1024);

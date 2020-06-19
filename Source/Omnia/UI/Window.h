@@ -11,22 +11,22 @@ namespace Omnia {
 class Window {
 public:
 	// Default
-	Window() {};
+	Window() = default;
 	virtual ~Window() = default;
 	static Scope<Window> Create(const WindowProperties &properties = WindowProperties());
 
 	// Events
-	virtual void Update() = 0;
 	Subject<void *> EventCallback;
+	virtual void Update() = 0;
 
 	// Accessors
 	virtual void *GetNativeWindow() const = 0;
-	virtual WindowProperties GetProperties() const = 0;
-	virtual WindowSize GetContexttSize() const = 0;
-	virtual WindowPosition GetDisplayPosition() const = 0;
-	virtual WindowSize GetDisplaySize() const = 0;
-	virtual WindowSize GetScreentSize() const = 0;
-	virtual string GetTitle() const = 0;
+	virtual const WindowProperties GetProperties() const = 0;
+	virtual const WindowSize GetContexttSize() const = 0;
+	virtual const WindowPosition GetDisplayPosition() const = 0;
+	virtual const WindowSize GetDisplaySize() const = 0;
+	virtual const WindowSize GetScreentSize() const = 0;
+	virtual const string GetTitle() const = 0;
 
 	// Modifiers
 	virtual void SetProperties(const WindowProperties &properties) = 0;

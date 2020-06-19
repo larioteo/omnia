@@ -84,7 +84,7 @@ void GuiLayer::Detach() {
 void GuiLayer::Event(void *event) {
 }
 
-void GuiLayer::Update() {
+void GuiLayer::Update(Timestep deltaTime) {
 	Application &app = Application::Get();
 	if (!app.GetWindow().GetProperties().State.Alive) return;
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -193,7 +193,7 @@ void GuiLayer::MouseEvent(MouseEventData data) {
 
 	switch (data.Action) {
 		case MouseAction::Move:	{
-			io.MousePos = ImVec2(data.X, data.Y);
+			io.MousePos = ImVec2(static_cast<float>(data.X), static_cast<float>(data.Y));
 		}
 
 		case MouseAction::Wheel: {
@@ -215,8 +215,8 @@ void GuiLayer::MouseEvent(MouseEventData data) {
 
 				case ButtonState::Release: {
 					if (data.Button == MouseButton::Left)	io.MouseDown[0] = false;
-					if (data.Button == MouseButton::Middle) io.MouseDown[1] = false;
-					if (data.Button == MouseButton::Right)	io.MouseDown[2] = false;
+					if (data.Button == MouseButton::Right)	io.MouseDown[1] = false;
+					if (data.Button == MouseButton::Middle) io.MouseDown[2] = false;
 					if (data.Button == MouseButton::X1)		io.MouseDown[3] = false;
 					if (data.Button == MouseButton::X2)		io.MouseDown[4] = false;
 					break;

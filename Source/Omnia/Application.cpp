@@ -3,7 +3,6 @@
 #include "Omnia/Omnia.pch"
 #include "Omnia/Log.h"
 #include "UI/GuiLayer.h"
-#include "Omnia/Utility/Timer.h"
 
 #include "Omnia/Debug/Instrumentor.h"
 #include "Omnia/Debug/Memory.h"
@@ -15,16 +14,14 @@ namespace Omnia {
 Application *Application::AppInstance = nullptr;
 
 Application::Application():
-	Running{ true },
-	Paused{ false } {
+	Running(true),
+	Paused(false) {
 	AppInstance = this;
 
 	// Register Components
-	Listener = EventListener::Create();
-	Window = Window::Create(WindowProperties("Ultra"s, 1024, 768));
-
-	// Register Components
-	Context = Gfx::CreateContext(Window.get(), Gfx::ContextProperties());
+	pWindow = Window::Create(WindowProperties("Ultra"s, 1024, 768));
+	Context = Gfx::CreateContext(pWindow.get(), Gfx::ContextProperties());
+	pListener = EventListener::Create();
 	Gfx::SetContext(Context);
 
 	// Load GL Library
@@ -32,7 +29,7 @@ Application::Application():
 		applog << "Failed to load OpenGL." << std::endl;
 		return;
 	}
-	glViewport(0, 0, Window->GetProperties().Size.Width, Window->GetProperties().Size.Height);
+	glViewport(0, 0, pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
 
 	// Information
 	printf("OpenGL Version %d.%d loaded\n", GLVersion.major, GLVersion.minor);
@@ -44,47 +41,65 @@ Application::Application():
 Application::~Application() {}
 
 void Application::Run() {
-	APP_PROFILE_BEGIN_SESSION("Playground", "AppProfile.json");
-	// Initialization
-	auto oDispatcher = Window->EventCallback.Subscribe([&](void *event) { Listener->Callback(event); });
+	// Preparation
+	APP_PROFILE_BEGIN_SESSION("Application", "AppProfile.json");
+	Timer timer;
+	float delay = {};
+	size_t frames = {};
+	std::string statistics;
 
 	// Subscribe to all events (internal)
-	auto oAutoDeviceEvent = Listener->DeviceEvent.Subscribe([&](DeviceEventData data) { this->AutoDeviceEvent(data); });
-	auto oAutoPowerEvent = Listener->PowerEvent.Subscribe([&](PowerEventData data) { this->AutoPowerEvent(data); });
+	auto oDispatcher = pWindow->EventCallback.Subscribe([&](void *event) { pListener->Callback(event); });
+	auto oAutoDeviceEvent = pListener->DeviceEvent.Subscribe([&](DeviceEventData data) { this->AutoDeviceEvent(data); });
+	auto oAutoPowerEvent = pListener->PowerEvent.Subscribe([&](PowerEventData data) { this->AutoPowerEvent(data); });
 
-	auto oAutoControllerEvent = Listener->ControllerEvent.Subscribe([&](ControllerEventData data) { this->AutoControllerEvent(data); });
-	auto oAutoKeyboardEvent = Listener->KeyboardEvent.Subscribe([&](KeyboardEventData data) { this->AutoKeyboardEvent(data); });
-	auto oAutoMouseEvent = Listener->MouseEvent.Subscribe([&](MouseEventData data) { this->AutoMouseEvent(data); });
-	auto oAutoTouchEvent = Listener->TouchEvent.Subscribe([&](TouchEventData data) { this->AutoTouchEvent(data); });
-	auto oAutoWindowEvent = Listener->WindowEvent.Subscribe([&](WindowEventData data) { this->AutoWindowEvent(data); });
+	auto oAutoControllerEvent = pListener->ControllerEvent.Subscribe([&](ControllerEventData data) { this->AutoControllerEvent(data); });
+	auto oAutoKeyboardEvent = pListener->KeyboardEvent.Subscribe([&](KeyboardEventData data) { this->AutoKeyboardEvent(data); });
+	auto oAutoMouseEvent = pListener->MouseEvent.Subscribe([&](MouseEventData data) { this->AutoMouseEvent(data); });
+	auto oAutoTouchEvent = pListener->TouchEvent.Subscribe([&](TouchEventData data) { this->AutoTouchEvent(data); });
+	auto oAutoWindowEvent = pListener->WindowEvent.Subscribe([&](WindowEventData data) { this->AutoWindowEvent(data); });
 
-	auto oAutoContextEvent = Listener->ContextEvent.Subscribe([&](ContextEventData data) { this->AutoContextEvent(data); });
+	auto oAutoContextEvent = pListener->ContextEvent.Subscribe([&](ContextEventData data) { this->AutoContextEvent(data); });
 
-	// Subscribe to all Events
-	auto oControllerEvent = Listener->ControllerEvent.Subscribe([&](ControllerEventData data) { this->ControllerEvent(data); });
-	auto oKeyboardEvent = Listener->KeyboardEvent.Subscribe([&](KeyboardEventData data) { this->KeyboardEvent(data); });
-	auto oMouseEvent = Listener->MouseEvent.Subscribe([&](MouseEventData data) { this->MouseEvent(data); });
-	auto oTouchEvent = Listener->TouchEvent.Subscribe([&](TouchEventData data) { this->TouchEvent(data); });
-	auto oWindowEvent = Listener->WindowEvent.Subscribe([&](WindowEventData data) { this->WindowEvent(data); });
+	// Subscribe to all Events (external)
+	auto oControllerEvent = pListener->ControllerEvent.Subscribe([&](ControllerEventData data) { this->ControllerEvent(data); });
+	auto oKeyboardEvent = pListener->KeyboardEvent.Subscribe([&](KeyboardEventData data) { this->KeyboardEvent(data); });
+	auto oMouseEvent = pListener->MouseEvent.Subscribe([&](MouseEventData data) { this->MouseEvent(data); });
+	auto oTouchEvent = pListener->TouchEvent.Subscribe([&](TouchEventData data) { this->TouchEvent(data); });
+	auto oWindowEvent = pListener->WindowEvent.Subscribe([&](WindowEventData data) { this->WindowEvent(data); });
 
 	// Main Logic
 	Create();
-	//PrintMemoryUsage();
+	for (Layer *layer : Layers) layer->Create();
 	while (Running) {
-		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
+		pListener->Update();
 		if (Paused) continue;
-		Listener->Update();
-		Update();
 		
-		for (Layer *layer : Layers) layer->Update();
+		Timestep deltaTime = timer.GetDeltaTime();
+		delay += deltaTime;
+		frames++;
 
+		// Delayed-Update
+		if (delay >= 1.0f) {
+			float msPF = 1000.0f / (float)frames;
+
+			statistics = "Ultra"s + " [FPS:" + std::to_string(frames) + " | msPF:" + std::to_string(msPF) + "]";
+			//applog << Log::Info << statistics << "\n";
+			pWindow->SetTitle(statistics);
+
+			frames = 0;
+			delay = 0.0f;
+		}
+		
+		// Update
+		Update(deltaTime);
+		for (Layer *layer : Layers) layer->Update(deltaTime);
 
 		Gfx::SwapBuffers(Context);
 	}
 
 	// Termination
+	for (Layer *layer : Layers) layer->Destroy();
 	Destroy();
 	APP_PROFILE_END_SESSION();
 }
@@ -92,14 +107,14 @@ void Application::Run() {
 // Workflow
 void Application::Create() {}
 void Application::Destroy() {}
-void Application::Update() {}
+void Application::Update(Timestep deltaTime) {}
 
 // Event System
-void Application::ControllerEvent(ControllerEventData data) {}
-void Application::KeyboardEvent(KeyboardEventData data) {}
-void Application::MouseEvent(MouseEventData data) {}
-void Application::TouchEvent(TouchEventData data) {}
-void Application::WindowEvent(WindowEventData data) {}
+void Application::ControllerEvent(ControllerEventData &data) {}
+void Application::KeyboardEvent(KeyboardEventData &data) {}
+void Application::MouseEvent(MouseEventData &data) {}
+void Application::TouchEvent(TouchEventData &data) {}
+void Application::WindowEvent(WindowEventData &data) {}
 
 // Layer System
 void Application::PushLayer(Layer *layer) {
@@ -112,20 +127,20 @@ void Application::PushOverlay(Layer *overlay) {
 
 
 // Event System (internal)
-void Application::AutoDeviceEvent(DeviceEventData data) {
+void Application::AutoDeviceEvent(DeviceEventData &data) {
 	applog << "Device Event:" << std::endl;
 }
 
-void Application::AutoPowerEvent(PowerEventData data) {
+void Application::AutoPowerEvent(PowerEventData &data) {
 	applog << "Power Event:" << std::endl;
 }
 
 
-void Application::AutoControllerEvent(ControllerEventData data) {
+void Application::AutoControllerEvent(ControllerEventData &data) {
 	for (auto layer : Layers) { layer->ControllerEvent(data); }
 }
 
-void Application::AutoKeyboardEvent(KeyboardEventData data) {
+void Application::AutoKeyboardEvent(KeyboardEventData &data) {
 	for (auto layer : Layers) { layer->KeyboardEvent(data); }
 
 	// Left for debugging purposes
@@ -146,7 +161,7 @@ void Application::AutoKeyboardEvent(KeyboardEventData data) {
 	//}
 }
 
-void Application::AutoMouseEvent(MouseEventData data) {
+void Application::AutoMouseEvent(MouseEventData &data) {
 	for (auto layer : Layers) { layer->MouseEvent(data); }
 
 	// Left for debugging purposes
@@ -162,22 +177,27 @@ void Application::AutoMouseEvent(MouseEventData data) {
 	//	"-] \n";
 }
 
-void Application::AutoTouchEvent(TouchEventData data) {
+void Application::AutoTouchEvent(TouchEventData &data) {
 	for (auto layer : Layers) { layer->TouchEvent(data); }
 }
 
-void Application::AutoWindowEvent(WindowEventData data) {
+void Application::AutoWindowEvent(WindowEventData &data) {
 	for (auto layer : Layers) { layer->WindowEvent(data); }
 
+	//if (data.Action == WindowAction::Draw) return;
+	//if (data.Action == WindowAction::Focus) return;
+	//if (data.Action == WindowAction::Activate) return;
+	//if (data.Action == WindowAction::Move) return;
+
 	// Left for debugging purposes
-	applog << data.Source << ": [" << 
-		"Action:"		<< data.Action		<< " | " <<
-		"A/F:"			<< data.Active		<< "/"	<< data.Focus		<< " | " <<
-		"W/H:"			<< data.Width		<< "/"	<< data.Height		<< " | " <<
-		"X/Y:"			<< data.X			<< "/"	<< data.Y			<< " | " <<
-		"DeltaX/Y:"		<< data.DeltaX		<< "/"	<< data.DeltaY		<< " | " <<
-		"LastX/Y:"		<< data.LastX		<< "/"	<< data.LastY		<< " | " <<
-		"-] \n";
+	//applog << data.Source << ": [" << 
+	//	"Action:"		<< data.Action		<< " | " <<
+	//	"A/F/V:"		<< data.Active		<< "/"	<< data.Focus		<< "/"	<< data.Visible		<< " | " <<
+	//	"W/H:"			<< data.Width		<< "/"	<< data.Height		<< " | " <<
+	//	"X/Y:"			<< data.X			<< "/"	<< data.Y			<< " | " <<
+	//	"DeltaX/Y:"		<< data.DeltaX		<< "/"	<< data.DeltaY		<< " | " <<
+	//	"LastX/Y:"		<< data.LastX		<< "/"	<< data.LastY		<< " | " <<
+	//	"-] \n";
 
 	switch (data.Action) {
 		case WindowAction::Destroy: {
@@ -188,7 +208,7 @@ void Application::AutoWindowEvent(WindowEventData data) {
 		case WindowAction::Resize: {
 			// ToDo: Needs a redraw to show contents...
 			glViewport(0, 0, data.Width, data.Height);
-			//gfx::SwapBuffers(Context);
+			//Gfx::SwapBuffers(Context);
 			break;
 		}
 
@@ -199,7 +219,7 @@ void Application::AutoWindowEvent(WindowEventData data) {
 }
 
 
-void Application::AutoContextEvent(ContextEventData data) {
+void Application::AutoContextEvent(ContextEventData &data) {
 	applog << "Context Event:" << std::endl;
 }
 

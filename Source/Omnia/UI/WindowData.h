@@ -101,6 +101,9 @@ struct WindowProperties {
 	WindowState State;
 	WindowStyle Style;
 
+	WindowSize MaxSize;
+	WindowSize MinSize;
+
 	// Window with predefined values (can be used only once for now...)
 	WindowProperties():
 		ID {"Window[App]"},
@@ -110,7 +113,9 @@ struct WindowProperties {
 		Settings {},
 		Size {},
 		State {},
-		Style {WindowStyle::Default} {
+		Style {WindowStyle::Default},
+		MaxSize {0, 0},
+		MinSize {} {
 	};
 
 	// Window with recommended values
@@ -122,7 +127,9 @@ struct WindowProperties {
 		Settings {},
 		State {},
 		Size {width, height},
-		Style {style} {
+		Style {style},
+		MaxSize {0, 0},
+		MinSize {width / 2, height / 2} {
 	};
 };
 

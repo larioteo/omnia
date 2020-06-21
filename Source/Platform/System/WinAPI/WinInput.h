@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Omnia/UI/Input.h"
+#include "Omnia/System/Input.h"
 
 namespace Omnia {
 

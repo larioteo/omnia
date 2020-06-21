@@ -16,6 +16,7 @@ static inline constexpr auto LibVersionPatch = "@LibVersionPatch@";
 
 // Switches
 @AppLibraryPrimeExtensions@
+@AppLibraryCoreExtensions@
 @AppLibraryDebugExtensions@
 @AppLibraryGraphicExtensions@
 @AppLibrarySystemExtensions@

@@ -3,7 +3,7 @@
 #include <tuple>
 
 #include "Omnia/Core.h"
-#include "EventData.h"
+#include "Omnia/UI/EventData.h"
 
 namespace Omnia {
 

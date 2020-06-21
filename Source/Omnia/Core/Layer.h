@@ -21,7 +21,7 @@ public:
 	virtual void Event(void *event) {}
 
 	virtual void Create() {}
-	virtual void Update(Timestep deltaTime) {}
+	virtual void Update(Timestamp deltaTime) {}
 	virtual void Destroy() {}
 	virtual void GuiRender() {}
 

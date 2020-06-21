@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Omnia/Layer.h"
+#include "Omnia/Core/Layer.h"
 #include <imgui/imgui.h>
 
 namespace Omnia {
@@ -17,7 +17,7 @@ public:
 	virtual void Attach() override;
 	virtual void Detach() override;
 	virtual void Event(void *event) override;
-	virtual void Update(Timestep deltaTime) override;
+	virtual void Update(Timestamp deltaTime) override;
 	virtual void GuiRender() override;
 
 	void Begin();

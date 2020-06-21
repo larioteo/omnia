@@ -20,7 +20,7 @@ set(GLAD_HEADERS
 set(GLAD_SOURCES
 	".Library/glad/glad.c"
 )
-add_library(glad STATIC ${GLAD_HEADERS} ${GLAD_SOURCES})
+add_library(glad ${GLAD_HEADERS} ${GLAD_SOURCES})
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 # ☷ IDE
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐

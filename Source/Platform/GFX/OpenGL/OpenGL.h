@@ -40,6 +40,7 @@ struct ContextProperties {
 // Default
 ContextData CreateContext(Omnia::Window *window, ContextProperties &properties);
 void DestroyContext(const ContextData &state);
+bool LoadGL();
 
 // Accessors
 bool GetCurrentContext(const ContextData &state);
@@ -47,6 +48,7 @@ bool GetExtensions(int a = 0);
 
 // Modifiers
 void SetContext(const ContextData &state);
+void SetViewport(const size_t width, const size_t height);
 void SwapBuffers(const ContextData &state);
 void RemoveContext(const ContextData &state);
 

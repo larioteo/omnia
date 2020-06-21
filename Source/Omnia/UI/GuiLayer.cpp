@@ -1,11 +1,11 @@
 #include "Omnia/Omnia.pch"
 #include "GuiLayer.h"
 
-#include "Omnia/Application.h"
+#include "Omnia/Core/Application.h"
 #include "Omnia/Log.h"
 
 #include "Omnia/UI/GuiBuilder.h"
-#include "Omnia/Graphics/Graphics.h"
+#include "Omnia/GFX/Graphics.h"
 
 namespace Omnia {
 
@@ -84,7 +84,8 @@ void GuiLayer::Detach() {
 void GuiLayer::Event(void *event) {
 }
 
-void GuiLayer::Update(Timestep deltaTime) {
+void GuiLayer::Update(Timestamp deltaTime) {
+	return;
 	Application &app = Application::Get();
 	if (!app.GetWindow().GetProperties().State.Alive) return;
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -121,11 +122,11 @@ void GuiLayer::Update(Timestep deltaTime) {
 }
 
 void GuiLayer::GuiRender() {
-
 }
 
 
 void GuiLayer::Begin() {
+	// Start the Dear ImGui frame
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
@@ -133,7 +134,9 @@ void GuiLayer::Begin() {
 
 void GuiLayer::End() {
 	Application &app = Application::Get();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGuiIO& io = ImGui::GetIO();
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
 		ImGui::UpdatePlatformWindows();

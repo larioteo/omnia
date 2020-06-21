@@ -1,13 +1,12 @@
 #pragma once
 
 #include "Omnia/Core.h"
-#include "Omnia/LayerStack.h"
+#include "Omnia/Core/LayerStack.h"
+
+#include "Omnia/GFX/Graphics.h"
 #include "Omnia/UI/Event.h"
-#include "Omnia/UI/Window.h"
-
 #include "Omnia/UI/GuiLayer.h"
-
-#include "Omnia/Graphics/Graphics.h"
+#include "Omnia/UI/Window.h"
 
 #include "Omnia/Utility/Timer.h"
 
@@ -48,7 +47,7 @@ public:
 	/** This method executes your termination code. */
 	virtual void Destroy();
 	/** This method executes your main logic code. */
-	virtual void Update(Timestep deltaTime);
+	virtual void Update(Timestamp deltaTime);
 
 	/**
 	* @brief	These methods offer an easy to use layer system.

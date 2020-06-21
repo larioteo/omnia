@@ -15,32 +15,39 @@
 [![CMake-Image]][CMake-Url]
 [![License][License-Image]][License-Url]
 
-> Attention: Currently under construction and in an early-stage.
+> Attention: Currently under construction, heavy-development and in an early-stage.
 
 An usefull, modern, modular collection of extensions for daily app development.
 
 ## Project Goal
 
 This project wasn't created to reinvent the wheel, see it as another alternative which may suite your needs better than the existing libraries.
-- Support for any platform
-
-> If you are interested in my odyssey feel free to follow it.
 
 ## Features
-> Note: Windows implementation will be the first implemented.
+> Note: The main development platform is Windows, therefore everything will be implemented there first.
 
 ###### Available ######
 - \-
 
 ###### Development ######
 - Application Layer
-  - Application Entry Point
-  - Debugging and Logging Support
-  - File Input/Output Support
-  - User Interface Layer
-    - Window
+  - Entry Point and Workflow
+  - Layer System
+- Graphic Layer
+  - Context/Surface API
+- Debug Layer
+  - Profiling Support
+- System Layer
+  - FileSystem Extensions
+  - Inputs
+- User Interface Layer
     - Events
-    - Inputs
+    - Window
+- Utility Layer
+  - Extensions for basic types
 
 ###### Planned (...) ######
 - Network Layer
+
+# Disclaimer
+This project uses several [third-party](3rd-Party/ReadMe.md "3rd-Party") libraries and sources.

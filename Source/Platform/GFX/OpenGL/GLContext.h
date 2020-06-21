@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Omnia/Graphics/Context.h"
+#include "Omnia/GFX/Context.h"
 
 namespace Omnia { namespace Gfx {
 

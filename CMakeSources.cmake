@@ -1,83 +1,91 @@
+# Preparation
 set (OMNIA_HEADERS "")
 set (OMNIA_SOURCES "")
 
 # Default Extensions
-set(OMNIA_DEFAULT_HEADERS
+set(OMNIA_LIBRARY_DEFAULT_HEADERS
 	"Source/Omnia.h"
+	"Source/Omnia/Omnia.pch"
 	"Source/Omnia/Core.h"
-	"Source/Omnia/Application.h"
-	"Source/Omnia/EntryPoint.h"
-	"Source/Omnia/Internal.h"
-	"Source/Omnia/Layer.h"
-	"Source/Omnia/LayerStack.h"
 	"Source/Omnia/Platform.h"
 	"Source/Omnia/Types.h"
 )
-list(APPEND OMNIA_HEADERS ${OMNIA_DEFAULT_HEADERS})
-
-set(OMNIA_DEFAULT_SOURCES
-	"Source/Omnia.cpp"
-	"Source/Omnia/Application.cpp"
-	"Source/Omnia/Layer.cpp"
-	"Source/Omnia/LayerStack.cpp"
+set(OMNIA_LIBRARY_DEFAULT_SOURCES
+	""
 )
-list(APPEND OMNIA_SOURCES ${OMNIA_DEFAULT_SOURCES})
-
+list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_DEFAULT_HEADERS})
+list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_DEFAULT_SOURCES})
 
 # Prime Extensions
 set(OMNIA_LIBRARY_PRIME_HEADERS
 	"Source/Omnia/Config.h"
 	"Source/Omnia/Log.h"
 )
-list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_PRIME_HEADERS})
-
 set(OMNIA_LIBRARY_PRIME_SOURCES
 	"Source/Omnia/Config.cpp"
 )
+list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_PRIME_HEADERS})
 list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_PRIME_SOURCES})
 
+
+# Core Extensions
+set(OMNIA_LIBRARY_CORE_HEADERS
+	"Source/Omnia/Core/Application.h"
+	"Source/Omnia/Core/EntryPoint.h"
+	"Source/Omnia/Core/Layer.h"
+	"Source/Omnia/Core/LayerStack.h"
+)
+set(OMNIA_LIBRARY_CORE_SOURCES
+	"Source/Omnia/Core/Application.cpp"
+	"Source/Omnia/Core/Layer.cpp"
+	"Source/Omnia/Core/LayerStack.cpp"
+)
+list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_CORE_HEADERS})
+list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_CORE_SOURCES})
 
 # Debug Extensions
 set(OMNIA_LIBRARY_DEBUG_HEADERS
 	"Source/Omnia/Debug/Instrumentor.h"
 	"Source/Omnia/Debug/Memory.h"
 )
-list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_DEBUG_HEADERS})
-
 set(OMNIA_LIBRARY_DEBUG_SOURCES
 	""
 )
+list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_DEBUG_HEADERS})
 list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_DEBUG_SOURCES})
 
+# GFX Extensions
+set(OMNIA_LIBRARY_GFX_HEADERS
+	"Source/Omnia/GFX/Context.h"
+	"Source/Omnia/GFX/Graphics.h"
 
-# Graphic Extensions
-set(OMNIA_LIBRARY_GRAPHICS_HEADERS
-	"Source/Omnia/Graphics/Context.h"
-	"Source/Platform/Graphics/OpenGL/GLContext.h"
-
-	"Source/Omnia/Graphics/Graphics.h"
-	"Source/Platform/Graphics/OpenGL/OpenGL.h"
+	"Source/Platform/GFX/OpenGL/GLContext.h"
+	"Source/Platform/GFX/OpenGL/OpenGL.h"
 )
-list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_GRAPHICS_HEADERS})
+set(OMNIA_LIBRARY_GFX_SOURCES
+	"Source/Omnia/GFX/Context.cpp"
+	"Source/Platform/GFX/OpenGL/OpenGL.cpp"
 
-set(OMNIA_LIBRARY_GRAPHICS_SOURCES
-	"Source/Omnia/Graphics/Context.cpp"
-	"Source/Platform/Graphics/OpenGL/GLContext.cpp"
-
-	"Source/Platform/Graphics/OpenGL/OpenGL.cpp"
+	"Source/Platform/GFX/OpenGL/GLContext.cpp"
 )
-list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_GRAPHICS_SOURCES})
+list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_GFX_HEADERS})
+list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_GFX_SOURCES})
 
 
 # System Extensions
 set(OMNIA_LIBRARY_SYSTEM_HEADERS
 	"Source/Omnia/System/Cli.h"
+	"Source/Omnia/System/FileSystem.h"
+	"Source/Omnia/System/Input.h"
+
+	"Source/Platform/System/WinAPI/WinInput.h"
+)
+set(OMNIA_LIBRARY_SYSTEM_SOURCES
+	"Source/Omnia/System/Input.cpp"
+
+	"Source/Platform/System/WinAPI/WinInput.cpp"
 )
 list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_SYSTEM_HEADERS})
-
-set(OMNIA_LIBRARY_SYSTEM_SOURCES
-	""
-)
 list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_SYSTEM_SOURCES})
 
 
@@ -88,26 +96,21 @@ set(OMNIA_LIBRARY_UI_HEADERS
 
 	"Source/Omnia/UI/EventData.h"
 	"Source/Omnia/UI/Event.h"
-	"Source/Omnia/UI/Input.h"
 	"Source/Omnia/UI/WindowData.h"
 	"Source/Omnia/UI/Window.h"
 	"Source/Platform/UI/WinAPI/WinEvent.h"
-	"Source/Platform/UI/WinAPI/WinInput.h"
 	"Source/Platform/UI/WinAPI/WinWindow.h"
 )
-list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_UI_HEADERS})
-
 set(OMNIA_LIBRARY_UI_SOURCES
 	"Source/Omnia/UI/GuiBuilder.cpp"
 	"Source/Omnia/UI/GuiLayer.cpp"
 
 	"Source/Omnia/UI/Event.cpp"
-	"Source/Omnia/UI/Input.cpp"
 	"Source/Omnia/UI/Window.cpp"
 	"Source/Platform/UI/WinAPI/WinEvent.cpp"
-	"Source/Platform/UI/WinAPI/WinInput.cpp"
 	"Source/Platform/UI/WinAPI/WinWindow.cpp"
 )
+list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_UI_HEADERS})
 list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_UI_SOURCES})
 
 
@@ -119,4 +122,8 @@ set(OMNIA_LIBRARY_UTILITY_HEADERS
 	"Source/Omnia/Utility/Property.h"
 	"Source/Omnia/Utility/Timer.h"
 )
+set(OMNIA_LIBRARY_UTILITY_SOURCES
+	""
+)
 list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_UTILITY_HEADERS})
+list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_UTILITY_SOURCES})

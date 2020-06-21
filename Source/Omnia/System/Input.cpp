@@ -1,7 +1,7 @@
 #include "Input.h"
 
 #if defined(APP_PLATFORM_WINDOWS)
-	#include "Platform/UI/WinAPI/WinInput.h"
+	#include "Platform/System/WinAPI/WinInput.h"
 #endif
 
 namespace Omnia {

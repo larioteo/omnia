@@ -8,14 +8,19 @@
 
 // Default Extensions: By the way, the order is important!
 #include "Omnia/Core.h"
-#include "Omnia/Application.h"
-#include "Omnia/Layer.h"
-#include "Omnia/UI/GuiLayer.h"
+#include "Omnia/Platform.h"
+#include "Omnia/Types.h"
 
 // Prime Extensions: These are needed in nearly every daily development
 #if defined(APP_LIBRARY_PRIME_EXTENSIONS)
 	#include "Omnia/Config.h"
 	#include "Omnia/Log.h"
+#endif
+
+// Core Extensions
+#if defined(APP_LIBRARY_CORE_EXTENSIONS)
+	#include "Omnia/Core/Application.h"
+	#include "Omnia/Core/Layer.h"
 #endif
 
 // Debug Extensions
@@ -25,19 +30,22 @@
 #endif
 
 // Graphic Extensions
-#if defined(APP_LIBRARY_GRAPHIC_EXTENSIONS)
-	#include "Omnia/Graphics/Graphics.h"
+#if defined(APP_LIBRARY_GFX_EXTENSIONS)
+	#include "Omnia/GFX/Context.h"
+	#include "Omnia/GFX/Graphics.h"
 #endif
 
 // System Extensions
 #if defined(APP_LIBRARY_SYSTEM_EXTENSIONS)
 	#include "Omnia/System/Cli.h"
+	#include "Omnia/System/FileSystem.h"
+	#include "Omnia/System/Input.h"
 #endif
 
 // UI Extensions
 #if defined(APP_LIBRARY_UI_EXTENSIONS)
+	#include "Omnia/UI/GuiLayer.h"
 	#include "Omnia/UI/Event.h"
-	#include "Omnia/UI/Input.h"
 	#include "Omnia/UI/Window.h"
 #endif
 

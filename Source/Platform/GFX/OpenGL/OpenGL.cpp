@@ -216,6 +216,15 @@ void DestroyContext(const ContextData &state) {
 	}
 }
 
+bool LoadGL() {
+	if (!gladLoadGL()) {
+		applog << "Failed to load OpenGL." << std::endl;
+		return false;
+	}
+	printf("OpenGL Version %d.%d loaded\n", GLVersion.major, GLVersion.minor);
+	return true;
+}
+
 // Accessors
 bool GetCurrentContext(const ContextData &state) {
 	if constexpr (AppPlatformAPI == "WinAPI") {
@@ -295,6 +304,10 @@ void SetContext(const ContextData &state) {
 	if constexpr (AppPlatformAPI == "WinAPI") {
 		wglMakeCurrent(state.hDeviceContext, state.hRenderingContext);
 	}
+}
+
+void SetViewport(const size_t width, const size_t height) {
+	glViewport(0, 0, width, height);
 }
 
 void SwapBuffers(const ContextData &state) {

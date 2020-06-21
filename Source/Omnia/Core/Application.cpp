@@ -2,12 +2,8 @@
 
 #include "Omnia/Omnia.pch"
 #include "Omnia/Log.h"
-#include "UI/GuiLayer.h"
 
 #include "Omnia/Debug/Instrumentor.h"
-#include "Omnia/Debug/Memory.h"
-
-#include <glad/glad.h>
 
 namespace Omnia {
 
@@ -25,20 +21,17 @@ Application::Application():
 	Gfx::SetContext(Context);
 
 	// Load GL Library
-	if (!gladLoadGL()) {
-		applog << "Failed to load OpenGL." << std::endl;
-		return;
-	}
-	glViewport(0, 0, pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
+	Gfx::LoadGL();
+	Gfx::SetViewport( pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
 
 	// Information
-	printf("OpenGL Version %d.%d loaded\n", GLVersion.major, GLVersion.minor);
 	CoreLayer = new GuiLayer();
 
 	PushOverlay(CoreLayer);
 }
 
-Application::~Application() {}
+Application::~Application() {
+}
 
 void Application::Run() {
 	// Preparation
@@ -68,14 +61,15 @@ void Application::Run() {
 	auto oTouchEvent = pListener->TouchEvent.Subscribe([&](TouchEventData data) { this->TouchEvent(data); });
 	auto oWindowEvent = pListener->WindowEvent.Subscribe([&](WindowEventData data) { this->WindowEvent(data); });
 
+	Timer test;
 	// Main Logic
 	Create();
 	for (Layer *layer : Layers) layer->Create();
 	while (Running) {
 		pListener->Update();
 		if (Paused) continue;
-		
-		Timestep deltaTime = timer.GetDeltaTime();
+
+		Timestamp deltaTime = timer.GetDeltaTime();
 		delay += deltaTime;
 		frames++;
 
@@ -94,6 +88,11 @@ void Application::Run() {
 		// Update
 		Update(deltaTime);
 		for (Layer *layer : Layers) layer->Update(deltaTime);
+		if (pWindow->GetProperties().State.Alive) {
+			CoreLayer->Begin();
+			for (Layer *layer : Layers) layer->GuiRender();
+			CoreLayer->End();
+		}
 
 		Gfx::SwapBuffers(Context);
 	}
@@ -104,10 +103,12 @@ void Application::Run() {
 	APP_PROFILE_END_SESSION();
 }
 
+
 // Workflow
 void Application::Create() {}
 void Application::Destroy() {}
-void Application::Update(Timestep deltaTime) {}
+void Application::Update(Timestamp deltaTime) {}
+
 
 // Event System
 void Application::ControllerEvent(ControllerEventData &data) {}
@@ -116,13 +117,16 @@ void Application::MouseEvent(MouseEventData &data) {}
 void Application::TouchEvent(TouchEventData &data) {}
 void Application::WindowEvent(WindowEventData &data) {}
 
+
 // Layer System
 void Application::PushLayer(Layer *layer) {
 	Layers.PushLayer(layer);
+	layer->Attach();
 }
 
 void Application::PushOverlay(Layer *overlay) {
 	Layers.PushOverlay(overlay);
+	overlay->Attach();
 }
 
 
@@ -130,16 +134,13 @@ void Application::PushOverlay(Layer *overlay) {
 void Application::AutoDeviceEvent(DeviceEventData &data) {
 	applog << "Device Event:" << std::endl;
 }
-
 void Application::AutoPowerEvent(PowerEventData &data) {
 	applog << "Power Event:" << std::endl;
 }
 
-
 void Application::AutoControllerEvent(ControllerEventData &data) {
 	for (auto layer : Layers) { layer->ControllerEvent(data); }
 }
-
 void Application::AutoKeyboardEvent(KeyboardEventData &data) {
 	for (auto layer : Layers) { layer->KeyboardEvent(data); }
 
@@ -160,7 +161,6 @@ void Application::AutoKeyboardEvent(KeyboardEventData &data) {
 	//		"-] \n";
 	//}
 }
-
 void Application::AutoMouseEvent(MouseEventData &data) {
 	for (auto layer : Layers) { layer->MouseEvent(data); }
 
@@ -176,11 +176,9 @@ void Application::AutoMouseEvent(MouseEventData &data) {
 	//	"Modifiers:"	<< data.Modifier	<< " | " <<
 	//	"-] \n";
 }
-
 void Application::AutoTouchEvent(TouchEventData &data) {
 	for (auto layer : Layers) { layer->TouchEvent(data); }
 }
-
 void Application::AutoWindowEvent(WindowEventData &data) {
 	for (auto layer : Layers) { layer->WindowEvent(data); }
 
@@ -207,7 +205,7 @@ void Application::AutoWindowEvent(WindowEventData &data) {
 
 		case WindowAction::Resize: {
 			// ToDo: Needs a redraw to show contents...
-			glViewport(0, 0, data.Width, data.Height);
+			Gfx::SetViewport( pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
 			//Gfx::SwapBuffers(Context);
 			break;
 		}
@@ -217,7 +215,6 @@ void Application::AutoWindowEvent(WindowEventData &data) {
 		}
 	}
 }
-
 
 void Application::AutoContextEvent(ContextEventData &data) {
 	applog << "Context Event:" << std::endl;

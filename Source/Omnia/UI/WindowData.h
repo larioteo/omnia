@@ -119,7 +119,7 @@ struct WindowProperties {
 	};
 
 	// Window with recommended values
-	WindowProperties(string &title, unsigned int width = 640u, unsigned int height = 480u, WindowStyle style = WindowStyle::Default):
+	WindowProperties(const string &title, unsigned int width = 640u, unsigned int height = 480u, WindowStyle style = WindowStyle::Default):
 		ID {"Window[" + title + "]"},
 		Title {title},
 		Icon {"Data/" + title + ".ico"},

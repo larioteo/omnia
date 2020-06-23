@@ -37,7 +37,6 @@ set(OMNIA_LIBRARY_CORE_HEADERS
 )
 set(OMNIA_LIBRARY_CORE_SOURCES
 	"Source/Omnia/Core/Application.cpp"
-	"Source/Omnia/Core/Layer.cpp"
 	"Source/Omnia/Core/LayerStack.cpp"
 )
 list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_CORE_HEADERS})

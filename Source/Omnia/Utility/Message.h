@@ -6,7 +6,9 @@
 
 namespace Omnia {
 
-// Event Data, Priority
+/**
+ * @brief EventData Interface and EventPriority
+*/
 enum class EventPriority {
 	// HowTo # Extend EventPriority: typedef DeriveEnum<EventPriorityExtended, EventPriority> EventPriorityX;
 	Null		= 0x00,
@@ -28,7 +30,9 @@ struct IEventData {
 	virtual ~IEventData() = default;
 };
 
-// This interface holds the message data
+/**
+* @brief This interface holds the message data
+*/
 class IMessage {
 	IEventData Data;
 
@@ -45,7 +49,9 @@ public:
 };
 
 
-// Message
+/**
+* @brief Observer: Notifies all observers
+*/
 class Observer {
 	std::shared_ptr<void> Object;
 
@@ -54,6 +60,9 @@ public:
 	void Destroy() { Object = nullptr; };
 };
 
+/**
+* @brief Subject: The subject to subscribe
+*/
 template<typename ... Arguments>
 class Subject {
 	using Callback = std::function<void(Arguments ...)>;

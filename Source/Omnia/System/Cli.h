@@ -1,12 +1,14 @@
 #pragma once
 
-// Library
-#include <ostream>
+#include "Omnia/Omnia.pch"
 
+// Disable:
 #pragma warning(push)
 #pragma warning(disable: 26812)
 
-// CLI Modifiers
+/**
+* @brief CLI Modifiers: Extends output stream with easy support for colors and styles.
+*/
 namespace Omnia { namespace Cli {
 
 namespace Color {

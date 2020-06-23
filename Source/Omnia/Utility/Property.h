@@ -4,19 +4,22 @@
 
 namespace Omnia {
 
-// Property: Built-In Getter and Setter for <any> type
+/**
+* @brief Property: Built-In Getter and Setter for <any> type
+*/
 template<typename T>
 class Property {
 	T Value;
 public:
-	Property(T value):
-		Value {value} {};
+	Property(T value):	Value {value} {};
 
 	T &operator=(const T &value) { return Value = value; };
 	operator T const &() const { return Value; };
 };
 
-// Property: Built-In Getter and Setter for <arithmetic> types with clamping 'from # to # in steps #' feature
+/**
+* @brief Property: Built-In Getter and Setter for <arithmetic> types with clamping 'from # to # in steps #' feature
+*/
 template <typename T>
 class ArithmeticProperty {
 	static_assert(std::is_arithmetic<T>::value);
@@ -29,15 +32,9 @@ public:
 	// Predefined values {0}
 	ArithmeticProperty() = default;
 	// Define min and max (value = max)
-	ArithmeticProperty(T min, T max):
-		Value {max},
-		Minimum {min},
-		Maximum {max} {};
+	ArithmeticProperty(T min, T max): Value {max}, Minimum {min}, Maximum {max} {};
 	// Define value, min and max
-	ArithmeticProperty(T value, T min, T max):
-		Value {value},
-		Minimum {min},
-		Maximum {max} {};
+	ArithmeticProperty(T value, T min, T max): Value {value}, Minimum {min}, Maximum {max} {};
 	
 	T &operator=(const T &value) {
 		// ToDo: Implement 'in steps #' feature

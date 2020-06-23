@@ -1,6 +1,8 @@
+#include "Context.h"
 
-#include "Omnia/GFX/Context.h"
-#include "Platform/GFX/OpenGL/GLContext.h"
+#ifdef APP_PLATFORM_WINDOWS
+	#include "Platform/GFX/OpenGL/GLContext.h"
+#endif
 
 namespace Omnia { namespace Gfx {
 

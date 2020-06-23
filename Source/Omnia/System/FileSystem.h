@@ -4,28 +4,39 @@
 #include <fstream>
 #include <string>
 
-// Accessors
-static const std::string &GetFileExtension(const std::string &object) noexcept {
+/**
+* @brief Helper: File System Object Information
+*/
+
+/* Retrieve the extension of a given file system object. */
+static const std::string GetFileExtension(const std::string &object) noexcept {
 	std::filesystem::path result = object;
 	return result.extension().string();
 }
 
+/* Retrieve the name of a given file system object. */
 static const std::string GetFileName(const std::string &object) noexcept {
 	std::filesystem::path result = object;
 	return result.stem().string();
 }
 
+/* Retrieve the path of a given file system object. */
 static const std::string GetFilePath(const std::string &object) noexcept {
 	std::filesystem::path result = object;
 	return result.parent_path().string();
 }
 
+/* Retrieve the root directory of a given file system object. */
 static const std::string GetFileRoot(const std::string &object) noexcept {
 	std::filesystem::path result = object;
 	return result.root_path().string();
 }
 
-// Operations
+/**
+* @brief Helper: File System Object Operations
+*/
+
+/* Read data from file system object. */
 static std::string ReadFile(const std::string &file) {
 	std::string result;
 	std::ifstream stream(file, std::ios::in | std::ios::binary);
@@ -46,7 +57,7 @@ static std::string ReadFile(const std::string &file) {
 	return result;
 }
 
-// Operations
+/* Test: Read data from file system object. */
 static std::string ReadFile2(const std::string &object) {
 	std::ifstream stream(object, std::ios::binary|std::ios::ate|std::ios::in);
 	if (!stream) throw std::runtime_error(object + ": " + std::strerror(errno));

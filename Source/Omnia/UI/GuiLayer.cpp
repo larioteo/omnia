@@ -9,15 +9,8 @@
 
 namespace Omnia {
 
-GuiLayer::GuiLayer():
-	Layer("GuiLayer"),
-	Width{ 0 },
-	Height{ 0 } {
-}
-
-GuiLayer::~GuiLayer() {
-}
-
+GuiLayer::GuiLayer(): Layer("GuiLayer") {}
+GuiLayer::~GuiLayer() {}
 
 void GuiLayer::Attach() {
 	// Decide GL+GLSL versions
@@ -53,9 +46,6 @@ void GuiLayer::Attach() {
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
 
-	Width = app.GetWindow().GetDisplaySize().Width;
-	Height = app.GetWindow().GetDisplaySize().Height;
-
 	ImGui_ImplWin32_Init((HWND)app.GetWindow().GetNativeWindow(), app.GetContext().hRenderingContext);
 	ImGui_ImplOpenGL3_Init(glsl_version);
 
@@ -81,27 +71,29 @@ void GuiLayer::Detach() {
 	ImGui::DestroyContext();
 }
 
-void GuiLayer::Event(void *event) {
+void GuiLayer::GuiUpdate() {
+	//static bool show_demo_window = true;
+	//if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
 }
 
 void GuiLayer::Update(Timestamp deltaTime) {
+	ImGuiIO &io = ImGui::GetIO();
+	io.DeltaTime = deltaTime;
 	return;
-	Application &app = Application::Get();
-	if (!app.GetWindow().GetProperties().State.Alive) return;
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	static bool show_demo_window = true;
+}
 
-	//GetDeltaTime...
-	//ImGuiIO &= = ImGui::GetIO();
-	//io.DeltaTime = Time > 0.0f ? (time - Time) : (1.0f / 60.0f);
 
+void GuiLayer::Prepare() {
 	// Start the Dear ImGui frame
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
+}
 
-	if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
-
+void GuiLayer::Finish() {
+	Application &app = Application::Get();
+	ImGuiIO& io = ImGui::GetIO();
+	
 	// Rendering
 	ImGui::Render();
 	//glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
@@ -114,41 +106,14 @@ void GuiLayer::Update(Timestamp deltaTime) {
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
-		
-		wglMakeCurrent(app.Get().GetContext().hDeviceContext, app.Get().GetContext().hRenderingContext);
-	}
-
-	//SwapBuffers(app.Context.hDeviceContext);
-}
-
-void GuiLayer::GuiRender() {
-}
-
-
-void GuiLayer::Begin() {
-	// Start the Dear ImGui frame
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
-}
-
-void GuiLayer::End() {
-	Application &app = Application::Get();
-	ImGuiIO& io = ImGui::GetIO();
-	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-		ImGui::UpdatePlatformWindows();
-		ImGui::RenderPlatformWindowsDefault();
 
 		wglMakeCurrent(app.Get().GetContext().hDeviceContext, app.Get().GetContext().hRenderingContext);
 	}
 }
 
 
-void GuiLayer::ControllerEvent(ControllerEventData data) {
-}
+void GuiLayer::Event(void *event) {}
+void GuiLayer::ControllerEvent(ControllerEventData data) {}
 
 void GuiLayer::KeyboardEvent(KeyboardEventData data) {
 	if (ImGui::GetCurrentContext() == NULL) return;
@@ -233,12 +198,7 @@ void GuiLayer::MouseEvent(MouseEventData data) {
 	}
 }
 
-void GuiLayer::TouchEvent(TouchEventData data) {
-
-}
-
-void GuiLayer::WindowEvent(WindowEventData data) {
-
-}
+void GuiLayer::TouchEvent(TouchEventData data) {}
+void GuiLayer::WindowEvent(WindowEventData data) {}
 
 }

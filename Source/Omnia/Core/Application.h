@@ -2,12 +2,10 @@
 
 #include "Omnia/Core.h"
 #include "Omnia/Core/LayerStack.h"
-
 #include "Omnia/GFX/Graphics.h"
 #include "Omnia/UI/Event.h"
 #include "Omnia/UI/GuiLayer.h"
 #include "Omnia/UI/Window.h"
-
 #include "Omnia/Utility/Timer.h"
 
 namespace Omnia {
@@ -16,22 +14,21 @@ class Application {
 	// Properties
 	static Application *AppInstance;
 	LayerStack Layers;
-
 	Reference<Window> pWindow;
-	Gfx::ContextData Context;
 	Reference<EventListener> pListener;
+	Gfx::ContextData Context;
 	GuiLayer *CoreLayer;
 
 	bool Paused;
 	bool Running;
 
 public:
-	Application();
+	Application(const string &title = "Omnia");
 	virtual ~Application();
 
 	inline static Application &Get() { return *AppInstance; }
-	inline Omnia::Window &GetWindow() { return *pWindow; }
-	inline Omnia::Gfx::ContextData &GetContext() { return Context; }
+	inline Window &GetWindow() { return *pWindow; }
+	inline Gfx::ContextData &GetContext() { return Context; }
 
 	/**
 	* @brief	With this method, everything begins.

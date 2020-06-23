@@ -8,25 +8,23 @@ namespace Omnia {
 
 class Layer {
 protected:
-	string DebugName;
+	string Name;
 
 public:
-	Layer(const string &name = "Layer"):
-		DebugName{ name } {
-	}
+	Layer(const string &name = "Layer"): Name { name } {}
 	virtual ~Layer() = default;
 
 	virtual void Attach() {}
 	virtual void Detach() {}
-	virtual void Event(void *event) {}
 
 	virtual void Create() {}
-	virtual void Update(Timestamp deltaTime) {}
 	virtual void Destroy() {}
-	virtual void GuiRender() {}
+	virtual void GuiUpdate() {}
+	virtual void Update(Timestamp deltaTime) {}
 
-	inline const string &GetName() const { return DebugName; }
+	inline const string &GetName() const { return Name; }
 
+	virtual void Event(void *event) {}
 	virtual void ControllerEvent(ControllerEventData data) {}
 	virtual void KeyboardEvent(KeyboardEventData data) {}
 	virtual void MouseEvent(MouseEventData data) {}

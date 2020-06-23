@@ -7,6 +7,9 @@ namespace Omnia { namespace Utility {
 using namespace std::chrono;
 using namespace std::chrono_literals;
 
+/**
+* @brief Internal application date & time ticker.
+*/
 class DateTime {
 	// Properties
 	static const time_point<high_resolution_clock> StartTime;
@@ -22,40 +25,25 @@ public:
 
 	// Converters
 	template <typename T = long long>
-	auto AsSeconds() const {
-		return static_cast<T>(Nanoseconds.count()) / static_cast<T>(1000000000);
-	}
+	auto AsSeconds() const { return static_cast<T>(Nanoseconds.count()) / static_cast<T>(1000000000); }
 	template <typename T = long long>
-	auto AsMilliseconds() const {
-		return static_cast<T>(Nanoseconds.count()) / static_cast<T>(1000000);
-	}
+	auto AsMilliseconds() const { return static_cast<T>(Nanoseconds.count()) / static_cast<T>(1000000); }
 	template <typename T = long long>
-	auto AsMicroseconds() const {
-		return static_cast<T>(Nanoseconds.count()) / static_cast<T>(1000);
-	}
+	auto AsMicroseconds() const { return static_cast<T>(Nanoseconds.count()) / static_cast<T>(1000); }
 	template <typename T = long long>
-	auto AsNanoseconds() const {
-		return static_cast<T>(Nanoseconds.count());
-	}
+	auto AsNanoseconds() const { return static_cast<T>(Nanoseconds.count()); }
 
 	// Accessors
 	template <typename T = long long>
-	static constexpr DateTime &GetNanoseconds(const T &nanoseconds) {
-		return Time(duration<T, std::nano>(nanoseconds));
-	}
+	static constexpr DateTime &GetNanoseconds(const T &nanoseconds) { return Time(duration<T, std::nano>(nanoseconds));	}
 	template <typename T = long long>
-	static constexpr DateTime &GetMicroseconds(const T &microseconds) {
-		return Time(duration<T, std::micro>(microseconds));
-	}
+	static constexpr DateTime &GetMicroseconds(const T &microseconds) { return Time(duration<T, std::micro>(microseconds)); }
 	template <typename T = long long>
-	static constexpr DateTime &GetMilliseconds(const T &milliseconds) {
-		return Time(duration<T, std::micro>(milliseconds));
-	}
+	static constexpr DateTime &GetMilliseconds(const T &milliseconds) { return Time(duration<T, std::micro>(milliseconds)); }
 	template <typename T = long long>
-	static constexpr DateTime &GetSeconds(const T &seconds) {
-		return Time(duration<T>(seconds));
-	}
-	static std::string GetTimeStamp(const std::string &format = "%Y-%m-%dT%H:%M:%S") {
+	static constexpr DateTime &GetSeconds(const T &seconds) { return Time(duration<T>(seconds)); }
+
+	static const std::string GetTimeStamp(const std::string &format = "%Y-%m-%dT%H:%M:%S") {
 		// Get timestamp
 		//auto nows = floor<std::chrono::microseconds>(high_resolution_clock::now());
 		auto now = floor<std::chrono::microseconds>(system_clock::now());
@@ -64,21 +52,24 @@ public:
 		//auto nano = duration_cast<nanoseconds>(nows.time_since_epoch()) % 1000;
 		auto micro = duration_cast<microseconds>(now.time_since_epoch()) % 1000;
 		auto milli = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+		auto seconds = duration_cast<std::chrono::seconds>(now.time_since_epoch()) % 60;
 
 		// Convert to time_t
 		auto time = system_clock::to_time_t(now);
 
 		std::stringstream ss;
-		ss << std::put_time(std::localtime(&time), format.c_str()) << "." << std::setfill('0')
+		ss << std::put_time(std::localtime(&time), format.c_str()) << ":"
+			<< std::setw(2) << std::setfill('0') << seconds.count()
+			<< "." << std::setfill('0')
 			<< std::setw(3) << milli.count()
 			<< std::setw(3) << micro.count();
-		//<< std::setw(3) << nano.count()
+			//<< std::setw(3) << nano.count()
 		return ss.str();
 
 		//cout << std::format("%Y-%m-%dT%H:%M:%S", (std::chrono::system_clock::now())) << '\n';
 		//return format("%d-%m-%Y %T", floor<microseconds>(system_clock::now())) << '\n';
 	}
-	static std::string GetIsoDate() {
+	static const std::string GetIsoDate() {
 		std::string format = "%Y-%m-%d";
 		auto now = floor<std::chrono::microseconds>(system_clock::now());
 		auto time = system_clock::to_time_t(now);
@@ -88,7 +79,7 @@ public:
 		
 		return ss.str();
 	}
-	static std::string GetIsoTime() {
+	static const std::string GetIsoTime() {
 		std::string format = "%H:%M:%S";
 		auto now = floor<std::chrono::microseconds>(system_clock::now());
 		auto time = system_clock::to_time_t(now);
@@ -97,7 +88,6 @@ public:
 		ss << std::put_time(std::localtime(&time), format.c_str());
 		return ss.str();
 	}
-	// - Runtime
 	static const DateTime Now() { return duration_cast<nanoseconds>(high_resolution_clock::now() - StartTime); }
 
 	// Comparision

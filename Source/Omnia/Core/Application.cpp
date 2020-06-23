@@ -9,40 +9,39 @@ namespace Omnia {
 
 Application *Application::AppInstance = nullptr;
 
-Application::Application():
+Application::Application(const string &title):
 	Running(true),
 	Paused(false) {
 	AppInstance = this;
 
-	// Register Components
-	pWindow = Window::Create(WindowProperties("Ultra"s, 1024, 768));
+	// Load Window and Events
+	pWindow = Window::Create(WindowProperties(title, 1024, 768));
 	Context = Gfx::CreateContext(pWindow.get(), Gfx::ContextProperties());
 	pListener = EventListener::Create();
-	Gfx::SetContext(Context);
 
-	// Load GL Library
+	// Load GFX Context
+	Gfx::SetContext(Context);
 	Gfx::LoadGL();
 	Gfx::SetViewport( pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
 
-	// Information
+	// Load Core Layer
 	CoreLayer = new GuiLayer();
-
 	PushOverlay(CoreLayer);
 }
 
-Application::~Application() {
-}
+Application::~Application() {}
 
 void Application::Run() {
 	// Preparation
 	APP_PROFILE_BEGIN_SESSION("Application", "AppProfile.json");
-	Timer timer;
-	float delay = {};
+	Timer timer = {};
+	double delay = {};
 	size_t frames = {};
-	std::string statistics;
+	string statistics;
 
 	// Subscribe to all events (internal)
 	auto oDispatcher = pWindow->EventCallback.Subscribe([&](void *event) { pListener->Callback(event); });
+
 	auto oAutoDeviceEvent = pListener->DeviceEvent.Subscribe([&](DeviceEventData data) { this->AutoDeviceEvent(data); });
 	auto oAutoPowerEvent = pListener->PowerEvent.Subscribe([&](PowerEventData data) { this->AutoPowerEvent(data); });
 
@@ -61,39 +60,36 @@ void Application::Run() {
 	auto oTouchEvent = pListener->TouchEvent.Subscribe([&](TouchEventData data) { this->TouchEvent(data); });
 	auto oWindowEvent = pListener->WindowEvent.Subscribe([&](WindowEventData data) { this->WindowEvent(data); });
 
-	Timer test;
 	// Main Logic
 	Create();
 	for (Layer *layer : Layers) layer->Create();
 	while (Running) {
+		// Update events and check if application is paused
 		pListener->Update();
 		if (Paused) continue;
 
+		// Calcualte Statistics
 		Timestamp deltaTime = timer.GetDeltaTime();
 		delay += deltaTime;
 		frames++;
-
-		// Delayed-Update
 		if (delay >= 1.0f) {
 			float msPF = 1000.0f / (float)frames;
 
 			statistics = "Ultra"s + " [FPS:" + std::to_string(frames) + " | msPF:" + std::to_string(msPF) + "]";
-			//applog << Log::Info << statistics << "\n";
 			pWindow->SetTitle(statistics);
 
 			frames = 0;
 			delay = 0.0f;
 		}
-		
+
 		// Update
 		Update(deltaTime);
 		for (Layer *layer : Layers) layer->Update(deltaTime);
 		if (pWindow->GetProperties().State.Alive) {
-			CoreLayer->Begin();
-			for (Layer *layer : Layers) layer->GuiRender();
-			CoreLayer->End();
+			CoreLayer->Prepare();
+			for (Layer *layer : Layers) layer->GuiUpdate();
+			CoreLayer->Finish();
 		}
-
 		Gfx::SwapBuffers(Context);
 	}
 
@@ -144,7 +140,7 @@ void Application::AutoControllerEvent(ControllerEventData &data) {
 void Application::AutoKeyboardEvent(KeyboardEventData &data) {
 	for (auto layer : Layers) { layer->KeyboardEvent(data); }
 
-	// Left for debugging purposes
+	//// Left for debugging purposes
 	//if (data.Action == KeyboardAction::Input) {
 	//	applog << data.Source << ": [" <<
 	//		"Action:"		<< data.Action		<< " | "	<<
@@ -205,7 +201,7 @@ void Application::AutoWindowEvent(WindowEventData &data) {
 
 		case WindowAction::Resize: {
 			// ToDo: Needs a redraw to show contents...
-			Gfx::SetViewport( pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
+			//Gfx::SetViewport( pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
 			//Gfx::SwapBuffers(Context);
 			break;
 		}

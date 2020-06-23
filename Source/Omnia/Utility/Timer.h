@@ -5,7 +5,7 @@
 namespace Omnia {
 
 /**
-* @brief Timestep which holds a timestamp in milliseconds.
+* @brief Timestamp which holds a double in milliseconds.
 */
 class Timestamp {
 	// Properties
@@ -13,16 +13,14 @@ class Timestamp {
 
 public:
 	// Default
-	
-	
-	Timestamp(double time = 0.0f): Time{ time } {}
+	Timestamp(double time = 0.0): Time{ time } {}
 	~Timestamp() = default;
 
 	/* Retrive the timestamp in seconds */
-	double GetSeconds()			{ return Time / 1000.0f; }
+	const double GetSeconds() { return Time / 1000.0; }
 
 	/* Retrive timestamp in milliseconds */
-	uint64_t GetMilliseconds()	{ return Time; }
+	const double GetMilliseconds() { return Time; }
 
 	// Operators
 	operator double() { return GetSeconds(); }
@@ -52,25 +50,23 @@ public:
 	~Timer() = default;
 
 	/** Retrive current clock tick */
-	const uint64_t Now() {
-		return std::chrono::duration_cast<std::chrono::milliseconds>(CalculateDuration()).count();
-	}
+	const double Now() {	return std::chrono::duration_cast<std::chrono::microseconds>(CalculateDuration()).count() / 1000.0; }
 
 	/** Retrive delta time in milliseconds (default) */
-	const uint64_t GetDeltaTime() {
-		uint64_t duration = std::chrono::duration_cast<std::chrono::milliseconds>(CalculateDuration()).count();
+	const double GetDeltaTime() {
+		double duration = std::chrono::duration_cast<std::chrono::microseconds>(CalculateDuration()).count() / 1000.0;
 		Reset();
 		return duration;
 	}
 
 	/** Retrive delta time in specified period (s, ms, µs, ns) */
-	const uint64_t GetDeltaTimeAs(Unit unit = Unit::Seconds) {
-		uint64_t duration = 0;
+	const double GetDeltaTimeAs(Unit unit = Unit::Seconds) {
+		double duration = 0.0;
 		switch (unit) {
-			case Unit::Seconds:			{ duration = std::chrono::duration_cast<std::chrono::seconds>(CalculateDuration()).count();			break; }
-			case Unit::Milliseconds:	{ duration = std::chrono::duration_cast<std::chrono::milliseconds>(CalculateDuration()).count();	break; }
-			case Unit::Microseconds:	{ duration = std::chrono::duration_cast<std::chrono::microseconds>(CalculateDuration()).count();	break; }
-			case Unit::Nanoseconds:		{ duration = std::chrono::duration_cast<std::chrono::nanoseconds>(CalculateDuration()).count();		break; }
+			case Unit::Seconds:			{ duration = std::chrono::duration_cast<std::chrono::microseconds>(CalculateDuration()).count() / 1000000.0;	break; }
+			case Unit::Milliseconds:	{ duration = std::chrono::duration_cast<std::chrono::microseconds>(CalculateDuration()).count() / 1000.0;		break; }
+			case Unit::Microseconds:	{ duration = std::chrono::duration_cast<std::chrono::microseconds>(CalculateDuration()).count();				break; }
+			case Unit::Nanoseconds:		{ duration = std::chrono::duration_cast<std::chrono::nanoseconds>(CalculateDuration()).count();					break; }
 			default:					{ break; }
 		}
 		Reset();

@@ -40,7 +40,7 @@ void GuiLayer::Attach() {
 
 	// Setup Dear ImGui style
 	//ImGui::StyleColorsDark();
-	ImGui::StyleColorsClassic();
+	//ImGui::StyleColorsClassic();
 
 	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
 	ImGuiStyle& style = ImGui::GetStyle();
@@ -53,7 +53,7 @@ void GuiLayer::Attach() {
 	ImGui_ImplWin32_Init((HWND)app.GetWindow().GetNativeWindow(), app.GetContext().hRenderingContext);
 	ImGui_ImplOpenGL3_Init(glsl_version);
 	//ImFont* pFont = io.Fonts->AddFontDefault();
-	ImFont* pFont = io.Fonts->AddFontFromFileTTF("./Assets/Fonts/Roboto/Roboto-Medium.ttf", 16.0f);
+	io.Fonts->AddFontFromFileTTF("./Assets/Fonts/Roboto/Roboto-Medium.ttf", 14.0f);
 	//ImGui::PushFont(pFont);
 	// Load Fonts
 	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.

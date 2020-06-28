@@ -17,6 +17,7 @@ using std::shared_ptr;
 using std::string;
 using std::string_view;
 using std::stringstream;
+using std::unordered_map;
 using std::unique_ptr;
 using std::vector;
 

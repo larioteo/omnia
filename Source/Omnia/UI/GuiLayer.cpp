@@ -15,7 +15,7 @@ GuiLayer::~GuiLayer() {}
 void GuiLayer::Attach() {
 	// Decide GL+GLSL versions
 	Application &app = Application::Get();
-	const char *glsl_version = "#version 130";
+	const char *glsl_version = "#version 150";
 	//ImGui_ImplWin32_EnableDpiAwareness();
 
 	// Setup Dear ImGui context
@@ -24,10 +24,12 @@ void GuiLayer::Attach() {
 	ImGuiIO &io = ImGui::GetIO(); (void)io;
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
 	//io.ConfigViewportsNoAutoMerge = true;
 	//io.ConfigViewportsNoTaskBarIcon = true;
+	io.ConfigDockingWithShift = false;
 
 	// ToDo: Works only as an memory leak, the question is why (otherwise ImGui uses old pointer where the data is gone) ...
 	string *dataTarget = new string("./Data/"s + Application::Get().GetWindow().GetProperties().Title + ".ini"s);
@@ -44,8 +46,7 @@ void GuiLayer::Attach() {
 
 	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
 	ImGuiStyle& style = ImGui::GetStyle();
-	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-	{
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
 		style.WindowRounding = 0.0f;
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
@@ -112,7 +113,7 @@ void GuiLayer::Finish() {
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
-
+		//gfx::SetContext(context);
 		wglMakeCurrent(app.Get().GetContext().hDeviceContext, app.Get().GetContext().hRenderingContext);
 	}
 }
@@ -131,6 +132,10 @@ void GuiLayer::KeyboardEvent(KeyboardEventData data) {
 	io.KeyShift = data.Modifier.Shift;
 	io.KeySuper = data.Modifier.Super;
 
+	//case KeyCode::F1: {
+	//	//Menu::show_demo_window = !Menu::show_demo_window;
+	//	break;
+	//}
 	switch (data.Action) {
 		case KeyboardAction::Input: {
 			io.AddInputCharacterUTF16((uint32_t)data.Key);

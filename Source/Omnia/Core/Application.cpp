@@ -12,14 +12,24 @@ Application *Application::AppInstance = nullptr;
 Application::Application(const string &title):
 	Running(true),
 	Paused(false) {
+	// Preparation
+	applog << Log::Header;
+	applog << Log::Area << "Application started..."s << "\n";
+	applog << "... on: " << apptime.GetIsoDate() << "\n";
+	applog << "... at: " << apptime.GetIsoTime() << "\n";
+
+	// Initialization
+	applog << Log::Caption << "Initialization" << "\n";
 	AppInstance = this;
 
 	// Load Window and Events
+	applog << Log::Process << "Loading Window and Events" << "\n";
 	pWindow = Window::Create(WindowProperties(title, 1024, 768));
 	Context = Gfx::CreateContext(pWindow.get(), Gfx::ContextProperties());
 	pListener = EventListener::Create();
 
 	// Load GFX Context
+	applog << Log::Process << "Loading Graphics" << "\n";
 	Gfx::SetContext(Context);
 	Gfx::LoadGL();
 	Gfx::SetViewport( pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
@@ -63,6 +73,7 @@ void Application::Run() {
 	// Main Logic
 	Create();
 	for (Layer *layer : Layers) layer->Create();
+	applog << Log::Caption << "Running"s << "\n";
 	while (Running) {
 		// Update events and check if application is paused
 		pListener->Update();
@@ -97,6 +108,10 @@ void Application::Run() {
 	for (Layer *layer : Layers) layer->Destroy();
 	Destroy();
 	APP_PROFILE_END_SESSION();
+	applog << Log::Area << "Application finished ..."s << "\n";
+	applog << "... on: " << apptime.GetIsoDate() << "\n";
+	applog << "... at: " << apptime.GetIsoTime() << "\n";
+	applog << Log::Footer << "\n";
 }
 
 

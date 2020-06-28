@@ -59,6 +59,23 @@ static std::string ReadFile(const std::string &file) {
 
 /* Test: Read data from file system object. */
 static std::string ReadFile2(const std::string &object) {
+	static std::ifstream FileStream;
+	static std::stringstream FileCache;
+	
+	FileStream.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+	try {
+		if(object != "") {
+			FileStream.open(object);
+			FileCache << FileStream.rdbuf();
+			FileStream.close();
+			//result = FileCache.str();
+			FileCache.str(std::string());
+			FileCache.clear();
+		}
+	} catch (std::ifstream::failure error) {
+		std::cout << "An error occured while loading shaders!" << std::endl;
+	}
+
 	std::ifstream stream(object, std::ios::binary|std::ios::ate|std::ios::in);
 	if (!stream) throw std::runtime_error(object + ": " + std::strerror(errno));
 
@@ -97,4 +114,18 @@ static std::string ReadFile2(const std::string &object) {
 	//	// Error while open file
 	//}
 	return result;
+}
+
+static void LoadFile(const std::string object) {
+	//ofstream fso;
+	//fso.open(object);
+
+	//if(fso.is_open()) {
+	//	cout << "Done" << endl;
+
+	//	fso.close();
+	//} else {
+	//	cout << "Could'nt open '" + object + "1" << endl;
+	//}
+
 }

@@ -52,7 +52,9 @@ void GuiLayer::Attach() {
 
 	ImGui_ImplWin32_Init((HWND)app.GetWindow().GetNativeWindow(), app.GetContext().hRenderingContext);
 	ImGui_ImplOpenGL3_Init(glsl_version);
-
+	//ImFont* pFont = io.Fonts->AddFontDefault();
+	ImFont* pFont = io.Fonts->AddFontFromFileTTF("./Assets/Fonts/Roboto/Roboto-Medium.ttf", 16.0f);
+	//ImGui::PushFont(pFont);
 	// Load Fonts
 	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
 	// - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.

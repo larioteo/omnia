@@ -46,6 +46,9 @@ public:
 	/** This method executes your main logic code. */
 	virtual void Update(Timestamp deltaTime);
 
+	/** This method exits the application */
+	void Exit();
+
 	/**
 	* @brief	These methods offer an easy to use layer system.
 	*/

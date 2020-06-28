@@ -1,9 +1,10 @@
 ﻿#pragma once
+
 /**
 * @brief	This file should only be included by an external application.
 */
 
-// Configuration: The extension was chossen, to hide the file from other source files
+// Configuration: The extension was choosen, to hide the file from other source files
 #include "Omnia.settings"
 
 // Default Extensions: By the way, the order is important!

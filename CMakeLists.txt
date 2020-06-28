@@ -109,8 +109,8 @@ set_property(TARGET Omnia PROPERTY FOLDER Library)
 # ☷ Linker
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 target_include_directories(Omnia PRIVATE ${CMAKE_BINARY_DIR}/Source/Generated)
-target_include_directories(Omnia PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/3rd-Party/.Library)
-target_include_directories(Omnia PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Source)
+target_include_directories(Omnia PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/3rd-Party/.Library> $<INSTALL_INTERFACE:/>)
+target_include_directories(Omnia PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Source> $<INSTALL_INTERFACE:/>)
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # ☲ Process
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -131,6 +131,6 @@ message("  ҉ Linking Libraries")
 set(OmniaLibraries glad imgui)
 foreach(Library ${OmniaLibraries})
 	message("    - ${Library}")
-	target_link_libraries(${PROJECT_NAME} PRIVATE ${Library})
+	target_link_libraries(${PROJECT_NAME} PUBLIC ${Library})
 endforeach()
 #■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■

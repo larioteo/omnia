@@ -21,15 +21,19 @@ void GuiLayer::Attach() {
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+	ImGuiIO &io = ImGui::GetIO(); (void)io;
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
 	//io.ConfigViewportsNoAutoMerge = true;
 	//io.ConfigViewportsNoTaskBarIcon = true;
-	io.IniFilename = "Designer.ini";
-	io.LogFilename = "Designer.log";
+
+	// ToDo: Works only as an memory leak, the question is why (otherwise ImGui uses old pointer where the data is gone) ...
+	string *dataTarget = new string("./Data/"s + Application::Get().GetWindow().GetProperties().Title + ".ini"s);
+	string *logTarget = new string("./Log/"s + Application::Get().GetWindow().GetProperties().Title + ".log"s);
+	io.IniFilename = dataTarget->c_str();
+	io.LogFilename = logTarget->c_str();
 	////io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
 	////io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
 	////io.DisplaySize = ImVec2(app.GetWindow().GetDisplaySize().Width, app.GetWindow().GetDisplaySize().Height);
@@ -117,6 +121,7 @@ void GuiLayer::ControllerEvent(ControllerEventData data) {}
 
 void GuiLayer::KeyboardEvent(KeyboardEventData data) {
 	if (ImGui::GetCurrentContext() == NULL) return;
+
 	ImGuiIO &io = ImGui::GetIO();
 
 	io.KeyAlt = data.Modifier.Alt;

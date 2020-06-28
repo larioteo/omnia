@@ -105,6 +105,10 @@ void Application::Create() {}
 void Application::Destroy() {}
 void Application::Update(Timestamp deltaTime) {}
 
+void Application::Exit() {
+	Running = false;
+}
+
 
 // Event System
 void Application::ControllerEvent(ControllerEventData &data) {}
@@ -201,7 +205,7 @@ void Application::AutoWindowEvent(WindowEventData &data) {
 
 		case WindowAction::Resize: {
 			// ToDo: Needs a redraw to show contents...
-			//Gfx::SetViewport( pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
+			Gfx::SetViewport( pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
 			//Gfx::SwapBuffers(Context);
 			break;
 		}

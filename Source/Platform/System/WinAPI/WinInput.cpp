@@ -14,11 +14,11 @@ bool WinInput::GetKeyStatePlatform(KeyCode code) const {
 
 bool WinInput::GetMouseButtonStatePlatform(MouseButton button) const {
 	switch (button) {
-		case MouseButton::Left:		return (bool)::GetKeyState((int)VK_LBUTTON);
-		case MouseButton::Middle:	return (bool)::GetKeyState((int)VK_MBUTTON);
-		case MouseButton::Right:	return (bool)::GetKeyState((int)VK_RBUTTON);
-		case MouseButton::X1:		return (bool)::GetKeyState((int)VK_XBUTTON1);
-		case MouseButton::X2:		return (bool)::GetKeyState((int)VK_XBUTTON2);
+		case MouseButton::Left:		return (bool)::GetAsyncKeyState((int)VK_LBUTTON);
+		case MouseButton::Middle:	return (bool)::GetAsyncKeyState((int)VK_MBUTTON);
+		case MouseButton::Right:	return (bool)::GetAsyncKeyState((int)VK_RBUTTON);
+		case MouseButton::X1:		return (bool)::GetAsyncKeyState((int)VK_XBUTTON1);
+		case MouseButton::X2:		return (bool)::GetAsyncKeyState((int)VK_XBUTTON2);
 		default:					return false;
 	}
 }
@@ -26,6 +26,7 @@ bool WinInput::GetMouseButtonStatePlatform(MouseButton button) const {
 std::pair<float, float> WinInput::GetMousePositionPlatform() const {
 	POINT point;
 	GetCursorPos(&point);
+	ScreenToClient(GetActiveWindow(), &point);
 	return { static_cast<float>(point.x), static_cast<float>(point.y) };
 }
 

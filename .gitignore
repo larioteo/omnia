@@ -1,4 +1,10 @@
-# Directories
-.vs/
+# Compiler and Linker Cache
 [Bb]uild/
 [Cc]ache/
+
+# Directories
+.vs/
+.vscode/
+
+# Files
+*.log

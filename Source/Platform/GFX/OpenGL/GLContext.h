@@ -5,6 +5,8 @@
 namespace Omnia { namespace Gfx {
 
 class GLContext: public Context {
+	void *pContext;
+	void *pDevice;
 	void *pWindow;
 
 public:

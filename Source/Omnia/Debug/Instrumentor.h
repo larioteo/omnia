@@ -174,8 +174,7 @@ namespace Omnia { namespace Profiler {
 
 namespace Omnia {
 
-
-/// Get Rid of this
+/// ToDo: Remove this part
 using FloatingPointMicroseconds = std::chrono::duration<double, std::micro>;
 
 struct ProfileResult {
@@ -338,20 +337,19 @@ constexpr auto CleanupOutputString(const char(&expr)[N], const char(&remove)[K])
 
 }
 
-
 #if APP_PROFILE
-// Resolve which function signature macro will be used. Note that this only  is resolved when the (pre)compiler starts, so the syntax highlighting  could mark the wrong one in your editor!
-#if defined(_MSC_VER) 
-#define APP_FUNCTION_SIGNATURE  __func__
-#endif
-#define APP_PROFILE_BEGIN_SESSION(name, filepath)	::Omnia::Instrumentor::Get().BeginSession(name, filepath)
-#define APP_PROFILE_END_SESSION()					::Omnia::Instrumentor::Get().EndSession()
-#define APP_PROFILE_SCOPE(name)						constexpr auto fixedName = ::Omnia::InstrumentorUtils::CleanupOutputString(name, "__cdecl "); \
-														::Omnia::InstrumentationTimer timer##__LINE__(fixedName.Data)
-#define APP_PROFILE_FUNCTION()						APP_PROFILE_SCOPE(APP_FUNCTION_SIGNATURE)
+	// Resolve which function signature macro will be used. Note that this only  is resolved when the (pre)compiler starts, so the syntax highlighting  could mark the wrong one in your editor!
+	#if defined(_MSC_VER) 
+	#define APP_FUNCTION_SIGNATURE  __func__
+	#endif
+	#define APP_PROFILE_BEGIN_SESSION(name, filepath)	::Omnia::Instrumentor::Get().BeginSession(name, filepath)
+	#define APP_PROFILE_END_SESSION()					::Omnia::Instrumentor::Get().EndSession()
+	#define APP_PROFILE_SCOPE(name)						constexpr auto fixedName = ::Omnia::InstrumentorUtils::CleanupOutputString(name, "__cdecl "); \
+															::Omnia::InstrumentationTimer timer##__LINE__(fixedName.Data)
+	#define APP_PROFILE_FUNCTION()						APP_PROFILE_SCOPE(APP_FUNCTION_SIGNATURE)
 #else
-#define APP_PROFILE_BEGIN_SESSION(name, filepath)
-#define APP_PROFILE_END_SESSION()
-#define APP_PROFILE_SCOPE(name)
-#define APP_PROFILE_FUNCTION()
+	#define APP_PROFILE_BEGIN_SESSION(name, filepath)
+	#define APP_PROFILE_END_SESSION()
+	#define APP_PROFILE_SCOPE(name)
+	#define APP_PROFILE_FUNCTION()
 #endif

@@ -3,8 +3,6 @@
 #include "Omnia/Omnia.pch"
 #include "Omnia/Log.h"
 
-#include "Omnia/Debug/Instrumentor.h"
-
 namespace Omnia {
 
 Application *Application::AppInstance = nullptr;
@@ -13,23 +11,22 @@ Application::Application(const string &title):
 	Running(true),
 	Paused(false) {
 	// Preparation
-	applog << Log::Header;
-	applog << Log::Area << "Application started..."s << "\n";
-	applog << "... on: " << apptime.GetIsoDate() << "\n";
-	applog << "... at: " << apptime.GetIsoTime() << "\n";
+	AppInstance = this;
 
 	// Initialization
 	applog << Log::Caption << "Initialization" << "\n";
-	AppInstance = this;
+	applog << "Application started..."s << "\n";
+	applog << "... on: " << apptime.GetIsoDate() << "\n";
+	applog << "... at: " << apptime.GetIsoTime() << "\n";
 
 	// Load Window and Events
-	applog << Log::Process << "Loading Window and Events" << "\n";
+	applog << Log::Info << "Loading Window and Events" << "\n";
 	pWindow = Window::Create(WindowProperties(title, 1024, 768));
 	Context = Gfx::CreateContext(pWindow.get(), Gfx::ContextProperties());
 	pListener = EventListener::Create();
 
 	// Load GFX Context
-	applog << Log::Process << "Loading Graphics" << "\n";
+	applog << Log::Info << "Loading Graphics" << "\n";
 	Gfx::SetContext(Context);
 	Gfx::LoadGL();
 	Gfx::SetViewport( pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
@@ -73,7 +70,7 @@ void Application::Run() {
 	// Main Logic
 	Create();
 	for (Layer *layer : Layers) layer->Create();
-	applog << Log::Caption << "Running"s << "\n";
+	applog << Log::Caption << "Main Loop"s << "\n";
 	while (Running) {
 		// Update events and check if application is paused
 		pListener->Update();
@@ -105,13 +102,13 @@ void Application::Run() {
 	}
 
 	// Termination
+	applog << Log::Caption << "Termination" << "\n";
 	for (Layer *layer : Layers) layer->Destroy();
 	Destroy();
 	APP_PROFILE_END_SESSION();
-	applog << Log::Area << "Application finished ..."s << "\n";
+	applog << "Application finished ..."s << "\n";
 	applog << "... on: " << apptime.GetIsoDate() << "\n";
 	applog << "... at: " << apptime.GetIsoTime() << "\n";
-	applog << Log::Footer << "\n";
 }
 
 

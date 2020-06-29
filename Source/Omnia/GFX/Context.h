@@ -7,6 +7,7 @@ namespace Omnia { namespace Gfx {
 
 class Context {
 public:
+	virtual ~Context() = default;
 	static Scope<Context> Create(void *window);
 
 	virtual void Load() = 0;

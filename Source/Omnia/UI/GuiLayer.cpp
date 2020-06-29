@@ -103,6 +103,7 @@ void GuiLayer::Finish() {
 	
 	// Rendering
 	ImGui::Render();
+	//io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
 	//glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
 	//glClear(GL_COLOR_BUFFER_BIT);
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -111,6 +112,7 @@ void GuiLayer::Finish() {
 	// (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
 	//  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+		//GLFWwindow* backup_current_context = glfwGetCurrentContext();
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
 		//gfx::SetContext(context);

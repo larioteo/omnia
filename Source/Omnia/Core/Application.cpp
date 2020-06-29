@@ -11,22 +11,22 @@ Application::Application(const string &title):
 	Running(true),
 	Paused(false) {
 	// Preparation
+	applog << "Application started..."s << "\n";
+	applog << "... on: " << apptime.GetIsoDate() << "\n";
+	applog << "... at: " << apptime.GetIsoTime() << "\n";
 	AppInstance = this;
 
 	// Initialization
 	applog << Log::Caption << "Initialization" << "\n";
-	applog << "Application started..."s << "\n";
-	applog << "... on: " << apptime.GetIsoDate() << "\n";
-	applog << "... at: " << apptime.GetIsoTime() << "\n";
 
 	// Load Window and Events
-	applog << Log::Info << "Loading Window and Events" << "\n";
+	applog << Log::Debug << "Loading Window and Events" << "\n";
 	pWindow = Window::Create(WindowProperties(title, 1024, 768));
 	Context = Gfx::CreateContext(pWindow.get(), Gfx::ContextProperties());
 	pListener = EventListener::Create();
 
 	// Load GFX Context
-	applog << Log::Info << "Loading Graphics" << "\n";
+	applog << Log::Debug << "Loading Graphics" << "\n";
 	Gfx::SetContext(Context);
 	Gfx::LoadGL();
 	Gfx::SetViewport( pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
@@ -36,7 +36,11 @@ Application::Application(const string &title):
 	PushOverlay(CoreLayer);
 }
 
-Application::~Application() {}
+Application::~Application() {
+	applog << "\nApplication finished ..."s << "\n";
+	applog << "... on: " << apptime.GetIsoDate() << "\n";
+	applog << "... at: " << apptime.GetIsoTime() << "\n";
+}
 
 void Application::Run() {
 	// Preparation
@@ -106,9 +110,6 @@ void Application::Run() {
 	for (Layer *layer : Layers) layer->Destroy();
 	Destroy();
 	APP_PROFILE_END_SESSION();
-	applog << "Application finished ..."s << "\n";
-	applog << "... on: " << apptime.GetIsoDate() << "\n";
-	applog << "... at: " << apptime.GetIsoTime() << "\n";
 }
 
 

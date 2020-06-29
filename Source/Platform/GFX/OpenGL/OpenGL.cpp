@@ -221,7 +221,7 @@ bool LoadGL() {
 		applog << "Failed to load OpenGL." << std::endl;
 		return false;
 	}
-	printf("OpenGL Version %d.%d loaded\n", GLVersion.major, GLVersion.minor);
+	//printf("OpenGL Version %d.%d loaded\n", GLVersion.major, GLVersion.minor);
 	return true;
 }
 

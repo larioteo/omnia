@@ -142,8 +142,7 @@ namespace Omnia {
 	#define APP_GRAPHICS_API "OpenGL"
 #endif
 
-
-
+// ToDo: Should work on any compiler and shown only once.
 #if 0
 	#pragma message(once: "#> Compiler: " APP_COMPILER " [" APP_COMPILER_VERSION "]")
 	#pragma message(once: "#> Platform: " APP_PLATFORM)

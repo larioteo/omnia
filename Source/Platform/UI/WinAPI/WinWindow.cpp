@@ -184,7 +184,7 @@ WinWindow::WinWindow(const WindowProperties &properties):
 	}
 
 	// DWM Settings
-	static const DWM_BLURBEHIND blur {{0}, {TRUE}, {NULL}, {TRUE}};
+	static const DWM_BLURBEHIND blur {0, TRUE, NULL, TRUE};
 	static const MARGINS shadow[2] {{0, 0, 0, 0}, {1, 1, 1, 1}};
 	DwmEnableBlurBehindWindow(hWindow, &blur);
 	DwmExtendFrameIntoClientArea(hWindow, &shadow[0]);

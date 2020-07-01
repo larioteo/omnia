@@ -13,6 +13,7 @@ static inline constexpr auto LibVersionPatch = "@LibVersionPatch@";
 
 // Properties
 @AppLibraryGfxApi@
+@AppLibraryDebugProperty@
 
 // Switches
 @AppLibraryPrimeExtensions@

@@ -31,6 +31,13 @@ set(AppLibrarySystemLayer	true	CACHE BOOL "System Extensions like color output i
 set(AppLibraryUILayer		false	CACHE BOOL "UI extensions like window creation and event system" FORCE)
 set(AppLibraryUtilityLayer	false	CACHE BOOL "Usefull utilities like date and time, properties and timer helpers, etc." FORCE)
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+	set(AppLibraryDebugMode		true	CACHE BOOL "" FORCE)
+else()
+	set(AppLibraryDebugMode		false	CACHE BOOL "" FORCE)
+endif()
+#‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+message("  ○ Debug Mode:     ${AppLibraryDebugMode}")
 message("  ○ Prime Layer:    ${AppLibraryPrimeLayer}")
 message("  ○ Core Layer:     ${AppLibraryCoreLayer}")
 message("  ○ Debug Layer:    ${AppLibraryDebugLayer}")
@@ -100,6 +107,12 @@ if(AppLibraryUtilityLayer)
 	set(AppLibraryUtilitiesExtensions "#define APP_LIBRARY_UTILITIES_EXTENSIONS")
 else()
 	set(AppLibraryUtilitiesExtensions "#undef APP_LIBRARY_UTILITIES_EXTENSIONS")
+endif()
+#‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+if(AppLibraryDebugMode)
+	set(AppLibraryDebugProperty "#define APP_DEBUG_MODE")
+else()
+	set(AppLibraryDebugProperty "#undef APP_DEBUG_MODE")
 endif()
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 # ☷ IDE

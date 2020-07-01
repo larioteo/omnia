@@ -127,7 +127,7 @@ intptr_t WinEventListener::Register(void *event) {
 			data.Action = KeyboardAction::Default;
 
 			// Get Key Code
-			data.Key = KeyCode{ msg.wParam };
+			data.Key = KeyCode{ (KeyCode)msg.wParam };
 			if (HIWORD(msg.lParam) & KF_EXTENDED) {
 				switch (msg.wParam) {
 					case VK_CONTROL:	{ data.Key = KeyCode::RControl;	break; }
@@ -415,7 +415,7 @@ intptr_t WinEventListener::Register(void *event) {
 
 			// Get Key Code
 			data.Character = (char)msg.wParam;
-			data.Key = KeyCode{ (unsigned int)msg.wParam };
+			data.Key = KeyCode{ (KeyCode)msg.wParam };
 
 			// Finalization
 			KeyboardEvent.Publish(data);

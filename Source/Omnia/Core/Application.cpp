@@ -2,6 +2,7 @@
 
 #include "Omnia/Omnia.pch"
 #include "Omnia/Log.h"
+#include "Omnia/Debug/Instrumentor.h"
 
 namespace Omnia {
 
@@ -20,16 +21,16 @@ Application::Application(const string &title):
 	applog << Log::Caption << "Initialization" << "\n";
 
 	// Load Window and Events
-	applog << Log::Debug << "Loading Window and Events" << "\n";
 	pWindow = Window::Create(WindowProperties(title, 1024, 768));
+	AppLogDebug("[Application] ", "Created window '", title, "' with size '", 1024, "x", 768, "'");
 	Context = Gfx::CreateContext(pWindow.get(), Gfx::ContextProperties());
 	pListener = EventListener::Create();
 
 	// Load GFX Context
-	applog << Log::Debug << "Loading Graphics" << "\n";
 	Gfx::SetContext(Context);
 	Gfx::LoadGL();
 	Gfx::SetViewport( pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
+	AppLogDebug("[Application] ", "Created context for 'OpenGL'");
 
 	// Load Core Layer
 	CoreLayer = new GuiLayer();
@@ -49,6 +50,7 @@ void Application::Run() {
 	double delay = {};
 	size_t frames = {};
 	string statistics;
+	string title = pWindow->GetTitle();
 
 	// Subscribe to all events (internal)
 	auto oDispatcher = pWindow->EventCallback.Subscribe([&](void *event) { pListener->Callback(event); });
@@ -87,7 +89,7 @@ void Application::Run() {
 		if (delay >= 1.0f) {
 			float msPF = 1000.0f / (float)frames;
 
-			statistics = "Ultra"s + " [FPS:" + std::to_string(frames) + " | msPF:" + std::to_string(msPF) + "]";
+			statistics = title + " [FPS:" + std::to_string(frames) + " | msPF:" + std::to_string(msPF) + "]";
 			pWindow->SetTitle(statistics);
 
 			frames = 0;

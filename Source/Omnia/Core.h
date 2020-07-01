@@ -1,9 +1,8 @@
 #pragma once
 
+#include "Omnia.settings"
 #include "Platform.h"
 #include "Types.h"
-
-#include "Omnia/Debug/Instrumentor.h"
 
 #ifdef APP_PLATFORM_WINDOWS
     #ifdef APP_SHARED_LIBRARY
@@ -15,7 +14,7 @@
 	#error "This library currently supports only Windows!""
 #endif
 
-#ifdef _DEBUG
+#ifdef APP_DEBUG_MODE
 	#if defined(APP_PLATFORM_WINDOWS)
 		#define APP_DEBUGBREAK() __debugbreak()
 	#elif defined(APP_PLATFORM_LINUX)
@@ -25,9 +24,6 @@
 		#define APP_DEBUGBREAK()
 		#pragma message("#> Core: Platform doesn't support debug break!")
 	#endif
-	#define APP_ASSERT(x, ...) { if(!(x)) { APP_LOG_ERROR("Assertation Failed: {0}", __VA_ARGS__); APP_DEBUGBREAK(); } }
 #else
 	#define APP_DEBUGBREAK()
-	#define APP_ASSERT(x, ...)
 #endif
-

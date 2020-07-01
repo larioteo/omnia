@@ -240,7 +240,7 @@ private:
 inline Log &applog = Log::Instance();
 inline Log &appout = Log::Instance();
 
-#ifdef _DEBUG // ToDo: Add APP_DEBUG_MODE preprocesor definition...
+#ifdef APP_DEBUG_MODE
 	template<typename T, typename ...Args> void AppAssert(T *object, Args &&...args) {
 		if (!object) {
 			applog << Log::Critical; (applog << ... << args); applog << "\n";

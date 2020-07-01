@@ -9,6 +9,7 @@
 | [Dear ImGui](https://github.com/ocornut/imgui.git "imgui")                                    | MIT           | 2020-06-11 | commit\{a933cc4f4d366340eff5c6dcb3a927478c9006a7} |
 | [GL/GLES/EGL/GLX/WGL Loader](https://github.com/Dav1dde/glad "glad")                          | MIT           | 2020-04-21 | commit\{fd8ea1acebad326f2c3078d9ca5955b22c34f3dd} |
 | [OpenGL-Registry](https://github.com/KhronosGroup/OpenGL-Registry.git "OpenGL-Registry")      | MIT?          | 2020-05-22 | commit\{8261133c2645aaeef880c5f5a6e327f399bc9d04} |
+| [yaml-cpp](https://github.com/jbeder/yaml-cpp.git "yaml-cpp")                                 | MIT           | 2020-06-29 | commit\{3f381f13a07f007941b250e1563f67ded4dc8b1a} |
 
 > **Info**: Glad must be generated here: <https://glad.dav1d.de/>, the version is the latest commit on the github page.
 
@@ -18,7 +19,6 @@
 | [Magic Enum C++](https://github.com/Neargye/magic_enum "magic_enum")                          | MIT           | 2020-05-24 | commit\{b9450675bbbd8779da5088353cf52417c567eb85} |
 | [Node Editor in ImGui](https://github.com/thedmd/imgui-node-editor.git "imgui-node-editor")   | MIT           | 2020-04-17 | commit\{2522c65355879b68ad8c39f05634f92cc8d2bf98} |
 | [Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers.git "Vulkan-Headers")         | Apache-2.0    | 2020-05-15 | commit\{09531f27933bf04bffde9074acb302e026e8f181} |
-| [yaml-cpp](https://github.com/jbeder/yaml-cpp.git "yaml-cpp")                                 | MIT           | 2020-05-23 | commit\{f05b2577ade38f2e24f5c2cc298230d69b4010a4} |
 -->
 
 <!-- These are leftovers which where used in the prototype, left them here, cause maybe they will be needed again.

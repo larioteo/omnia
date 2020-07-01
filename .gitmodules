@@ -7,3 +7,6 @@
 [submodule "3rd-Party/OpenGL-Registry"]
 	path = 3rd-Party/OpenGL-Registry
 	url = https://github.com/KhronosGroup/OpenGL-Registry
+[submodule "3rd-Party/yaml-cpp"]
+	path = 3rd-Party/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git

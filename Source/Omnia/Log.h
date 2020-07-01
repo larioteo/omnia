@@ -25,17 +25,8 @@ enum class LogLevel: uint8_t {
 	Critical	= 0x6,
 };
 
-enum class LogType {
-	Default,
-	Caption,
-	Process,
-	Success,
-	Warning,
-	Failure,
-};
-
 /**
- * @brief This logging class fullfills everything you desire, it takes anything you throw at it, and offers you some nice colors and features like that.
+ * @brief This logging class fullfills basic needs, it takes everything you throw at it (like cout), and offers you some nice colors and similar features like that.
 */
 class Log {
 	// Properties
@@ -68,14 +59,14 @@ public:
 	// Enumerations
 	enum DefaultTypes {
 		// Basic Types
-		Default		= 0x00,	// Default output with nothing added
+		Default		= 0x00,	// Message (Level 3): Default output with nothing added
 		Caption		= 0x01,	// Structure the log by a given caption
 		Delimiter	= 0x02,	// Structure the log with a delimiter
 
 		// Message Types
-		Critical	= 0x10,	// Message (Level 5): Critical messages which will break runtime execution.
-		Error		= 0x11, // Message (Level 4): Error messages that have no impact on runtime execution.
-		Warn		= 0x12,	// Message (Level 3): Has no impact on the application itself but should get sometime fixed.
+		Critical	= 0x10,	// Message (Level 6): Critical messages which will break runtime execution.
+		Error		= 0x11, // Message (Level 5): Error messages that have no impact on runtime execution.
+		Warn		= 0x12,	// Message (Level 4): Has no impact on the application itself but should get sometime fixed.
 		Info		= 0x13,	// Message (Level 2): Information that is maybe usefull for gattering basic system data.
 		Debug		= 0x14,	// Message (Level 1): Debugging messages, which can help at parts, where we are unsure if the code will ever fail.
 		Trace		= 0x15,	// Message (Level 0): Everything that could be interesting in the future.
@@ -233,13 +224,16 @@ private:
 	}
 };
 
-/*
-* @brief As good as the log instance can bee is, we need something for applications where performance matters. Therefore the following function templates
-*		 are for convenience, they will help removing unaccessary code in distribution builds.
-*/
+/** This is the preferred instance to the logging class. */
 inline Log &applog = Log::Instance();
+
+/** This is the legacy instance to the logging class. */
 inline Log &appout = Log::Instance();
 
+/*
+* @brief As good as the logging class can be, we need something for applications where performance matters. Therefore the following function templates
+*		 are for convenience, they will help removing unaccessary code in distribution builds.
+*/
 #ifdef APP_DEBUG_MODE
 	template<typename T, typename ...Args> void AppAssert(T *object, Args &&...args) {
 		if (!object) {

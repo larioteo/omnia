@@ -141,7 +141,7 @@ add_subdirectory(3rd-Party)
 # ☷ Libraries
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 message("  ҉ Linking Libraries")
-set(OmniaLibraries glad imgui)
+set(OmniaLibraries glad imgui yaml-cpp)
 foreach(Library ${OmniaLibraries})
 	message("    - ${Library}")
 	target_link_libraries(${PROJECT_NAME} PUBLIC ${Library})

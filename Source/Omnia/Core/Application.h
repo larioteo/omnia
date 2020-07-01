@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Omnia/Core.h"
+#include "Omnia/Config.h"
 #include "Omnia/Core/LayerStack.h"
 #include "Omnia/GFX/Graphics.h"
 #include "Omnia/UI/Event.h"
@@ -13,6 +14,7 @@ namespace Omnia {
 class Application {
 	// Properties
 	static Application *AppInstance;
+	Reference<Config> pConfig;
 	LayerStack Layers;
 	Reference<Window> pWindow;
 	Reference<EventListener> pListener;

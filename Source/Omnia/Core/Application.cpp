@@ -2,6 +2,7 @@
 
 #include "Omnia/Omnia.pch"
 #include "Omnia/Log.h"
+
 #include "Omnia/Debug/Instrumentor.h"
 
 namespace Omnia {
@@ -20,6 +21,9 @@ Application::Application(const string &title):
 	// Initialization
 	applog << Log::Caption << "Initialization" << "\n";
 
+	// Load Configuration
+	pConfig = CreateReference<Config>();
+
 	// Load Window and Events
 	pWindow = Window::Create(WindowProperties(title, 1024, 768));
 	AppLogDebug("[Application] ", "Created window '", title, "' with size '", 1024, "x", 768, "'");
@@ -35,6 +39,10 @@ Application::Application(const string &title):
 	// Load Core Layer
 	CoreLayer = new GuiLayer();
 	PushOverlay(CoreLayer);
+
+	// Test
+	auto resolution = pConfig->GetSetting("Engine", "Resolution");
+	AppLogInfo("[Application] Resolution: '", resolution, "'");
 }
 
 Application::~Application() {

@@ -33,7 +33,6 @@
 // Graphic Extensions
 #if defined(APP_LIBRARY_GFX_EXTENSIONS)
 	#include "Omnia/GFX/Context.h"
-	#include "Omnia/GFX/Graphics.h"
 #endif
 
 // System Extensions

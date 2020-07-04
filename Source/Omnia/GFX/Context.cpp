@@ -1,21 +1,32 @@
 #include "Context.h"
 
+#include "Omnia/Log.h"
+
 #ifdef APP_PLATFORM_WINDOWS
 	#include "Platform/GFX/OpenGL/GLContext.h"
 #endif
 
-namespace Omnia { namespace Gfx {
+namespace Omnia {
 
-Scope<Context> Context::Create(void *window) {
-	//switch (Renderer::GetAPI())
-	//{
-	//	case RendererAPI::API::None:    HZ_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
-	//	case RendererAPI::API::OpenGL:  return CreateScope<OpenGLContext>(static_cast<GLFWwindow*>(window));
-	//}
+Reference<Context> Context::Create(void *window) {
+	#ifdef APP_PLATFORM_WINDOWS
+	switch (API) {
+		case GraphicsAPI::OpenGL: {
+			return CreateReference<GLContext>(window);
+		}
 
-	//AppAssert(nullptr, "[GFX:Context]: ", "Unknown Renderer API!");
-	//return nullptr;
-	return CreateScope<GLContext>(window);
+		default: {
+			AppAssert(false, "This API is currently not supportded!");
+			return nullptr;
+		}
+	}
+	#else
+		APP_ASSERT(false, "This platform is currently not supported!");
+		return nullptr;
+	#endif
 }
 
-}}
+void Context::Destroy() {
+}
+
+}

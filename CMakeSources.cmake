@@ -56,14 +56,11 @@ list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_DEBUG_SOURCES})
 # GFX Extensions
 set(OMNIA_LIBRARY_GFX_HEADERS
 	"Source/Omnia/GFX/Context.h"
-	"Source/Omnia/GFX/Graphics.h"
 
 	"Source/Platform/GFX/OpenGL/GLContext.h"
-	"Source/Platform/GFX/OpenGL/OpenGL.h"
 )
 set(OMNIA_LIBRARY_GFX_SOURCES
 	"Source/Omnia/GFX/Context.cpp"
-	"Source/Platform/GFX/OpenGL/OpenGL.cpp"
 
 	"Source/Platform/GFX/OpenGL/GLContext.cpp"
 )

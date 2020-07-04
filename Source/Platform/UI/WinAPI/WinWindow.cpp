@@ -89,7 +89,7 @@ WinWindow::WinWindow(const WindowProperties &properties):
 		.hIconSm = AppIcon,						// Load Icon Symbol (Default: LoadIcon(NULL, IDI_WINLOGO);)
 	};
 	if (!RegisterClassEx(&classProperties)) {
-		applog << Log::Error << __FUNCTION__ << ": Failed to register the window class." << std::endl;
+		AppLogCritical("[Window]: ", "Failed to register the window class!");
 		return;
 	}
 
@@ -115,7 +115,7 @@ WinWindow::WinWindow(const WindowProperties &properties):
 				if (MessageBox(NULL, "The requested FullScreen Mode isn't supported by\n<our graphics card. Switch to windowed mode Instead?", __FUNCTION__, MB_YESNO | MB_ICONEXCLAMATION) == IDYES) {
 					Properties.Style = WindowStyle::Default;
 				} else {
-					applog << Log::Error << __FUNCTION__ << ": Switching to fullscreen mode failed!" << std::endl;
+					AppLogCritical("[Window]: ", "Switching to fullscreen mode failed!");
 					return;
 				}
 			}
@@ -164,7 +164,7 @@ WinWindow::WinWindow(const WindowProperties &properties):
 		this						// Application Data
 	);
 	if (!hWindow) {
-		applog << Log::Error << __FUNCTION__ << ": Failed to create the window." << std::endl;
+		AppLogCritical("[Window]: ", "Failed to create the window!");
 		//Destroy();
 		return;
 	}
@@ -230,16 +230,26 @@ LRESULT CALLBACK MessageCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 	WinWindow *pCurrentWindow = nullptr;
 
 	// Get/Set the current window class pointer as userdata in WinAPI window
-	if (uMsg == WM_NCCREATE) {
-		pCurrentWindow = static_cast<WinWindow*>(reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams);
-		SetLastError(0);
-		if (!SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCurrentWindow))) {
-			if (GetLastError() != 0) { return FALSE; }
+	switch (uMsg) {
+		case WM_NCCREATE: {
+			pCurrentWindow = static_cast<WinWindow*>(reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams);
+			SetLastError(0);
+			if (!SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCurrentWindow))) {
+				if (GetLastError() != 0) { return FALSE; }
+			}
+			break;
 		}
-	} else {
-		pCurrentWindow = reinterpret_cast<WinWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-	}
 
+		default: {
+			pCurrentWindow = reinterpret_cast<WinWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+
+			// Capture Mouse while button is down
+			if (uMsg == WM_LBUTTONDOWN) SetCapture(hWnd);
+			if (uMsg == WM_LBUTTONUP) ReleaseCapture();
+			break;
+		}
+	}
+	
 	// Dispatch Message or ...
 	if (pCurrentWindow) {
 		MSG message = {
@@ -374,6 +384,9 @@ intptr_t WinWindow::Message(void *event) {
 			Properties.State.Active = (bool)msg.wParam;
 			return 0;
 		}
+		case WM_CAPTURECHANGED: {
+			return 0;
+		}
 		case WM_KILLFOCUS: {
 			Properties.State.Focused = false;
 			return 0;
@@ -392,6 +405,8 @@ intptr_t WinWindow::Message(void *event) {
 
 		// System
 		case WM_SYSCOMMAND: {
+			// Disable ALT application menu
+			if ((msg.wParam & 0xfff0) == SC_KEYMENU) return 0;
 
 			switch (msg.wParam) {
 				// FulLScree-Mode: Prevent ScreenSaver or Monitor PowerSaver

@@ -62,7 +62,6 @@ static ImGuiMouseCursor     g_LastMouseCursor = ImGuiMouseCursor_COUNT;
 static bool                 g_HasGamepad = false;
 static bool                 g_WantUpdateHasGamepad = true;
 static bool                 g_WantUpdateMonitors = true;
-static HWND                 g_focused_hWnd = 0;
 static HGLRC                g_glcontext = 0;
 
 // Forward Declarations
@@ -92,7 +91,6 @@ bool    ImGui_ImplWin32_Init(void* hwnd, void* glcontext)
     main_viewport->PlatformHandle = main_viewport->PlatformHandleRaw = (void*)g_hWnd;
 
     g_glcontext = (HGLRC)glcontext;
-    g_focused_hWnd = g_hWnd;
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         ImGui_ImplWin32_InitPlatformInterface();
@@ -655,9 +653,6 @@ static void ImGui_ImplWin32_CreateWindow(ImGuiViewport* viewport)
     wglMakeCurrent(data->Hdc, data->HgLrc);
     SwapBuffers(data->Hdc);
     wglShareLists(g_glcontext, data->HgLrc);
-
-    //Set it as our focused window.
-    g_focused_hWnd = data->Hwnd;
 }
 
 static void ImGui_ImplWin32_DestroyWindow(ImGuiViewport* viewport)

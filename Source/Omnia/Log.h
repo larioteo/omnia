@@ -49,8 +49,8 @@ class Log {
 	Log() = default;
 	Log(const Log &) {}
 	Log(Log &&) noexcept {}
-	Log &operator=(const Log &) {}
-	Log &operator=(const Log &&) noexcept {}
+	Log &operator=(const Log &) { return Instance(); }
+	Log &operator=(const Log &&) noexcept { return Instance(); }
 
 public:
 	// Deconstructors
@@ -234,6 +234,18 @@ inline Log &appout = Log::Instance();
 * @brief As good as the logging class can be, we need something for applications where performance matters. Therefore the following function templates
 *		 are for convenience, they will help removing unaccessary code in distribution builds.
 */
+template<typename ...Args> void AppLog(Args &&...args)			{ applog << Log::Default	; (applog << ... << args); applog << "\n"; }
+template<typename ...Args> void AppLogInfo(Args &&...args)		{ applog << Log::Info		; (applog << ... << args); applog << "\n"; }
+template<typename ...Args> void AppLogWarning(Args &&...args)	{ applog << Log::Warn		; (applog << ... << args); applog << "\n"; }
+template<typename ...Args> void AppLogError(Args &&...args)		{ applog << Log::Error		; (applog << ... << args); applog << "\n"; }
+template<typename ...Args> void AppLogCritical(Args &&...args)	{ applog << Log::Critical	; (applog << ... << args); applog << "\n"; }
+
+#define APP_LOG(...)			AppLog			("[", __FUNCTION__, "]: ", __VA_ARGS__)
+#define APP_LOG_INFO(...)		AppLogInfo		("[", __FUNCTION__, "]: ", __VA_ARGS__)
+#define APP_LOG_WARN(...)		AppLogWarning	("[", __FUNCTION__, "]: ", __VA_ARGS__)
+#define APP_LOG_ERROR(...)		AppLogError		("[", __FUNCTION__, "]: ", __VA_ARGS__)
+#define APP_LOG_CRITICAL(...)	AppLogCritical	("[", __FUNCTION__, "]: ", __VA_ARGS__)
+
 #ifdef APP_DEBUG_MODE
 	template<typename T, typename ...Args> void AppAssert(T *object, Args &&...args) {
 		if (!object) {
@@ -241,22 +253,18 @@ inline Log &appout = Log::Instance();
 			//APP_DEBUGBREAK();
 		}
 	}
+	template<typename T, typename ...Args> void AppAssert(T object, Args &&...args) {
+		if (!object) {
+			applog << Log::Critical; (applog << ... << args); applog << "\n";
+			//APP_DEBUGBREAK();
+		}
+	}
 	#define AppAssert(x, ...) AppAssert(x, __VA_ARGS__); APP_DEBUGBREAK() // Workaround, at the debug break after the message.
-	template<typename ...Args> void AppLog(Args &&...args)			{ applog << Log::Default	; (applog << ... << args); applog << "\n"; }
-	template<typename ...Args> void AppLogInfo(Args &&...args)		{ applog << Log::Info		; (applog << ... << args); applog << "\n"; }
-	template<typename ...Args> void AppLogWarning(Args &&...args)	{ applog << Log::Warn		; (applog << ... << args); applog << "\n"; }
-	template<typename ...Args> void AppLogError(Args &&...args)		{ applog << Log::Error		; (applog << ... << args); applog << "\n"; }
-	template<typename ...Args> void AppLogCritical(Args &&...args)	{ applog << Log::Critical	; (applog << ... << args); applog << "\n"; }
 	template<typename ...Args> void AppLogDebug(Args &&...args)		{ applog << Log::Debug		; (applog << ... << args); applog << "\n"; }
 	template<typename ...Args> void AppLogTrace(Args &&...args)		{ applog << Log::Trace		; (applog << ... << args); applog << "\n"; }
 	
 	// Old-School: If anybody wishes preprocessor macros, we have no problem with it.
 	#define APP_ASSERT(x, ...)		{ if(!(x)) { AppLogCritical("[", __FUNCTION__, "]: ", __VA_ARGS__); APP_DEBUGBREAK(); } }
-	#define APP_LOG(...)			AppLog			("[", __FUNCTION__, "]: ", __VA_ARGS__)
-	#define APP_LOG_INFO(...)		AppLogInfo		("[", __FUNCTION__, "]: ", __VA_ARGS__)
-	#define APP_LOG_WARN(...)		AppLogWarning	("[", __FUNCTION__, "]: ", __VA_ARGS__)
-	#define APP_LOG_ERROR(...)		AppLogError		("[", __FUNCTION__, "]: ", __VA_ARGS__)
-	#define APP_LOG_CRITICAL(...)	AppLogCritical	("[", __FUNCTION__, "]: ", __VA_ARGS__)
 	#define APP_LOG_DEBUG(...)		AppLogDebug		("[", __FUNCTION__, "]: ", __VA_ARGS__)
 	#define APP_LOG_TRACE(...)		AppLogTrace		("[", __FUNCTION__, "]: ", __VA_ARGS__)
 #else
@@ -278,21 +286,21 @@ inline Log &appout = Log::Instance();
 	//}
 	// Either works just fine...
 	#define AppAssert(...);
-	#define AppLog(...);
-	#define AppLogInfo(...);
-	#define AppLogWarning(...);
-	#define AppLogError(...);
-	#define AppLogCritical(...);
+	//#define AppLog(...);
+	//#define AppLogInfo(...);
+	//#define AppLogWarning(...);
+	//#define AppLogError(...);
+	//#define AppLogCritical(...);
 	#define AppLogDebug(...);
 	#define AppLogTrace(...);
 
 	// Old-School
 	#define APP_ASSERT(x, ...);
-	#define APP_LOG(...);
-	#define APP_LOG_INFO(...);
-	#define APP_LOG_WARN(...);	
-	#define APP_LOG_ERROR(...);	
-	#define APP_LOG_CRITICAL(...);
+	//#define APP_LOG(...);
+	//#define APP_LOG_INFO(...);
+	//#define APP_LOG_WARN(...);	
+	//#define APP_LOG_ERROR(...);	
+	//#define APP_LOG_CRITICAL(...);
 	#define APP_LOG_DEBUG(...);
 	#define APP_LOG_TRACE(...);
 #endif

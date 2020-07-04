@@ -1,4 +1,5 @@
 #pragma once
+
 /*
 	These values are used to control platform specific features like window creation.
 */
@@ -134,8 +135,8 @@ namespace Omnia {
 	#elif defined(APP_PLATFORM_WEB)
 	#else
 		#define APP_GRAPHICS_API_UNKNOWN
-		#define APP_GRAPHICS_API "Unknown"
-		static constexpr auto AppGraphicsAPI = "Unknown";
+		#define APP_GRAPHICS_API "Unknown"s
+		static constexpr auto AppGraphicsAPI = "Unknown"s;
 	#endif
 #else
 	#define APP_GRAPHICS_API_OPENGL

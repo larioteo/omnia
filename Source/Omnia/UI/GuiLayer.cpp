@@ -5,9 +5,11 @@
 #include "Omnia/Log.h"
 
 #include "Omnia/UI/GuiBuilder.h"
-#include "Omnia/GFX/Graphics.h"
+#include "Platform/GFX/OpenGL/GLContext.cpp"
 
 namespace Omnia {
+
+static bool ShowDemoWindow = false;
 
 GuiLayer::GuiLayer(): Layer("GuiLayer") {}
 GuiLayer::~GuiLayer() {}
@@ -15,7 +17,7 @@ GuiLayer::~GuiLayer() {}
 void GuiLayer::Attach() {
 	// Decide GL+GLSL versions
 	Application &app = Application::Get();
-	const char *glsl_version = "#version 150";
+	const char *glsl_version = "#version 450";
 	//ImGui_ImplWin32_EnableDpiAwareness();
 
 	// Setup Dear ImGui context
@@ -27,22 +29,19 @@ void GuiLayer::Attach() {
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
-	//io.ConfigViewportsNoAutoMerge = true;
-	//io.ConfigViewportsNoTaskBarIcon = true;
 	io.ConfigDockingWithShift = false;
 
 	// ToDo: Works only as an memory leak, the question is why (otherwise ImGui uses old pointer where the data is gone) ...
-	string *dataTarget = new string("./Data/"s + Application::Get().GetWindow().GetProperties().Title + ".ini"s);
-	string *logTarget = new string("./Log/"s + Application::Get().GetWindow().GetProperties().Title + ".log"s);
+	string *dataTarget = new string("./Data/"s + Application::GetWindow().GetProperties().Title + ".ini"s);
+	string *logTarget = new string("./Log/"s + Application::GetWindow().GetProperties().Title + ".log"s);
 	io.IniFilename = dataTarget->c_str();
 	io.LogFilename = logTarget->c_str();
-	////io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
-	////io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
-	////io.DisplaySize = ImVec2(app.GetWindow().GetDisplaySize().Width, app.GetWindow().GetDisplaySize().Height);
+	//io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
+	//io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
+	io.DisplaySize = ImVec2((float)app.GetWindow().GetDisplaySize().Width, (float)app.GetWindow().GetDisplaySize().Height);
 
 	// Setup Dear ImGui style
-	//ImGui::StyleColorsDark();
-	//ImGui::StyleColorsClassic();
+	ImGui::StyleColorsDark();
 
 	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
 	ImGuiStyle& style = ImGui::GetStyle();
@@ -51,25 +50,12 @@ void GuiLayer::Attach() {
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
 
-	ImGui_ImplWin32_Init((HWND)app.GetWindow().GetNativeWindow(), app.GetContext().hRenderingContext);
+	ImGui_ImplWin32_Init(app.GetWindow().GetNativeWindow(), app.GetContext().GetNativeContext());
 	ImGui_ImplOpenGL3_Init(glsl_version);
-	//ImFont* pFont = io.Fonts->AddFontDefault();
-	io.Fonts->AddFontFromFileTTF("./Assets/Fonts/Roboto/Roboto-Medium.ttf", 14.0f);
-	//ImGui::PushFont(pFont);
+
 	// Load Fonts
-	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-	// - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-	// - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-	// - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-	// - Read 'docs/FONTS.md' for more instructions and details.
-	// - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-	//io.Fonts->AddFontDefault();
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
-	//ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
-	//IM_ASSERT(font != NULL);
+	io.Fonts->AddFontFromFileTTF("./Assets/Fonts/Roboto/Roboto-Medium.ttf", 14.0f);
+	io.Fonts->AddFontDefault();
 }
 
 void GuiLayer::Detach() {
@@ -79,8 +65,7 @@ void GuiLayer::Detach() {
 }
 
 void GuiLayer::GuiUpdate() {
-	//static bool show_demo_window = true;
-	//if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
+	if (ShowDemoWindow) ImGui::ShowDemoWindow(&ShowDemoWindow);
 }
 
 void GuiLayer::Update(Timestamp deltaTime) {
@@ -103,20 +88,14 @@ void GuiLayer::Finish() {
 	
 	// Rendering
 	ImGui::Render();
-	//io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
-	//glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-	//glClear(GL_COLOR_BUFFER_BIT);
+	io.DisplaySize = ImVec2((float)app.GetWindow().GetDisplaySize().Width, (float)app.GetWindow().GetDisplaySize().Height);
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 	// Update and Render additional Platform Windows
-	// (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
-	//  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-		//GLFWwindow* backup_current_context = glfwGetCurrentContext();
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
-		//gfx::SetContext(context);
-		wglMakeCurrent(app.Get().GetContext().hDeviceContext, app.Get().GetContext().hRenderingContext);
+		app.Get().GetContext().Attach();
 	}
 }
 
@@ -147,12 +126,16 @@ void GuiLayer::KeyboardEvent(KeyboardEventData data) {
 			switch (data.State) {
 				case KeyState::Press: {
 					io.KeysDown[(uint32_t)data.Key] = true;
+
+					if (data.Key == KeyCode::F1) ShowDemoWindow = true;
+
 					break;
 				}
 				case KeyState::Release: {
 					io.KeysDown[(uint32_t)data.Key] = false;
 					break;
 				}
+
 				default: {
 					break;
 				}

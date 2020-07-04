@@ -231,6 +231,7 @@ intptr_t WinEventListener::Register(void *event) {
 				case WM_LBUTTONDOWN:	case WM_LBUTTONUP: {
 					data.Button = MouseButton::Left;
 					data.State = (msg.message == WM_LBUTTONDOWN ? ButtonState::Press : ButtonState::Release);
+
 					break;
 				}
 				case WM_MBUTTONDOWN:	case WM_MBUTTONUP: {
@@ -254,6 +255,7 @@ intptr_t WinEventListener::Register(void *event) {
 					break;
 				}
 			}
+
 
 			// Get Modifiers
 			data.Modifier.Control	= GetKeyState(VK_CONTROL);
@@ -283,6 +285,7 @@ intptr_t WinEventListener::Register(void *event) {
 
 			lastX = data.X;
 			lastY = data.Y;
+			AppLogTrace("[GUILayer::MouseEvent]: Position 'x:", data.X, "|y:", data.Y, "'");
 
 			// Get Modifiers
 			switch (msg.wParam) {

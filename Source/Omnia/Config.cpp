@@ -1,7 +1,5 @@
 #include "Config.h"
 
-#include "Omnia/Log.h"
-
 namespace Omnia {
 
 Config::Config(const string &object) {

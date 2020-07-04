@@ -3,7 +3,7 @@
 #include "Omnia/Core.h"
 #include "Omnia/Config.h"
 #include "Omnia/Core/LayerStack.h"
-#include "Omnia/GFX/Graphics.h"
+#include "Omnia/GFX/Context.h"
 #include "Omnia/UI/Event.h"
 #include "Omnia/UI/GuiLayer.h"
 #include "Omnia/UI/Window.h"
@@ -17,20 +17,23 @@ class Application {
 	Reference<Config> pConfig;
 	LayerStack Layers;
 	Reference<Window> pWindow;
+	Reference<Context> pContext;
 	Reference<EventListener> pListener;
-	Gfx::ContextData Context;
 	GuiLayer *CoreLayer;
 
 	bool Paused;
 	bool Running;
 
+
 public:
 	Application(const string &title = "Omnia");
 	virtual ~Application();
 
-	inline static Application &Get() { return *AppInstance; }
-	inline Window &GetWindow() { return *pWindow; }
-	inline Gfx::ContextData &GetContext() { return Context; }
+	// Accessors
+	static Application &Get() { return *AppInstance; }
+	static Config &GetConfig() { return *Get().pConfig; }
+	static Context &GetContext() { return *Get().pContext; }
+	static Window &GetWindow() { return *Get().pWindow; }
 
 	/**
 	* @brief	With this method, everything begins.

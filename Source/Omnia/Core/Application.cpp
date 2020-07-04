@@ -24,17 +24,15 @@ Application::Application(const string &title):
 	// Load Configuration
 	pConfig = CreateReference<Config>();
 
-	// Load Window and Events
+	// Load Window, Context and Events
 	pWindow = Window::Create(WindowProperties(title, 1024, 768));
 	AppLogDebug("[Application] ", "Created window '", title, "' with size '", 1024, "x", 768, "'");
-	Context = Gfx::CreateContext(pWindow.get(), Gfx::ContextProperties());
-	pListener = EventListener::Create();
-
-	// Load GFX Context
-	Gfx::SetContext(Context);
-	Gfx::LoadGL();
-	Gfx::SetViewport( pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
+	pContext = Context::Create(pWindow->GetNativeWindow());
+	pContext->Attach();
+	pContext->Load();
+	pContext->SetViewport(pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
 	AppLogDebug("[Application] ", "Created context for 'OpenGL'");
+	pListener = EventListener::Create();
 
 	// Load Core Layer
 	CoreLayer = new GuiLayer();
@@ -112,7 +110,8 @@ void Application::Run() {
 			for (Layer *layer : Layers) layer->GuiUpdate();
 			CoreLayer->Finish();
 		}
-		Gfx::SwapBuffers(Context);
+		pContext->SwapBuffers();
+		//Gfx::SwapBuffers(Context);
 	}
 
 	// Termination
@@ -227,9 +226,10 @@ void Application::AutoWindowEvent(WindowEventData &data) {
 		}
 
 		case WindowAction::Resize: {
-			// ToDo: Needs a redraw to show contents...
-			Gfx::SetViewport( pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
-			//Gfx::SwapBuffers(Context);
+			AppLog("Sizing");
+			pContext->Attach();
+			pContext->SetViewport(pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
+			pContext->Detach();
 			break;
 		}
 

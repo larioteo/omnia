@@ -9,11 +9,10 @@ namespace Omnia {
 Scope<Input> Input::Instance = Input::Create();
 
 Scope<Input> Input::Create() {
-	if constexpr (AppPlatform == "Windows") {
+	#if defined(APP_PLATFORM_WINDOWS)
 		return CreateScope<WinInput>();
-	} else {
-		return nullptr;
-	}
+	#endif
+	return nullptr;
 }
 
 bool Input::GetKeyState(KeyCode code) {

@@ -198,4 +198,11 @@ void GuiLayer::MouseEvent(MouseEventData data) {
 void GuiLayer::TouchEvent(TouchEventData data) {}
 void GuiLayer::WindowEvent(WindowEventData data) {}
 
+
+// Helpers
+namespace UI {
+
 }
+
+}
+

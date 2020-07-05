@@ -72,9 +72,9 @@ static void ImGui_ImplWin32_UpdateMonitors();
 // Functions
 bool    ImGui_ImplWin32_Init(void* hwnd, void* glcontext)
 {
-    if (!::QueryPerformanceFrequency((LARGE_INTEGER *)&g_TicksPerSecond))
+    if (!::QueryPerformanceFrequency((LARGE_INTEGER*)&g_TicksPerSecond))
         return false;
-    if (!::QueryPerformanceCounter((LARGE_INTEGER *)&g_Time))
+    if (!::QueryPerformanceCounter((LARGE_INTEGER*)&g_Time))
         return false;
 
     // Setup back-end capabilities flags
@@ -89,7 +89,6 @@ bool    ImGui_ImplWin32_Init(void* hwnd, void* glcontext)
     g_hWnd = (HWND)hwnd;
     ImGuiViewport* main_viewport = ImGui::GetMainViewport();
     main_viewport->PlatformHandle = main_viewport->PlatformHandleRaw = (void*)g_hWnd;
-
     g_glcontext = (HGLRC)glcontext;
 
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -310,7 +309,7 @@ void    ImGui_ImplWin32_NewFrame()
 
     // Setup time step
     INT64 current_time;
-    ::QueryPerformanceCounter((LARGE_INTEGER *)&current_time);
+    ::QueryPerformanceCounter((LARGE_INTEGER*)&current_time);
     io.DeltaTime = (float)(current_time - g_Time) / g_TicksPerSecond;
     g_Time = current_time;
 

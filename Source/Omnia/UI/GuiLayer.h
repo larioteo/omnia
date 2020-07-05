@@ -27,4 +27,14 @@ public:
 	virtual void WindowEvent(WindowEventData data) override;
 };
 
+// Helpers
+namespace UI {
+
+template <typename ... Args>
+void Label(const string &format, const Args &...arguments) {
+	ImGui::Text(format.c_str(), (..., arguments));
+}
+
+}
+
 }

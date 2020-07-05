@@ -2,6 +2,7 @@
 
 #include "Omnia/Omnia.pch"
 #include "Omnia/Core.h"
+#include "Omnia/Log.h"
 #include "Omnia/Utility/Message.h"
 
 #include "WindowData.h"
@@ -16,16 +17,17 @@ public:
 	static Scope<Window> Create(const WindowProperties &properties = WindowProperties());
 
 	// Events
-	Subject<void *> EventCallback;
+	Subject<bool &, void *> EventCallback;
 	virtual void Update() = 0;
 
 	// Accessors
-	virtual void *GetNativeWindow() const = 0;
+	virtual void *GetNativeWindow() = 0;
 	virtual const WindowProperties GetProperties() const = 0;
 	virtual const WindowSize GetContexttSize() const = 0;
 	virtual const WindowPosition GetDisplayPosition() const = 0;
 	virtual const WindowSize GetDisplaySize() const = 0;
-	virtual const WindowSize GetScreentSize() const = 0;
+	virtual const WindowSize GetScreenSize() const = 0;
+	virtual const bool GetState(WindowState state = WindowState::Alive) const = 0;
 	virtual const string GetTitle() const = 0;
 
 	// Modifiers

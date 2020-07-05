@@ -1,12 +1,12 @@
-#include <windowsx.h>
-#include <ShObjIdl.h>
-#include <dwmapi.h>
+#include "WinEvent.h"
+#include "WinWindow.h"
 
 #define VC_EXTRALEAN
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #undef APIENTRY
 #include <Windows.h>
+#include <WindowsX.h>
 
 #ifndef HID_USAGE_PAGE_GENERIC
 	#define HID_USAGE_PAGE_GENERIC         ((USHORT) 0x01)
@@ -15,17 +15,10 @@
 	#define HID_USAGE_GENERIC_MOUSE        ((USHORT) 0x02)
 #endif
 
-#include "Omnia/Log.h"
-
-#include "WinEvent.h"
-#include "WinWindow.h"
-
 namespace Omnia {
 
 // Properties
-HWND pWindow;
 RAWINPUTDEVICE RawInputDevice[1];
-
 
 // Default
 WinEventListener::WinEventListener() {}
@@ -33,10 +26,8 @@ WinEventListener::~WinEventListener() {}
 
 
 // Events
-bool WinEventListener::Callback(void *event) {
-	intptr_t result = Register(event);
-	if (!result) { return true; }
-	return false;
+void WinEventListener::Callback(bool &result, void *event) {
+	result = Register(event) ? false : true;
 }
 
 void WinEventListener::Update() {
@@ -48,14 +39,13 @@ void WinEventListener::Update() {
 }
 
 intptr_t WinEventListener::Register(void *event) {
-	static MSG msg; // = *reinterpret_cast<MSG *>(event);
-	try {
-		msg = *(MSG *)(event);
-	} catch (...) {
-		return (LRESULT)0;
-	}
-	UINT uMsg = msg.message;
-	LRESULT result = 0;
+	// Properties
+	LRESULT result = 1;
+	MSG &msg = *reinterpret_cast<MSG *>(event);
+	HWND &hWnd = msg.hwnd;
+	UINT &uMsg = msg.message;
+	WPARAM &wParam = msg.wParam;
+	LPARAM &lParam = msg.lParam;
 
 	static bool Initialized = false;
 	if (!Initialized) {
@@ -176,6 +166,7 @@ intptr_t WinEventListener::Register(void *event) {
 					// Don't capture mouse on title click
 				}
 			}
+			break;
 		}
 		case WM_LBUTTONDBLCLK:		case WM_MBUTTONDBLCLK:		case WM_RBUTTONDBLCLK:		case WM_XBUTTONDBLCLK: {
 			if (MouseEvent.Empty()) return result;
@@ -217,6 +208,7 @@ intptr_t WinEventListener::Register(void *event) {
 			data.State = ButtonState::Press;
 
 			MouseEvent.Publish(data);
+			result = 0;
 			break;
 		}
 		case WM_LBUTTONDOWN:		case WM_MBUTTONDOWN:		case WM_RBUTTONDOWN:		case WM_XBUTTONDOWN:
@@ -264,6 +256,7 @@ intptr_t WinEventListener::Register(void *event) {
 			data.Modifier.Super		= (GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN));
 
 			MouseEvent.Publish(data);
+			result = 0;
 			break;
 		}
 		case WM_MOUSEMOVE: {
@@ -285,7 +278,6 @@ intptr_t WinEventListener::Register(void *event) {
 
 			lastX = data.X;
 			lastY = data.Y;
-			AppLogTrace("[GUILayer::MouseEvent]: Position 'x:", data.X, "|y:", data.Y, "'");
 
 			// Get Modifiers
 			switch (msg.wParam) {
@@ -322,6 +314,7 @@ intptr_t WinEventListener::Register(void *event) {
 			data.Modifier.Super		= (GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN));
 
 			MouseEvent.Publish(data);
+			result = 0;
 			break;
 			// Capture the mouse in case the user wants to drag it outside
 			// Get the client area of the window
@@ -387,6 +380,7 @@ intptr_t WinEventListener::Register(void *event) {
 			data.DeltaWheelY =(float) GET_WHEEL_DELTA_WPARAM(msg.wParam) / (float)WHEEL_DELTA;
 
 			MouseEvent.Publish(data);
+			result = 0;
 			break;
 		}
 		case WM_MOUSEHWHEEL: {
@@ -397,6 +391,7 @@ intptr_t WinEventListener::Register(void *event) {
 			data.DeltaWheelX = (float)GET_WHEEL_DELTA_WPARAM(msg.wParam) / (float)WHEEL_DELTA;
 
 			MouseEvent.Publish(data);
+			result = 0;
 			break;
 		}
 
@@ -427,12 +422,8 @@ intptr_t WinEventListener::Register(void *event) {
 		}
 
 		/**
-		 *	Window Events (they serve only for notification purposes, every window handles the events on their own)
+		 *	Window Events (they serve only for notification purposes, the windows handle the events on their own)
 		*/
-		case WM_NULL: {
-			break;
-		}
-		
 		// Information
 		case WM_DPICHANGED: {
 			WindowEventData data;
@@ -569,6 +560,7 @@ intptr_t WinEventListener::Register(void *event) {
 					break;
 				}
 			}
+			break;
 		}
 		
 		default: {
@@ -576,7 +568,6 @@ intptr_t WinEventListener::Register(void *event) {
 		}
 	}
 
-	// ToDo: Doesn't make any sense anymore...
 	return result;
 }
 

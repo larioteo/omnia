@@ -2,6 +2,7 @@
 
 #include "Omnia/Omnia.pch"
 #include "Omnia/Core.h"
+#include "Omnia/Log.h"
 #include "Omnia/Utility/Message.h"
 
 #include "EventData.h"
@@ -16,7 +17,7 @@ public:
 	static Scope<EventListener> Create();
 
 	// Events
-	virtual bool Callback(void *event = nullptr) = 0;
+	virtual void Callback(bool &result, void *event = nullptr) = 0;
 	virtual void Update() = 0;
 
 	// Subjects

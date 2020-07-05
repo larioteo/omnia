@@ -1,58 +1,17 @@
+#include "WinWindow.h"
+
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "uxtheme.lib")
 
-#define VC_EXTRALEAN
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#undef APIENTRY
 #include <DwmApi.h>
 #include <ShObjIdl.h>
-#include <Windows.h>
 #include <WindowsX.h>
-
-#include "Omnia/Log.h"
-#include "WinWindow.h"
-
 
 namespace Omnia {
 
-// Internal Callbacks
-static LRESULT CALLBACK MessageCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
 // Internal Properties
-HINSTANCE hApplication;
-HWND hWindow;
-HICON AppIcon;
+static HBRUSH ClearColor = (HBRUSH)GetStockObject(NULL_BRUSH);
 ITaskbarList3 *TaskbarList;
-HBRUSH ClearColor = (HBRUSH)GetStockObject(NULL_BRUSH);
-
-// Internal Styles
-enum class ClassStyle: uint32_t {
-	Application	= CS_DBLCLKS | CS_OWNDC | CS_HREDRAW | CS_VREDRAW,
-	Global		= CS_GLOBALCLASS | CS_DBLCLKS | CS_OWNDC | CS_HREDRAW | CS_VREDRAW,
-};
-
-enum class Styles: uint32_t {
-	// NEHE SetWindowLongPtr(window, GWL_STYLE, WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-	Default = WS_OVERLAPPEDWINDOW,		// Contains: WS_SYSMENU | WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_VISIBLE
-	Aero = WS_POPUP | WS_THICKFRAME,
-	Borderless = WS_POPUP | WS_VISIBLE,
-	Full = WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_POPUP | WS_VISIBLE
-};
-
-enum class StylesX: uint32_t {
-	// WindowStyleEx &= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE)
-	// NEHE SetWindowLongPtr(window, GWL_EXSTYLE, WS_EX_APPWINDOW);
-	DefaultX = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE,
-	FullX = WS_EX_APPWINDOW
-};
-
-struct PlatformWindowStyle {
-	uint32_t ClassStyle;
-	uint32_t WindowStyle;
-	uint32_t WindowStyleEx;
-};
-
 
 // Default
 WinWindow::WinWindow(const WindowProperties &properties):
@@ -61,7 +20,7 @@ WinWindow::WinWindow(const WindowProperties &properties):
 	PlatformWindowStyle windowStyle = {};
 
 	// Get Application Information
-	hApplication = GetModuleHandle(NULL);
+	ApplicationHandle = GetModuleHandle(NULL);
 	LPSTR lpCmdLine = GetCommandLine();
 	STARTUPINFOA StartupInfo;
 	GetStartupInfoA(&StartupInfo);
@@ -71,7 +30,7 @@ WinWindow::WinWindow(const WindowProperties &properties):
 	//SetThreadExecutionState(ES_DISPLAY_REQUIRED && ES_SYSTEM_REQUIRED);
 
 	// Load Ressources
-	//AppIcon = (HICON)LoadIconFile(Properties.Icon);
+	AppIcon = (HICON)LoadIconFile(Properties.Icon);
 
 	// Register Window Class
 	WNDCLASSEX classProperties = {
@@ -80,7 +39,7 @@ WinWindow::WinWindow(const WindowProperties &properties):
 		.lpfnWndProc = MessageCallback,			// Message Callback (WndProc)
 		.cbClsExtra = 0,						// Extra class data
 		.cbWndExtra = WS_EX_TOPMOST,			// Extra window data
-		.hInstance = hApplication,				// Application Intance
+		.hInstance = ApplicationHandle,			// Application Intance
 		.hIcon = AppIcon,						// Load Icon (Default: LoadIcon(NULL, IDI_APPLICATION);)
 		.hCursor = LoadCursor(NULL, IDC_ARROW),	// Load Cursor (Default: IDC_ARROW)
 		.hbrBackground = ClearColor,			// Background (Not required for GL -> NULL)
@@ -98,7 +57,6 @@ WinWindow::WinWindow(const WindowProperties &properties):
 	unsigned int screenHeight = GetSystemMetricsForDpi(SM_CYSCREEN, GetDpiForSystem());
 	if (Properties.Style == WindowStyle::FullScreen) {
 		// Device Mode
-		//memset(&screenProperties, 0, sizeof(screenProperties));	// Makes sure memory's cleared
 		DEVMODE screenProperties = {
 			.dmSize = sizeof(DEVMODE),				// Structure Size
 			.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT,
@@ -108,11 +66,10 @@ WinWindow::WinWindow(const WindowProperties &properties):
 		};
 		
 		// Try to set selected fullscreen mode
-		// Note: CDS_FULLSCREEN gets rid of Taskbar.
 		if ((Properties.Size.Width != screenWidth) && (Properties.Size.Height != screenHeight)) {
 			// If the switching fails, offer the user an option to switch to windowed mode
-			if (ChangeDisplaySettings(&screenProperties, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL) {
-				if (MessageBox(NULL, "The requested FullScreen Mode isn't supported by\n<our graphics card. Switch to windowed mode Instead?", __FUNCTION__, MB_YESNO | MB_ICONEXCLAMATION) == IDYES) {
+			if (ChangeDisplaySettings(&screenProperties, CDS_FULLSCREEN) == DISP_CHANGE_SUCCESSFUL) {
+				if (MessageBox(NULL, "The requested mode 'FullScreen' isn't supported by\nyour graphics card. Switch to windowed mode Instead?", __FUNCTION__, MB_YESNO | MB_ICONEXCLAMATION) == IDYES) {
 					Properties.Style = WindowStyle::Default;
 				} else {
 					AppLogCritical("[Window]: ", "Switching to fullscreen mode failed!");
@@ -122,79 +79,92 @@ WinWindow::WinWindow(const WindowProperties &properties):
 		}
 	}
 
+	// FullScreen more convinient?
+	//Properties.Style = WindowStyle::FullScreen;
+	//HMONITOR hmon = MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST);
+	//MONITORINFO mi = { sizeof(mi) };
+	//GetMonitorInfo(hmon, &mi);
+	//dimension.left = mi.rcMonitor.left;
+	//dimension.top = mi.rcMonitor.top;
+	//dimension.right = mi.rcMonitor.right;
+	//dimension.bottom = mi.rcMonitor.bottom;
+
+
 	// Configure Window
-	ShowCursor(!Properties.State.Cursor);
-	RECT WindowDimension;
+	ShowCursor(!Data.Cursor);
+	RECT dimension;
 	switch (Properties.Style) {
 		case WindowStyle::Default: {
-			windowStyle.WindowStyle = (DWORD)Styles::Default;
-			windowStyle.WindowStyleEx = (DWORD)StylesX::DefaultX;
+			windowStyle.WindowStyle = (DWORD)WinWindowStyle::Default;
+			windowStyle.WindowStyleEx = (DWORD)WinWindowStyleX::DefaultX;
 			break;
 		}
 		case WindowStyle::Borderless: {
-			windowStyle.WindowStyle = (DWORD)Styles::Borderless;
-			windowStyle.WindowStyleEx = (DWORD)StylesX::DefaultX;
+			windowStyle.WindowStyle = (DWORD)WinWindowStyle::Borderless;
+			windowStyle.WindowStyleEx = (DWORD)WinWindowStyleX::DefaultX;
 			break;
 		}
 		case WindowStyle::FullScreen: {
-			windowStyle.WindowStyle = (DWORD)Styles::Full;
-			windowStyle.WindowStyleEx = (DWORD)StylesX::FullX;
+			windowStyle.WindowStyle = (DWORD)WinWindowStyle::Full;
+			windowStyle.WindowStyleEx = (DWORD)WinWindowStyleX::FullX;
 			break;
 		}
 	}
-	WindowDimension.left = Properties.Position.X;
-	WindowDimension.top = Properties.Position.Y;
-	WindowDimension.right = (Properties.Style == WindowStyle::FullScreen) ? (long)screenWidth : (long)Properties.Size.Width;
-	WindowDimension.bottom = (Properties.Style == WindowStyle::FullScreen) ? (long)screenHeight : (long)Properties.Size.Height;
-	AdjustWindowRectEx(&WindowDimension, windowStyle.WindowStyle, FALSE, windowStyle.WindowStyleEx);
+	dimension.left = Properties.Position.X;
+	dimension.top = Properties.Position.Y;
+	dimension.right = (Properties.Style == WindowStyle::FullScreen) ? (long)screenWidth : (long)Properties.Size.Width;
+	dimension.bottom = (Properties.Style == WindowStyle::FullScreen) ? (long)screenHeight : (long)Properties.Size.Height;
+	AdjustWindowRectEx(&dimension, windowStyle.WindowStyle, FALSE, windowStyle.WindowStyleEx);
+
 
 	// Create Window
-	hWindow = CreateWindowEx(
+	WindowHandle = CreateWindowEx(
 		windowStyle.WindowStyleEx,	// Window Style (extended)
 		Properties.ID.c_str(),		// Window ClassName
 		Properties.Title.c_str(),	// Window Title
 		windowStyle.WindowStyle,	// Window Style
 
 		// Window Position and Size (if not centered, system should decide where to position the window)
-		CW_USEDEFAULT, CW_USEDEFAULT, WindowDimension.right - WindowDimension.left, WindowDimension.bottom - WindowDimension.top,
+		CW_USEDEFAULT, CW_USEDEFAULT, dimension.right - dimension.left, dimension.bottom - dimension.top,
 
-		NULL,						// Parent Window
+		ParentWindowHandle,			// Parent Window
 		NULL,						// Menu
-		hApplication,				// Instance Handle
+		ApplicationHandle,			// Instance Handle
 		this						// Application Data
 	);
-	if (!hWindow) {
+	if (!WindowHandle) {
 		AppLogCritical("[Window]: ", "Failed to create the window!");
 		//Destroy();
 		return;
 	}
+	if (!ParentWindowHandle) { ParentWindowHandle = WindowHandle; }
 
 	// Center Window
 	if (!(Properties.Style == WindowStyle::FullScreen) && Properties.Position.Centered) {
-		unsigned int x = (GetSystemMetrics(SM_CXSCREEN) - WindowDimension.right) / 2;
-		unsigned int y = (GetSystemMetrics(SM_CYSCREEN) - WindowDimension.bottom) / 2;
-		SetWindowPos(hWindow, 0, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+		unsigned int x = (GetSystemMetrics(SM_CXSCREEN) - dimension.right) / 2;
+		unsigned int y = (GetSystemMetrics(SM_CYSCREEN) - dimension.bottom) / 2;
+		SetWindowPos(WindowHandle, 0, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
 	}
 
 	// Show window
-	if (Properties.State.Visible) {
-		ShowWindow(hWindow, SW_SHOW);
-		SetForegroundWindow(hWindow);
-		SetFocus(hWindow);
+	if (Data.Visible) {
+		ShowWindow(WindowHandle, SW_SHOW);
+		SetForegroundWindow(WindowHandle);
+		SetFocus(WindowHandle);
 	}
 
 	// DWM Settings
 	static const DWM_BLURBEHIND blur {0, TRUE, NULL, TRUE};
 	static const MARGINS shadow[2] {{0, 0, 0, 0}, {1, 1, 1, 1}};
-	DwmEnableBlurBehindWindow(hWindow, &blur);
-	DwmExtendFrameIntoClientArea(hWindow, &shadow[0]);
+	DwmEnableBlurBehindWindow(WindowHandle, &blur);
+	DwmExtendFrameIntoClientArea(WindowHandle, &shadow[0]);
 
 	// Taskbar Settings
 	RegisterWindowMessage("TaskbarButtonCreated");
 	HRESULT hrf = CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList3, (LPVOID *)&TaskbarList);
 
 	// Flash on Taskbar
-	FlashWindow(hWindow, true);
+	FlashWindow(WindowHandle, true);
 }
 
 WinWindow::~WinWindow() {
@@ -203,21 +173,10 @@ WinWindow::~WinWindow() {
 		ChangeDisplaySettings(NULL, NULL);
 		ShowCursor(true);
 	}
-	
-	// Ensure that the Window gets destroyed and release the handle to it
-	if (hWindow) {
-		if (DestroyWindow(hWindow)) {
-			hWindow = nullptr;
-		} else {
-			applog << Log::Error << "Could not release handle to window.\n";
-		}
-	}
 
 	// Ensure that the Window Class gets released
-	if (hApplication) {
-		if (UnregisterClass(Properties.ID.c_str(), hApplication)) {
-			hApplication = nullptr;
-		} else {
+	if (ApplicationHandle) {
+		if (!UnregisterClass(Properties.ID.c_str(), ApplicationHandle)) {
 			applog << Log::Error << "Could not unregister window class.\n";
 		}
 	}
@@ -225,7 +184,7 @@ WinWindow::~WinWindow() {
 
 
 // Events
-LRESULT CALLBACK MessageCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK WinWindow::MessageCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	// Properties
 	WinWindow *pCurrentWindow = nullptr;
 
@@ -244,7 +203,7 @@ LRESULT CALLBACK MessageCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 			pCurrentWindow = reinterpret_cast<WinWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
 			// Capture Mouse while button is down
-			if (uMsg == WM_LBUTTONDOWN) SetCapture(hWnd);
+			if (uMsg == WM_LBUTTONDOWN) { SetCapture(hWnd); }
 			if (uMsg == WM_LBUTTONUP) ReleaseCapture();
 			break;
 		}
@@ -265,15 +224,13 @@ LRESULT CALLBACK MessageCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 }
 
 intptr_t WinWindow::Message(void *event) {
-	// Preparation
+	// Properties
+	LRESULT result = 1;
 	MSG &msg = *(reinterpret_cast<MSG *>(event));
-	//HWND &hWnd = msg.hwnd;
-	//UINT &uMsg = msg.message;
-	//WPARAM &wParam = msg.wParam;
-	//LPARAM &lParam = msg.lParam;
-
-	// Publish events to an external event system
-	if (!EventCallback.Empty()) { EventCallback.Publish(event); }
+	HWND &hWnd = msg.hwnd;
+	UINT &uMsg = msg.message;
+	WPARAM &wParam = msg.wParam;
+	LPARAM &lParam = msg.lParam;
 
 	/**
 	* @brief	Window Messages
@@ -302,18 +259,28 @@ intptr_t WinWindow::Message(void *event) {
 		
 		// Creation and Destruction
 		case WM_CLOSE: {
-			DestroyWindow(msg.hwnd);
-			hWindow = nullptr;
-			return 0;
+			// Ensure that the Window gets destroyed and release the handle to it
+			if (DestroyWindow(WindowHandle)) {
+				WindowHandle = nullptr;
+			} else {
+				applog << Log::Error << "Could not release handle to window.\n";
+			}
+
+			result = 0;
+			break;
 		}
 		case WM_CREATE: {
-			Properties.State.Alive = true;
-			return 0;
+			Data.Alive = true;
+
+			result = 0;
+			break;
 		}
 		case WM_DESTROY: {
-			Properties.State.Alive = false;
+			Data.Alive = false;
 			PostQuitMessage(0);
-			return 0;
+
+			result = 0;
+			break;
 		}
 
 		 // Information
@@ -322,100 +289,115 @@ intptr_t WinWindow::Message(void *event) {
 			break;
 		}
 		case WM_GETMINMAXINFO: {
-			if (Properties.Style == WindowStyle::FullScreen) {
-				break;
-			} else {
-				MINMAXINFO *bounds = reinterpret_cast<MINMAXINFO *>(msg.lParam);
-				if (this->Properties.MaxSize.Width > 0 && this->Properties.MaxSize.Height > 0) {
-					bounds->ptMaxTrackSize.x = this->Properties.MaxSize.Width;
-					bounds->ptMaxTrackSize.y = this->Properties.MaxSize.Height;
-				}
-				if (this->Properties.MinSize.Width > 0 && this->Properties.MinSize.Height > 0) {
-					bounds->ptMinTrackSize.x = this->Properties.MinSize.Width;
-					bounds->ptMinTrackSize.y = this->Properties.MinSize.Height;
-				}
-				return 0;
+			if (Properties.Style == WindowStyle::FullScreen) { break; }
+
+			MINMAXINFO *bounds = reinterpret_cast<MINMAXINFO *>(msg.lParam);
+			if (this->Properties.MaxSize.Width > 0 && this->Properties.MaxSize.Height > 0) {
+				bounds->ptMaxTrackSize.x = this->Properties.MaxSize.Width;
+				bounds->ptMaxTrackSize.y = this->Properties.MaxSize.Height;
 			}
+			if (this->Properties.MinSize.Width > 0 && this->Properties.MinSize.Height > 0) {
+				bounds->ptMinTrackSize.x = this->Properties.MinSize.Width;
+				bounds->ptMinTrackSize.y = this->Properties.MinSize.Height;
+			}
+
+			result = 0;
+			break;
 		}
 
 		// Drawing
 		case WM_PAINT: {
-			Properties.State.Decorated = true;
-			PAINTSTRUCT ps;
-			HDC hdc = BeginPaint(msg.hwnd, &ps);
-			FillRect(hdc, &ps.rcPaint, ClearColor);
-			EndPaint(msg.hwnd, &ps);
-			return 0;
+			Data.Decorated = true;
+
+			//PAINTSTRUCT ps;
+			//HDC hdc = BeginPaint(msg.hwnd, &ps);
+			//FillRect(hdc, &ps.rcPaint, ClearColor);
+			//EndPaint(msg.hwnd, &ps);
+
+			break;
+		}
+		case WM_ERASEBKGND: {
+			// Prevent system clearing the window.
+			result = 0;
+			break;
 		}
 		case WM_MOVE: {
 			// Note: Could be usefull in the future.
 			break;
 		}
 		case WM_SHOWWINDOW: {
-			Properties.State.Visible = (bool)msg.wParam;
-			return 0;
+			Data.Visible = (bool)msg.wParam;
+
+			result = 0;
+			break;
 		}
 		case WM_SIZE: {
 			switch (msg.wParam) {
 				case SIZE_MAXIMIZED: {
-					Properties.State.Maximized = true;
+					Data.Maximized = true;
 					break;
 				}
 				case SIZE_MINIMIZED: {
-					Properties.State.Minimized = true;
+					Data.Minimized = true;
 					break;
 				}
 				case SIZE_RESTORED: {
-					Properties.State.Maximized = false;
-					Properties.State.Minimized = false;
+					Data.Maximized = false;
+					Data.Minimized = false;
 				}
 			}
 			Properties.Size.Width = static_cast<uint32_t>((UINT64)msg.lParam & 0xFFFF);
 			Properties.Size.Height = static_cast<uint32_t>((UINT64)msg.lParam >> 16);
-			return 0;
+
+			result = 0;
+			break;
 		}
 		case WM_SIZING: {
-			RedrawWindow(msg.hwnd, NULL, NULL, RDW_UPDATENOW | RDW_NOERASE);
+			//RedrawWindow(msg.hwnd, NULL, NULL, RDW_UPDATENOW | RDW_NOERASE);
 			break;
 		}
 
 		// State
 		case WM_ACTIVATE: {
-			Properties.State.Active = (bool)msg.wParam;
-			return 0;
+			Data.Active = (bool)msg.wParam;
+
+			result = 0;
+			break;
 		}
 		case WM_CAPTURECHANGED: {
-			return 0;
+			result = 0;
+			break;
 		}
 		case WM_KILLFOCUS: {
-			Properties.State.Focused = false;
-			return 0;
+			Data.Focused = false;
+
+			result = 0;
+			break;
 		}
 		case WM_SETFOCUS: {
-			Properties.State.Focused = true;
-			return 0;
-
+			Data.Focused = true;
+			
 			// ToDo: Reset mouse position
-			POINT position;
-			if (GetCursorPos(&position)) {
-				//window->prevMouseX = static_cast<unsigned int>(position.x);
-				//window->prevMouseY = static_cast<unsigned int>(position.y);
-			}
+			//POINT position;
+			//if (GetCursorPos(&position)) {
+			//	//window->prevMouseX = static_cast<unsigned int>(position.x);
+			//	//window->prevMouseY = static_cast<unsigned int>(position.y);
+			//}
+
+			result = 0;
+			break;
 		}
 
 		// System
 		case WM_SYSCOMMAND: {
 			// Disable ALT application menu
-			if ((msg.wParam & 0xfff0) == SC_KEYMENU) return 0;
+			if ((msg.wParam & 0xfff0) == SC_KEYMENU) { result = 0; break; }
 
 			switch (msg.wParam) {
 				// FulLScree-Mode: Prevent ScreenSaver or Monitor PowerSaver
 				case SC_SCREENSAVE: case SC_MONITORPOWER: {
-					if (Properties.Style == WindowStyle::FullScreen) {
-						return 0;
-					} else {
-						break;
-					}
+					if (Properties.Style == WindowStyle::FullScreen) { result = 0; break; }
+					break;
 				}
 
 				default: {
@@ -429,12 +411,21 @@ intptr_t WinWindow::Message(void *event) {
 			break;
 		}
 	}
+
+	// Publish events to an external event system
+	if (!EventCallback.Empty()) {
+		bool external = false;
+		EventCallback.Publish(external, event);
+		if (external && result) result = 0;
+	}
+
+	if (!result) return result;
 	return DefWindowProc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
 }
 
 void WinWindow::Update() {
 	MSG msg = {};
-	while (PeekMessage(&msg, hWindow, 0, 0, PM_NOREMOVE)) {
+	while (PeekMessage(&msg, WindowHandle, 0, 0, PM_NOREMOVE)) {
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
@@ -442,8 +433,8 @@ void WinWindow::Update() {
 
 
 // Accessors
-void *WinWindow::GetNativeWindow() const {
-	return (void *)hWindow;
+void *WinWindow::GetNativeWindow() {
+	return reinterpret_cast<void *>(WindowHandle);
 }
 
 const WindowProperties WinWindow::GetProperties() const {
@@ -451,42 +442,60 @@ const WindowProperties WinWindow::GetProperties() const {
 }
 
 const WindowSize WinWindow::GetContexttSize() const {
-	RECT area;
-	GetClientRect(hWindow, &area);
+	RECT dimension;
+	GetClientRect(WindowHandle, &dimension);
 
-	return WindowSize(area.right - area.left, area.bottom - area.top);
+	return WindowSize(dimension.right - dimension.left, dimension.bottom - dimension.top);
 }
 
 const WindowPosition WinWindow::GetDisplayPosition() const {
 	//WINDOWPLACEMENT position;
-	//GetWindowPlacement(hWindow, &position);
+	//GetWindowPlacement(WindowHandle, &position);
 	//WindowPosition(position.ptMinPosition.x, position.ptMinPosition.y);
 	return Properties.Position;
 }
 
 const WindowSize WinWindow::GetDisplaySize() const {
 	//RECT area;
-	//GetWindowRect(hWindow, &area);
+	//GetWindowRect(WindowHandle, &area);
 	//WindowSize(area.right - area.left, area.bottom - area.top);
 	return Properties.Size;
 }
 
-const WindowSize WinWindow::GetScreentSize() const {
+const WindowSize WinWindow::GetScreenSize() const {
 	int32_t width = GetSystemMetrics(SM_CXSCREEN);
 	int32_t height = GetSystemMetrics(SM_CYSCREEN);
 
 	return WindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 }
 
+const bool WinWindow::GetState(WindowState state) const {
+	switch (state) {
+		case WindowState::Active:		{ return Data.Active		? true : false; }
+		case WindowState::Alive:		{ return Data.Alive			? true : false; }
+		case WindowState::Cursor:		{ return Data.Cursor		? true : false; }
+		case WindowState::Decorated:	{ return Data.Decorated		? true : false; }
+		case WindowState::Focused:		{ return Data.Focused		? true : false; }
+		case WindowState::FullScreen:	{ return Data.FullScreen	? true : false; }
+		case WindowState::Maximized:	{ return Data.Maximized		? true : false; }
+		case WindowState::Minimized:	{ return Data.Minimized		? true : false; }
+		case WindowState::Visible:		{ return Data.Visible		? true : false; }
+		default: {
+			AppLogWarning("[WinAPI::Window]: The specified window state isn't supported!");
+			return false;
+		}
+	}
+}
+
 const string WinWindow::GetTitle() const {
 	//char title[1024];
 	//memset(title, 0, sizeof(char) * 1024);
-	//GetWindowText(hWindow, title, sizeof(char) * 1024);
+	//GetWindowText(WindowHandle, title, sizeof(char) * 1024);
 	return Properties.Title;
 }
 
 
-// Modifiers
+// Mutators
 void WinWindow::SetProperties(const WindowProperties &properties) {
 	string id = Properties.ID;
 	Properties = properties;
@@ -498,41 +507,69 @@ void WinWindow::SetProperties(const WindowProperties &properties) {
 }
 
 void WinWindow::SetCursorPosition(const int32_t x, const int32_t y) {
-	SetCursorPos(x, y);
+	if (!SetCursorPos(x, y)) {
+		AppLogError("[WinAPI::Window]: Error occured while setting cursor position!");
+		return;
+	}
 }
 
 void WinWindow::SetDisplayPosition(const int32_t x, const int32_t y) {
+	if (!SetWindowPos(WindowHandle, 0, (int)x, (int)y, 0, 0, SWP_NOSIZE | SWP_NOZORDER)) {
+		AppLogError("[WinAPI::Window]: Error occured while setting display position!");
+		return;
+	}
 	Properties.Position.X = x;
 	Properties.Position.Y = y;
-
-	SetWindowPos(hWindow, 0, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 }
 
 void WinWindow::SetDisplaySize(const uint32_t width, const uint32_t height) {
 	WINDOWPLACEMENT position;
-	GetWindowPlacement(hWindow, &position);
+	GetWindowPlacement(WindowHandle, &position);
 
-	RECT WindowDimension;
-	WindowDimension.left = position.ptMinPosition.x;
-	WindowDimension.top = position.ptMinPosition.y;
-	WindowDimension.right = (long)width;
-	WindowDimension.bottom = (long)height;
+	RECT dimension;
+	dimension.left = position.rcNormalPosition.left;
+	dimension.top = position.rcNormalPosition.top;
+	dimension.right = (long)width;
+	dimension.bottom = (long)height;
 
-	//AdjustWindowRectEx(&WindowDimension, Properties.Style.WindowStyle, FALSE, Properties.Style.WindowStyleEx);
-	//AdjustWindowRectEx(&WindowDimension, Style2.WindowStyle, FALSE, Style2.WindowStyleEx);	//SWP_NOMOVE | SWP_NOZORDER
+	AdjustWindowRectEx(&dimension, NULL, FALSE, NULL);
+	if (!SetWindowPos(WindowHandle, 0, dimension.left, dimension.top, dimension.right, dimension.bottom, SWP_NOREPOSITION | SWP_NOZORDER)) {
+		AppLogError("[WinAPI::Window]: Error occured while setting display size!");
+		return;
+	}
+	Properties.Size.Width = width;
+	Properties.Size.Height = height;
 }
 
 void WinWindow::SetProgress(const float progress) {
 	static uint32_t max = 100;
 	uint32_t current = (uint32_t)(progress * (float)max);
 
-	TaskbarList->SetProgressValue(hWindow, current, max);
+	TaskbarList->SetProgressValue(WindowHandle, current, max);
 }
 
 void WinWindow::SetTitle(const string_view title) {
+	if (!SetWindowText(WindowHandle, title.data())) {
+		AppLogError("[WinAPI::Window]: Error occured while setting title!");
+		return;
+	}
 	Properties.Title = title;
-
-	SetWindowText(hWindow, title.data());
 }
+
+
+// Methods
+void *WinWindow::LoadIconFile(const string &icon) {
+	return LoadImage(
+		NULL,				// Handle Instance must be NULL when loading from a files
+		icon.c_str(),		// Icon File
+		IMAGE_ICON,			// Specifies that the file is an icon
+		0,					// Width of the image (we'll specify default later on)
+		0,					// Height of the image
+		LR_LOADFROMFILE |	// Load a file (as opposed to a resource)
+		LR_DEFAULTSIZE |	// Default metrics based on the type (IMAGE_ICON, 32x32)
+		LR_SHARED			// Let the system release the handle when it's no longer used
+	);
+}
+
 
 }

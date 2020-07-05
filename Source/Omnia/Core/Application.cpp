@@ -23,6 +23,7 @@ Application::Application(const string &title):
 
 	// Load Configuration
 	pConfig = CreateReference<Config>();
+	//auto [width, height] = pConfig->GetSetting("Designer", "Resolution");
 
 	// Load Window, Context and Events
 	pWindow = Window::Create(WindowProperties(title, 1024, 768));
@@ -30,17 +31,13 @@ Application::Application(const string &title):
 	pContext = Context::Create(pWindow->GetNativeWindow());
 	pContext->Attach();
 	pContext->Load();
-	pContext->SetViewport(pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
+	pContext->SetViewport(pWindow->GetContexttSize().Width, pWindow->GetContexttSize().Height);
 	AppLogDebug("[Application] ", "Created context for 'OpenGL'");
 	pListener = EventListener::Create();
 
 	// Load Core Layer
 	CoreLayer = new GuiLayer();
 	PushOverlay(CoreLayer);
-
-	// Test
-	auto resolution = pConfig->GetSetting("Engine", "Resolution");
-	AppLogInfo("[Application] Resolution: '", resolution, "'");
 }
 
 Application::~Application() {
@@ -59,7 +56,7 @@ void Application::Run() {
 	string title = pWindow->GetTitle();
 
 	// Subscribe to all events (internal)
-	auto oDispatcher = pWindow->EventCallback.Subscribe([&](void *event) { pListener->Callback(event); });
+	auto oDispatcher = pWindow->EventCallback.Subscribe([&](bool &result, void *event) { pListener->Callback(result, event); });
 
 	auto oAutoDeviceEvent = pListener->DeviceEvent.Subscribe([&](DeviceEventData data) { this->AutoDeviceEvent(data); });
 	auto oAutoPowerEvent = pListener->PowerEvent.Subscribe([&](PowerEventData data) { this->AutoPowerEvent(data); });
@@ -103,15 +100,16 @@ void Application::Run() {
 		}
 
 		// Update
+		pContext->Attach();
 		Update(deltaTime);
 		for (Layer *layer : Layers) layer->Update(deltaTime);
-		if (pWindow->GetProperties().State.Alive) {
+		if (pWindow->GetState(WindowState::Alive)) {
 			CoreLayer->Prepare();
 			for (Layer *layer : Layers) layer->GuiUpdate();
 			CoreLayer->Finish();
 		}
 		pContext->SwapBuffers();
-		//Gfx::SwapBuffers(Context);
+		pContext->Detach();
 	}
 
 	// Termination
@@ -226,10 +224,7 @@ void Application::AutoWindowEvent(WindowEventData &data) {
 		}
 
 		case WindowAction::Resize: {
-			AppLog("Sizing");
-			pContext->Attach();
-			pContext->SetViewport(pWindow->GetProperties().Size.Width, pWindow->GetProperties().Size.Height);
-			pContext->Detach();
+			pContext->SetViewport(pWindow->GetContexttSize().Width, pWindow->GetContexttSize().Height);
 			break;
 		}
 

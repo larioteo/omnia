@@ -3,6 +3,8 @@
 #include "Omnia/Omnia.pch"
 #include "Omnia/Core.h"
 
+#include "Omnia/Utility/Enum.h"
+
 namespace Omnia {
 
 /**
@@ -42,16 +44,6 @@ struct WindowPosition {
 	};
 };
 
-struct WindowSettings {
-	static constexpr uint32_t BorderWidth = 12;
-	static constexpr uint32_t TitleBarWidth = 5;
-
-	static constexpr uint32_t MaximumHeight = 0;
-	static constexpr uint32_t MaximumWidth = 0;
-	static constexpr uint32_t MinimumHeight = 0;
-	static constexpr uint32_t MimimumWidth = 0;
-};
-
 struct WindowSize {
 	uint32_t Width;		// Display width
 	uint32_t Height;	// Display height
@@ -69,15 +61,16 @@ struct WindowSize {
 	};
 };
 
-struct WindowState {
-	bool Active = false;
-	bool Alive = false;
-	bool Cursor = false;
-	bool Decorated = false;
-	bool Focused = false;
-	bool Maximized = false;
-	bool Minimized = false;
-	bool Visible = true;
+enum class WindowState: uint32_t {
+	Active		= BitMask(0u),
+	Alive		= BitMask(1u),
+	Cursor		= BitMask(2u),
+	Decorated	= BitMask(3u),
+	Focused		= BitMask(4u),
+	FullScreen	= BitMask(5u),
+	Maximized	= BitMask(6u),
+	Minimized	= BitMask(7u),
+	Visible		= BitMask(8u),
 };
 
 enum class WindowStyle: uint8_t {
@@ -87,8 +80,25 @@ enum class WindowStyle: uint8_t {
 };
 
 /**
-* @brief	Collection of platform independet window related properties
+* @brief	Collection of platform independet window related data and properties
 */
+
+struct WindowData {
+	// Static
+	static constexpr uint32_t BorderWidth = 12;
+	static constexpr uint32_t TitleBarWidth = 5;
+
+	// States
+	bool Active = false;
+	bool Alive = false;
+	bool Cursor = false;
+	bool Decorated = false;
+	bool Focused = false;
+	bool FullScreen = false;
+	bool Maximized = false;
+	bool Minimized = false;
+	bool Visible = true;
+};
 
 struct WindowProperties {
 	string ID;
@@ -96,9 +106,7 @@ struct WindowProperties {
 	string Icon;
 
 	WindowPosition Position;
-	WindowSettings Settings;
 	WindowSize Size;
-	WindowState State;
 	WindowStyle Style;
 
 	WindowSize MaxSize;
@@ -110,22 +118,18 @@ struct WindowProperties {
 		Title {"App"},
 		Icon {"Data/App.ico"},
 		Position {},
-		Settings {},
 		Size {},
-		State {},
 		Style {WindowStyle::Default},
 		MaxSize {0, 0},
 		MinSize {} {
 	};
 
 	// Window with recommended values
-	WindowProperties(const string &title, unsigned int width = 640u, unsigned int height = 480u, WindowStyle style = WindowStyle::Default):
+	WindowProperties(const string &title, uint32_t width = 640u, uint32_t height = 480u, WindowStyle style = WindowStyle::Default):
 		ID {"Window[" + title + "]"},
 		Title {title},
 		Icon {"Data/" + title + ".ico"},
 		Position {},
-		Settings {},
-		State {},
 		Size {width, height},
 		Style {style},
 		MaxSize {0, 0},

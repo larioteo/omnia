@@ -38,7 +38,7 @@ void GuiLayer::Attach() {
 	io.LogFilename = logTarget->c_str();
 	//io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
 	//io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
-	io.DisplaySize = ImVec2((float)app.GetWindow().GetDisplaySize().Width, (float)app.GetWindow().GetDisplaySize().Height);
+	io.DisplaySize = ImVec2((float)app.GetWindow().GetContexttSize().Width, (float)app.GetWindow().GetContexttSize().Height);
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
@@ -88,14 +88,14 @@ void GuiLayer::Finish() {
 	
 	// Rendering
 	ImGui::Render();
-	io.DisplaySize = ImVec2((float)app.GetWindow().GetDisplaySize().Width, (float)app.GetWindow().GetDisplaySize().Height);
+	io.DisplaySize = ImVec2((float)app.GetWindow().GetContexttSize().Width, (float)app.GetWindow().GetContexttSize().Height);
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 	// Update and Render additional Platform Windows
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
-		app.Get().GetContext().Attach();
+		//app.Get().GetContext().Attach();
 	}
 }
 

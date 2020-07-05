@@ -24,7 +24,6 @@ class Application {
 	bool Paused;
 	bool Running;
 
-
 public:
 	Application(const string &title = "Omnia");
 	virtual ~Application();

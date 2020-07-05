@@ -12,7 +12,7 @@ public:
 	virtual ~WinEventListener();
 
 	// Events
-	virtual bool Callback(void *event = nullptr) override;
+	virtual void Callback(bool &result, void *event = nullptr) override;
 	virtual void Update() override;
 
 private:

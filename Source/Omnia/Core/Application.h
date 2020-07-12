@@ -9,6 +9,8 @@
 #include "Omnia/UI/Window.h"
 #include "Omnia/Utility/Timer.h"
 
+#include <queue>
+
 namespace Omnia {
 
 class Application {
@@ -24,6 +26,13 @@ class Application {
 	bool Paused;
 	bool Running;
 
+	struct Statistics {
+		std::queue<float> fpsData;
+		std::queue<float> msPFData;
+		double fps	= {};
+		double msPF	= {};
+	} statistics;
+
 public:
 	Application(const string &title = "Omnia");
 	virtual ~Application();
@@ -33,6 +42,7 @@ public:
 	static Config &GetConfig() { return *Get().pConfig; }
 	static Context &GetContext() { return *Get().pContext; }
 	static Window &GetWindow() { return *Get().pWindow; }
+	static Statistics GetStatistics() { return Get().statistics; };
 
 	/**
 	* @brief	With this method, everything begins.

@@ -51,6 +51,7 @@
 
 // Utility Extensions
 #if defined(APP_LIBRARY_UTILITIES_EXTENSIONS)
+	#include "Omnia/Utility/Buffer.h"
 	#include "Omnia/Utility/DateTime.h"
 	#include "Omnia/Utility/Enum.h"
 	#include "Omnia/Utility/Message.h"

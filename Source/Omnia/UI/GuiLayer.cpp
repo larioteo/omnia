@@ -54,7 +54,9 @@ void GuiLayer::Attach() {
 	ImGui_ImplOpenGL3_Init(glsl_version);
 
 	// Load Fonts
-	io.Fonts->AddFontFromFileTTF("./Assets/Fonts/Roboto/Roboto-Medium.ttf", 14.0f);
+	io.Fonts->AddFontFromFileTTF("./Assets/Fonts/Roboto/Roboto-Medium.ttf", 14.0f, NULL, io.Fonts->GetGlyphRangesDefault());
+	io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/consola.ttf", 14.0f, NULL, io.Fonts->GetGlyphRangesDefault());
+	io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/segoeui.ttf", 14.0f, NULL, io.Fonts->GetGlyphRangesDefault());
 	io.Fonts->AddFontDefault();
 }
 

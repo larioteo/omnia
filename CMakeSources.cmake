@@ -7,6 +7,7 @@ set(OMNIA_LIBRARY_DEFAULT_HEADERS
 	"Source/Omnia.h"
 	"Source/Omnia/Omnia.pch"
 	"Source/Omnia/Core.h"
+	"Source/Omnia/EntryPoint.h"
 	"Source/Omnia/Platform.h"
 	"Source/Omnia/Types.h"
 )
@@ -31,7 +32,6 @@ list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_PRIME_SOURCES})
 # Core Extensions
 set(OMNIA_LIBRARY_CORE_HEADERS
 	"Source/Omnia/Core/Application.h"
-	"Source/Omnia/Core/EntryPoint.h"
 	"Source/Omnia/Core/Layer.h"
 	"Source/Omnia/Core/LayerStack.h"
 )

@@ -85,11 +85,14 @@ void Application::Run() {
 		pListener->Update();
 		if (Paused) continue;
 
-		// Calcualte Statistics
+		// Calcualte 
 		Timestamp deltaTime = timer.GetDeltaTime();
-		delay += deltaTime;
 		frames++;
+		delay += deltaTime;
+		this->statistics.msPF = deltaTime.GetMilliseconds();
+
 		if (delay >= 1.0f) {
+			this->statistics.fps = frames;
 			float msPF = 1000.0f / (float)frames;
 
 			statistics = title + " [FPS:" + std::to_string(frames) + " | msPF:" + std::to_string(msPF) + "]";

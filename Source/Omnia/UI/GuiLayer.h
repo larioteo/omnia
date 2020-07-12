@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Omnia/Core/Layer.h"
+#include "Style/Styles.h"
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
@@ -30,10 +31,43 @@ public:
 // Helpers
 namespace UI {
 
+// Labels
 template <typename ... Args>
-void Label(const string &format, const Args &...arguments) {
-	ImGui::Text(format.c_str(), (..., arguments));
+auto Label(const string &format, const Args &...arguments) {
+	ImGui::Text(format.c_str(), arguments...);
 }
+
+template <typename ... Args>
+auto LabelX(const string &format, const Args &...arguments) {
+	((ImGui::Text(format.c_str(), arguments)), ...);
+}
+
+
+/**
+ * @brief Properties
+*/
+
+// Checkbox Property
+inline void Property(const string &label, bool &value) {
+	ImGui::Checkbox(label.c_str(), &value);
+}
+
+// Floating-Point Property
+inline void Property(const string &caption, float &value, float min = 0.0f, float max = 1.0f) {
+	ImGui::SliderFloat(caption.c_str(), &value, min, max);
+}
+
+// State Property
+template <typename ... Args>
+inline void Property(const string &label, const string &format, const Args &...arguments) {
+	ImGui::Columns(2);
+	ImGui::Text(label.c_str());
+	ImGui::NextColumn();
+	ImGui::TextColored(ImTextColorHighlight, format.c_str(), arguments...);
+	ImGui::NextColumn();
+	ImGui::Columns(1);
+}
+
 
 }
 

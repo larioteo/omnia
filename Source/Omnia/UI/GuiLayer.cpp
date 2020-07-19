@@ -78,13 +78,48 @@ void GuiLayer::Update(Timestamp deltaTime) {
 
 
 void GuiLayer::Prepare() {
-	// Start the Dear ImGui frame
+	// Start new 'Dear ImGui' frame
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
+
+	// Properties
+	ImGuiIO& io = ImGui::GetIO();
+	static bool DockSpace = true;
+	static ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_PassthruCentralNode;
+	static ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;;
+
+	// Viewport
+	ImGuiViewport* viewport = ImGui::GetMainViewport();
+	ImGui::SetNextWindowPos(viewport->GetWorkPos());
+	ImGui::SetNextWindowSize(viewport->GetWorkSize());
+	ImGui::SetNextWindowViewport(viewport->ID);
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+	windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+	windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+	if (dockspaceFlags & ImGuiDockNodeFlags_PassthruCentralNode) windowFlags |= ImGuiWindowFlags_NoBackground;
+
+	// DockSpace
+	ImGui::Begin("DockSpace", &DockSpace, windowFlags);
+	ImGui::PopStyleVar(3);
+
+	if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
+		ImGuiID dockspaceId = ImGui::GetID("DockSpace");
+		ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), dockspaceFlags);
+	}
+
+
 }
 
 void GuiLayer::Finish() {
+	// ~DockSpace
+	ImGui::End();
+
+	// Properties
 	Application &app = Application::Get();
 	ImGuiIO& io = ImGui::GetIO();
 	

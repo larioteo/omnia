@@ -472,7 +472,7 @@ struct LightTheme: public ColorTheme {
 
 // Themes - Console
 struct ConsoleLightTheme {
-	static inline uint32_t Background	= 0x0f111aff; // 
+	static inline uint32_t Background	= 0xeaeaeaff;
 	static inline uint32_t Foreground	= 0x65e0e2ff;
 };
 

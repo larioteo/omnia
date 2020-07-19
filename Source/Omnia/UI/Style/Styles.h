@@ -4,6 +4,7 @@
 
 #include "MaterialDesign.h"
 
+static inline ColorThemes GColorTheme;
 static inline ImVec4 ImTextColorHighlight = {};
 static inline ImVec4 ImTextColorHighlightWarn = {};
 
@@ -16,6 +17,7 @@ static void SetStyle(ColorThemes theme = ColorThemes::Dark, ColorPalette accentP
 	std::shared_ptr<ColorSwatch> primary = GetColorPalette(ColorPalette::BlueGray);
 	std::shared_ptr<ColorSwatch> accent = GetColorPalette(accentPalette);
 	std::shared_ptr<ColorSwatch> warn = GetColorPalette(warnPalette);
+	GColorTheme = theme;
 
 	/**
 	 *	Styles

@@ -59,9 +59,6 @@ struct ColorSwatch {
 	uint32_t sA500	= 0x00000000;
 	uint32_t sA700	= 0x00000000;
 	uint32_t white	= 0xFFFFFFFF;
-	
-	uint32_t text		= 0xE0E0E8FF;
-	uint32_t disabled	= 0x646472FF;
 
 	ColorSwatch() = default;
 	virtual ~ColorSwatch() = default;
@@ -480,7 +477,6 @@ struct ConsoleDarkTheme {
 	static inline uint32_t Background	= 0x0f111aff;
 	static inline uint32_t Foreground	= 0x65e0e2ff;
 };
-
 
 struct MaterialOcean {
 	static inline uint32_t Background	= 0x0f111aff;

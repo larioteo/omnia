@@ -1,4 +1,4 @@
-# <img src="https://github.com/larioteo/ultra/blob/master/Assets/Images/Omnia.bmp" alt="Logo" width="32"/> Omnia Library
+# <img src="https://github.com/larioteo/ultra/blob/master/Assets/Images/Omnia.png" alt="Logo" width="64"/> Omnia Library #
 
 [Cpp-Image]: https://img.shields.io/badge/C%2B%2B-20-blue
 [C-Image]: https://img.shields.io/badge/C-11-blue

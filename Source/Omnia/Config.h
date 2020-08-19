@@ -1,12 +1,12 @@
-#pragma once
+﻿#pragma once
 
 #include "Omnia.pch"
 #include "Core.h"
 #include "Omnia/Log.h"
 
-
-// ToDo: Add yaml-cpp to the project.
+#pragma warning(push, 0)
 #include <yaml-cpp/yaml.h>
+#pragma warning(pop)
 
 namespace Omnia {
 

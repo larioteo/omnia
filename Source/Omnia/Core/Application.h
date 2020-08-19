@@ -1,4 +1,6 @@
-#pragma once
+﻿#pragma once
+
+#include <queue>
 
 #include "Omnia/Core.h"
 #include "Omnia/Config.h"
@@ -9,29 +11,16 @@
 #include "Omnia/UI/Window.h"
 #include "Omnia/Utility/Timer.h"
 
-#include <queue>
-
 namespace Omnia {
 
 class Application {
-	// Properties
-	static Application *AppInstance;
-	Reference<Config> pConfig;
-	LayerStack Layers;
-	Reference<Window> pWindow;
-	Reference<Context> pContext;
-	Reference<EventListener> pListener;
-	GuiLayer *CoreLayer;
-
-	bool Paused;
-	bool Running;
-
-	struct Statistics {
-		std::queue<float> fpsData;
-		std::queue<float> msPFData;
-		double fps	= {};
-		double msPF	= {};
-	} statistics;
+    // Types
+    struct Statistics {
+        std::queue<float> fpsData;
+        std::queue<float> msPFData;
+        double fps = {};
+        double msPF = {};
+    };
 
 public:
 	Application(const string &title = "Omnia");
@@ -84,6 +73,7 @@ public:
 	virtual void TouchEvent(TouchEventData &data);
 	/** This method delivers you window events. */
 	virtual void WindowEvent(WindowEventData &data);
+
 private:
 	/**
 	* @brief	These methods are used internally to handle critical events or pass them to the provided layers.
@@ -107,6 +97,19 @@ private:
 
 	/** This method dispatches context events. */
 	void AutoContextEvent(ContextEventData &data);
+
+    // Properties
+    static Application *AppInstance;
+    Reference<Config> pConfig;
+    LayerStack Layers;
+    Reference<Window> pWindow;
+    Reference<Context> pContext;
+    Reference<EventListener> pListener;
+    GuiLayer *CoreLayer;
+
+    bool Paused;
+    bool Running;
+    Statistics statistics;
 };
 
 }

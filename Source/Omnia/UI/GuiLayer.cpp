@@ -1,11 +1,10 @@
-#include "Omnia/Omnia.pch"
+﻿#include "Omnia/Omnia.pch"
 #include "GuiLayer.h"
 
 #include "Omnia/Core/Application.h"
 #include "Omnia/Log.h"
 
 #include "Omnia/UI/GuiBuilder.h"
-#include "Platform/GFX/OpenGL/GLContext.cpp"
 
 namespace Omnia {
 

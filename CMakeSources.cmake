@@ -1,4 +1,4 @@
-# Preparation
+﻿# Preparation
 set (OMNIA_HEADERS "")
 set (OMNIA_SOURCES "")
 
@@ -117,6 +117,7 @@ set(OMNIA_LIBRARY_UTILITY_HEADERS
 	"Source/Omnia/Utility/Message.h"
 	"Source/Omnia/Utility/Property.h"
 	"Source/Omnia/Utility/Timer.h"
+	"Source/Omnia/Utility/UUID.h"
 )
 set(OMNIA_LIBRARY_UTILITY_SOURCES
 	""

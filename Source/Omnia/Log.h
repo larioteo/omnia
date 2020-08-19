@@ -38,6 +38,7 @@ class Log {
 	static inline size_t Failures = 0;
 
 	ostream &os = std::cout;
+	ostream *os2 = nullptr;
 	static inline mutex Sync;
 	static inline mutex SyncFile;
 	static inline ofstream FileStream;
@@ -86,11 +87,16 @@ public:
 		return instance;
 	}
 
+	void SetOutput(ostream &output) {
+		os2 = &output;
+	}
+
 	template <typename T>
 	Log &operator<<(const T &data) {
+		std::ios::sync_with_stdio(false);
 		std::unique_lock<mutex> lock(Sync);
-		std::shared_ptr<stringstream> cli { new stringstream };
-		std::shared_ptr<stringstream> file { new stringstream };
+		std::unique_ptr<stringstream> cli { new stringstream };
+		std::unique_ptr<stringstream> file { new stringstream };
 
 		if (!FileStream.is_open()) { Open(); }
 
@@ -169,6 +175,7 @@ public:
 		return (*this);
 	}
 	Log &operator<<(ostream &(*T)(ostream &)) {
+		std::ios::sync_with_stdio(false);
 		if (CaptionActive) {
 			os << "\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬";
 			CaptionActive = false;
@@ -194,7 +201,6 @@ public:
 		Log::Instance() << Log::Warning << "Warning" << "\n";
 		Log::Instance() << Log::Failure << "Failure" << "\n";
 	}
-
 private:
 	// Log-File Handling
 	static void Close() {

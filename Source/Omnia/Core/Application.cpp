@@ -80,6 +80,7 @@ void Application::Run() {
 	Create();
 	for (Layer *layer : Layers) layer->Create();
 	applog << Log::Caption << "Main Loop"s << "\n";
+
 	while (Running) {
 		// Update events and check if application is paused
 		pListener->Update();

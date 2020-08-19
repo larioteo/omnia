@@ -57,4 +57,5 @@
 	#include "Omnia/Utility/Message.h"
 	#include "Omnia/Utility/Property.h"
 	#include "Omnia/Utility/Timer.h"
+    #include "Omnia/Utility/UUID.h"
 #endif

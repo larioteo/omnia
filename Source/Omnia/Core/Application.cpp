@@ -1,4 +1,4 @@
-#include "Application.h"
+﻿#include "Application.h"
 
 #include "Omnia/Omnia.pch"
 #include "Omnia/Log.h"
@@ -9,7 +9,7 @@ namespace Omnia {
 
 Application *Application::AppInstance = nullptr;
 
-Application::Application(const string &title):
+Application::Application(const ApplicationProperties &properties):
 	Running(true),
 	Paused(false) {
 	// Preparation
@@ -23,11 +23,10 @@ Application::Application(const string &title):
 
 	// Load Configuration
 	pConfig = CreateReference<Config>();
-	//auto [width, height] = pConfig->GetSetting("Designer", "Resolution");
 
 	// Load Window, Context and Events
-	pWindow = Window::Create(WindowProperties(title, 1024, 768));
-	AppLogDebug("[Application] ", "Created window '", title, "' with size '", 1024, "x", 768, "'");
+	pWindow = Window::Create(WindowProperties(properties.Title, properties.Width, properties.Height));
+	AppLogDebug("[Application] ", "Created window '", properties.Title, "' with size '", properties.Width, "x", properties.Height, "'");
 	pContext = Context::Create(pWindow->GetNativeWindow());
 	pContext->Attach();
 	pContext->Load();
@@ -156,10 +155,10 @@ void Application::PushOverlay(Layer *overlay) {
 
 // Event System (internal)
 void Application::AutoDeviceEvent(DeviceEventData &data) {
-	applog << "Device Event:" << std::endl;
+    AppLog("[Application::AutoDeviceEvent]:");
 }
 void Application::AutoPowerEvent(PowerEventData &data) {
-	applog << "Power Event:" << std::endl;
+    AppLog("[Application::AutoPowerEvent]:");
 }
 
 void Application::AutoControllerEvent(ControllerEventData &data) {
@@ -239,7 +238,7 @@ void Application::AutoWindowEvent(WindowEventData &data) {
 }
 
 void Application::AutoContextEvent(ContextEventData &data) {
-	applog << "Context Event:" << std::endl;
+    AppLog("[Application::AutoContextEvent]:");
 }
 
 }

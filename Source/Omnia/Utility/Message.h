@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #pragma warning(push)
 #pragma warning(disable: 4930)
 
@@ -37,8 +37,7 @@ class IMessage {
 	IEventData Data;
 
 public:
-	IMessage(const IEventData &data):
-		Data {data} {};
+	IMessage(const IEventData &data): Data {data} {};
 	IMessage(const std::string &data, EventPriority priority = EventPriority::Normal) {
 		Data.Event = data;
 		Data.Priority = priority;
@@ -53,10 +52,10 @@ public:
 * @brief Observer: Notifies all observers
 */
 class Observer {
-	std::shared_ptr<void> Object;
+	std::shared_ptr<void> Object = nullptr;
 
 public:
-	Observer(std::shared_ptr<void>&& object): Object(std::move(object)) {};
+	Observer(std::shared_ptr<void> &&object): Object(std::move(object)) {};
 	void Destroy() { Object = nullptr; };
 };
 
@@ -65,10 +64,10 @@ public:
 */
 template<typename ... Arguments>
 class Subject {
-	using Callback = std::function<void(Arguments ...)>;
-	
-	std::mutex Mutex;
-	std::vector<std::weak_ptr<Callback>> Callbacks;
+	using Callback = function<void(Arguments ...)>;
+
+	mutex Mutex;
+	vector<weak_ptr<Callback>> Callbacks;
 
 public:
 	Subject() = default;

@@ -1,8 +1,23 @@
-#pragma once
+﻿#pragma once
 
 #include "Omnia/Omnia.pch"
 
 namespace Omnia {
+
+/**
+* @brief Class: Removes the copy constructer/operator and from derived classes.
+*/
+class NonCopyable {
+protected:
+    NonCopyable() = default;
+    virtual ~NonCopyable() = default;
+
+public:
+    NonCopyable(const NonCopyable &) = delete;
+    NonCopyable(NonCopyable &&) noexcept = default;
+    NonCopyable &operator=(const NonCopyable &) = delete;
+    NonCopyable &operator=(NonCopyable &&) noexcept = default;
+};
 
 /**
 * @brief Property: Built-In Getter and Setter for <any> type

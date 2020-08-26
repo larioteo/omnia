@@ -116,6 +116,7 @@ set(OMNIA_LIBRARY_UTILITY_HEADERS
 	"Source/Omnia/Utility/Enum.h"
 	"Source/Omnia/Utility/Message.h"
 	"Source/Omnia/Utility/Property.h"
+	"Source/Omnia/Utility/String.h"
 	"Source/Omnia/Utility/Timer.h"
 	"Source/Omnia/Utility/UUID.h"
 )

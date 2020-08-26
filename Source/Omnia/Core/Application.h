@@ -13,6 +13,37 @@
 
 namespace Omnia {
 
+struct ApplicationProperties {
+    string Title;
+    string Resolution;
+
+    ApplicationProperties(): Title { "Omnia" }, Resolution { "800x600" } { CalculateResolution(); }
+    ApplicationProperties(string title, string resolution): Title(title), Resolution(resolution) { CalculateResolution(); }
+
+    uint32_t Width;
+    uint32_t Height;
+
+private:
+    void CalculateResolution() {
+        std::string delimiter = "x";
+        std::string width = Resolution.substr(0, Resolution.find(delimiter));
+        std::string height = Resolution.substr(Resolution.find(delimiter) +1, Resolution.size());
+
+        bool rwidth = !width.empty() && std::find_if(width.begin(), width.end(), [](unsigned char c) { return !std::isdigit(c); }) == width.end();
+        bool rheight = !height.empty() && std::find_if(height.begin(), height.end(), [](unsigned char c) { return !std::isdigit(c); }) == height.end();
+
+        if (!rwidth || !rheight) {
+            Resolution = "1024x768";
+            Width = 1024;
+            Height = 768;
+            return;
+        }
+
+        Width = std::stoi(width);
+        Height = std::stoi(height);
+    }
+};
+
 class Application {
     // Types
     struct Statistics {
@@ -23,7 +54,7 @@ class Application {
     };
 
 public:
-	Application(const string &title = "Omnia");
+    Application(const ApplicationProperties &properties = {});
 	virtual ~Application();
 
 	// Accessors
@@ -100,12 +131,12 @@ private:
 
     // Properties
     static Application *AppInstance;
-    Reference<Config> pConfig;
     LayerStack Layers;
+    GuiLayer *CoreLayer;
+    Reference<Config> pConfig;
     Reference<Window> pWindow;
     Reference<Context> pContext;
     Reference<EventListener> pListener;
-    GuiLayer *CoreLayer;
 
     bool Paused;
     bool Running;

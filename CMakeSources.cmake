@@ -89,20 +89,24 @@ list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_SYSTEM_SOURCES})
 set(OMNIA_LIBRARY_UI_HEADERS
 	"Source/Omnia/UI/GuiBuilder.h"
 	"Source/Omnia/UI/GuiLayer.h"
-
+    
+	"Source/Omnia/UI/Dialog.h"
 	"Source/Omnia/UI/EventData.h"
 	"Source/Omnia/UI/Event.h"
 	"Source/Omnia/UI/WindowData.h"
 	"Source/Omnia/UI/Window.h"
+	"Source/Platform/UI/WinAPI/WinDialog.h"
 	"Source/Platform/UI/WinAPI/WinEvent.h"
 	"Source/Platform/UI/WinAPI/WinWindow.h"
 )
 set(OMNIA_LIBRARY_UI_SOURCES
 	"Source/Omnia/UI/GuiBuilder.cpp"
 	"Source/Omnia/UI/GuiLayer.cpp"
-
+    
+	"Source/Omnia/UI/Dialog.cpp"
 	"Source/Omnia/UI/Event.cpp"
 	"Source/Omnia/UI/Window.cpp"
+	"Source/Platform/UI/WinAPI/WinDialog.cpp"
 	"Source/Platform/UI/WinAPI/WinEvent.cpp"
 	"Source/Platform/UI/WinAPI/WinWindow.cpp"
 )

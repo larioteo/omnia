@@ -8,6 +8,7 @@
 #include "Omnia/GFX/Context.h"
 #include "Omnia/UI/Event.h"
 #include "Omnia/UI/GuiLayer.h"
+#include "Omnia/UI/Dialog.h"
 #include "Omnia/UI/Window.h"
 #include "Omnia/Utility/Timer.h"
 
@@ -61,6 +62,7 @@ public:
 	static Application &Get() { return *AppInstance; }
 	static Config &GetConfig() { return *Get().pConfig; }
 	static Context &GetContext() { return *Get().pContext; }
+    static Dialog &GetDialog() { return *Get().pDialog; }
 	static Window &GetWindow() { return *Get().pWindow; }
 	static Statistics GetStatistics() { return Get().statistics; };
 
@@ -134,6 +136,7 @@ private:
     LayerStack Layers;
     GuiLayer *CoreLayer;
     Reference<Config> pConfig;
+    Reference<Dialog> pDialog;
     Reference<Window> pWindow;
     Reference<Context> pContext;
     Reference<EventListener> pListener;

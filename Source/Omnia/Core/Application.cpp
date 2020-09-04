@@ -26,6 +26,7 @@ Application::Application(const ApplicationProperties &properties):
 
 	// Load Window, Context and Events
 	pWindow = Window::Create(WindowProperties(properties.Title, properties.Width, properties.Height));
+    pDialog = Dialog::Create();
 	AppLogDebug("[Application] ", "Created window '", properties.Title, "' with size '", properties.Width, "x", properties.Height, "'");
 	pContext = Context::Create(pWindow->GetNativeWindow());
 	pContext->Attach();
@@ -104,8 +105,8 @@ void Application::Run() {
 
 		// Update
 		pContext->Attach();
-		Update(deltaTime);
-		for (Layer *layer : Layers) layer->Update(deltaTime);
+        for (Layer *layer : Layers) layer->Update(deltaTime);
+        Update(deltaTime);
 		if (pWindow->GetState(WindowState::Alive)) {
 			CoreLayer->Prepare();
 			for (Layer *layer : Layers) layer->GuiUpdate();

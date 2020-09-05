@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Omnia/Omnia.pch"
 #include "Omnia/Core.h"
@@ -17,7 +17,6 @@ enum class GraphicsAPI {
 struct ContextData;
 
 class Context {
-	inline static GraphicsAPI API = GraphicsAPI::OpenGL;
 
 public:
 	Context() = default;
@@ -41,6 +40,8 @@ public:
 
 	// Settings
 	virtual void SetVSync(bool activate) = 0;
+
+    inline static GraphicsAPI API = GraphicsAPI::OpenGL;
 };
 
 }

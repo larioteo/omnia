@@ -1,9 +1,9 @@
-#include "GLContext.h"
+﻿#include "GLContext.h"
 
 #include "Omnia/Log.h"
 #include "Omnia/UI/Window.h"
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 
 #if defined(APP_PLATFORM_WINDOWS)
 	#define VC_EXTRALEAN
@@ -223,7 +223,7 @@ void GLContext::Detach() {
 }
 
 void GLContext::Load() {
-	if (!gladLoadGL()) {
+	if (!gladLoaderLoadGL()) {
 		AppLogCritical("[Context: Failed to load OpenGL!");
 		return;
 	}

@@ -58,11 +58,13 @@ set(OMNIA_LIBRARY_GFX_HEADERS
 	"Source/Omnia/GFX/Context.h"
 
 	"Source/Platform/GFX/OpenGL/GLContext.h"
+	"Source/Platform/GFX/Vulkan/VKContext.h"
 )
 set(OMNIA_LIBRARY_GFX_SOURCES
 	"Source/Omnia/GFX/Context.cpp"
 
 	"Source/Platform/GFX/OpenGL/GLContext.cpp"
+	"Source/Platform/GFX/Vulkan/VKContext.cpp"
 )
 list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_GFX_HEADERS})
 list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_GFX_SOURCES})

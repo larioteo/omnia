@@ -14,11 +14,15 @@
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 # The needed headers and sources to build the library.
 set(GLAD_HEADERS
-	".Library/glad/glad.h"
 	".Library/KHR/khrplatform.h"
+
+	".Library/glad/gl.h"
+	".Library/glad/vulkan.h"
+	".Library/vk_platform.h"
 )
 set(GLAD_SOURCES
-	".Library/glad/glad.c"
+	".Library/glad/gl.c"
+	".Library/glad/vulkan.c"
 )
 add_library(glad ${GLAD_HEADERS} ${GLAD_SOURCES})
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐

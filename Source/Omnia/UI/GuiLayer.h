@@ -66,7 +66,8 @@ inline void Property(const string &label, const string &format, const Args &...a
 	ImGui::Columns(2);
 	ImGui::Text(label.c_str());
 	ImGui::NextColumn();
-	ImGui::TextColored(ImTextColorHighlight, format.c_str(), arguments...);
+	//ImGui::TextColored(ImTextColorHighlight, format.c_str(), arguments...);
+    ImGui::Text(format.c_str(), arguments...);
 	ImGui::NextColumn();
 	ImGui::Columns(1);
 }

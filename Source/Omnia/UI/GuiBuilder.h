@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Omnia/Omnia.pch"
 
@@ -6,6 +6,7 @@
 #pragma warning(push, 0)
 
 #include <imgui/examples/imgui_impl_opengl3.h>
+#include <imgui/examples/imgui_impl_vulkan-patch.h>
 #include <imgui/examples/imgui_impl_win32-patch.h>
 
 #pragma warning(pop)

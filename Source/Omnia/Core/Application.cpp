@@ -32,7 +32,6 @@ Application::Application(const ApplicationProperties &properties):
 	pContext->Attach();
 	pContext->Load();
 	pContext->SetViewport(pWindow->GetContexttSize().Width, pWindow->GetContexttSize().Height);
-	AppLogDebug("[Application] ", "Created context for 'OpenGL'");
 	pListener = EventListener::Create();
 
 	// Load Core Layer

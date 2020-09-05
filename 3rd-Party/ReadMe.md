@@ -7,9 +7,10 @@
 | Project | License | Release | Version |
 | :------ | :-----: | :-----: | :------ |
 | [Dear ImGui](https://github.com/ocornut/imgui.git "imgui")                                    | MIT           | 2020-08-20 | commit\{9d20a5f0a515dba3ade46cfcf90953133e34dcbc} |
-| [GL/GLES/EGL/GLX/WGL Loader](https://github.com/Dav1dde/glad "glad")                          | MIT           | 2020-04-21 | commit\{fd8ea1acebad326f2c3078d9ca5955b22c34f3dd} |
+| [Vulkan/GL/GLES/EGL/GLX/WGL Loader](https://github.com/Dav1dde/glad "glad")                   | MIT           | 2020-09-05 | commit\{4b97c39fe8c1e103f869b50acea7d59032f68b12} |
 | [OpenGL-Registry](https://github.com/KhronosGroup/OpenGL-Registry.git "OpenGL-Registry")      | MIT?          | 2020-05-22 | commit\{8261133c2645aaeef880c5f5a6e327f399bc9d04} |
 | [yaml-cpp](https://github.com/jbeder/yaml-cpp.git "yaml-cpp")                                 | MIT           | 2020-06-29 | commit\{3f381f13a07f007941b250e1563f67ded4dc8b1a} |
+| [Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers.git "Vulkan-Headers")         | Apache-2.0    | 2020-08-27 | commit\{ced848d699b5673a7df900bcfe0b1a6ba9e989ce} |
 
 > **Info**: Glad must be generated here: <https://glad.dav1d.de/>, the version is the latest commit on the github page.
 
@@ -18,7 +19,6 @@
 | [EGL-Registry](https://github.com/KhronosGroup/EGL-Registry.git "EGL-Registry")               | MIT?          | 2020-05-05 | commit\{90b78b0662e2f0548cfd1926fb77bf628933541b} |
 | [Magic Enum C++](https://github.com/Neargye/magic_enum "magic_enum")                          | MIT           | 2020-05-24 | commit\{b9450675bbbd8779da5088353cf52417c567eb85} |
 | [Node Editor in ImGui](https://github.com/thedmd/imgui-node-editor.git "imgui-node-editor")   | MIT           | 2020-04-17 | commit\{2522c65355879b68ad8c39f05634f92cc8d2bf98} |
-| [Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers.git "Vulkan-Headers")         | Apache-2.0    | 2020-05-15 | commit\{09531f27933bf04bffde9074acb302e026e8f181} |
 -->
 
 <!-- These are leftovers which where used in the prototype, left them here, cause maybe they will be needed again.

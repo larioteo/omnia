@@ -10,3 +10,6 @@
 [submodule "3rd-Party/yaml-cpp"]
 	path = 3rd-Party/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "3rd-Party/Vulkan-Headers"]
+	path = 3rd-Party/Vulkan-Headers
+	url = https://github.com/KhronosGroup/Vulkan-Headers

@@ -50,7 +50,10 @@ void GuiLayer::Attach() {
 	}
 
 	ImGui_ImplWin32_Init(app.GetWindow().GetNativeWindow(), app.GetContext().GetNativeContext());
-	ImGui_ImplOpenGL3_Init(glsl_version);
+    if (Context::API == GraphicsAPI::OpenGL) ImGui_ImplOpenGL3_Init(glsl_version);
+    // ToDo: Pass Vulkan Info and RenderPass
+    //static ImGui_ImplVulkan_InitInfo vkInfo;
+    //if (Context::API == GraphicsAPI::Vulkan) ImGui_ImplVulkan_Init(&vkInfo, VkRenderPass());
 
 	// Load Fonts
 	io.Fonts->AddFontFromFileTTF("./Assets/Fonts/Roboto/Roboto-Medium.ttf", 14.0f, NULL, io.Fonts->GetGlyphRangesDefault());
@@ -60,7 +63,8 @@ void GuiLayer::Attach() {
 }
 
 void GuiLayer::Detach() {
-	ImGui_ImplOpenGL3_Shutdown();
+    if (Context::API == GraphicsAPI::OpenGL) ImGui_ImplOpenGL3_Shutdown();
+    if (Context::API == GraphicsAPI::Vulkan) ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 }
@@ -78,7 +82,8 @@ void GuiLayer::Update(Timestamp deltaTime) {
 
 void GuiLayer::Prepare() {
 	// Start new 'Dear ImGui' frame
-	ImGui_ImplOpenGL3_NewFrame();
+    if (Context::API == GraphicsAPI::OpenGL) ImGui_ImplOpenGL3_NewFrame();
+    if (Context::API == GraphicsAPI::Vulkan) ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
@@ -125,7 +130,9 @@ void GuiLayer::Finish() {
 	// Rendering
 	ImGui::Render();
 	io.DisplaySize = ImVec2((float)app.GetWindow().GetContexttSize().Width, (float)app.GetWindow().GetContexttSize().Height);
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    if (Context::API == GraphicsAPI::OpenGL) ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    // ToDo: Pass Command Buffer
+    if (Context::API == GraphicsAPI::Vulkan) ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), VkCommandBuffer());
 
 	// Update and Render additional Platform Windows
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {

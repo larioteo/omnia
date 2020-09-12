@@ -23,7 +23,7 @@
 
 #pragma once
 #include "imgui.h"      // IMGUI_IMPL_API
-#include <glad/vulkan.h>
+#include <vulkan/vulkan.h>
 
 // Initialization data, for ImGui_ImplVulkan_Init()
 // [Please zero-clear before use!]

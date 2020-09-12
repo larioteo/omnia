@@ -20,6 +20,7 @@ Application::Application(const ApplicationProperties &properties):
 
 	// Initialization
 	applog << Log::Caption << "Initialization" << "\n";
+    Context::API = GraphicsAPI::OpenGL;
 
 	// Load Configuration
 	pConfig = CreateReference<Config>();

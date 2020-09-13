@@ -107,11 +107,14 @@ void Application::Run() {
 		pContext->Attach();
         for (Layer *layer : Layers) layer->Update(deltaTime);
         Update(deltaTime);
-		if (pWindow->GetState(WindowState::Alive)) {
-			CoreLayer->Prepare();
-			for (Layer *layer : Layers) layer->GuiUpdate();
-			CoreLayer->Finish();
-		}
+        // ToDo: Work on Support for Vulkan
+        if (Context::API == GraphicsAPI::OpenGL) {
+            if (pWindow->GetState(WindowState::Alive)) {
+                CoreLayer->Prepare();
+                for (Layer *layer : Layers) layer->GuiUpdate();
+                CoreLayer->Finish();
+            }
+        }
 		pContext->SwapBuffers();
 		pContext->Detach();
 	}

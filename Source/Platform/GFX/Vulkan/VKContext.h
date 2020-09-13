@@ -15,6 +15,9 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "VKInstance.h"
+#include "VKDevice.h"
+
 namespace Omnia {
 
 struct VkContextData {
@@ -47,6 +50,9 @@ public:
     virtual void Attach() override;
     virtual void Detach() override;
 
+    // ToDo: Find a neat way to access running instances, instead of storing it statically
+    static vk::Instance GetInstance();
+
     // Accessors
     virtual void *GetNativeContext() override;
     virtual bool const IsCurrentContext() override;
@@ -76,22 +82,18 @@ private:
 
 private:
     HWND WindowHandle;
+    static inline vk::Instance sInstance = nullptr;
 
-    vk::ApplicationInfo ApplicationInfo;
-    vk::InstanceCreateInfo InstanceCreateInfo;
+    VKInstance mInstance;
+    Reference<VKPhysicalDevice> mPhysicalDevice;
+    Reference<VKDevice> mDevice;
 
-    vk::Instance Instance;
-    vk::PhysicalDevice PhysicalDevice;
-    vk::Device Device;
+    // ToDo: CleanUp everything not needed...
+    uint32_t QueueFamilyIndex;
 
     vk::SwapchainKHR Swapchain;
     vk::SurfaceKHR Surface;
 
-    float QueuePriority;
-    vk::Queue Queue;
-    uint32_t QueueFamilyIndex;
-
-    vk::CommandPool CommandPool;
     vector<vk::CommandBuffer> CommandBuffers;
     uint32_t CurrentBuffer = 0;
 
@@ -99,6 +101,8 @@ private:
     vk::Rect2D RenderArea;
     vk::Viewport Viewport;
 
+
+    // ToDo: Move everything needed by Ultra...
     // Resources
     vk::Format SurfaceColorFormat;
     vk::ColorSpaceKHR SurfaceColorSpace;

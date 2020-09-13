@@ -23,9 +23,6 @@ Vertex VertexBufferData[3] = {
 
 uint32_t IndexBufferData[3] = { 0, 1, 2 };
 
-std::chrono::time_point<std::chrono::steady_clock> tStart, tEnd;
-float ElapsedTime = 0.0f;
-
 // Uniform data
 struct {
     glm::mat4 projectionMatrix;
@@ -33,42 +30,6 @@ struct {
     glm::mat4 viewMatrix;
 } uboVS;
 // ~
-
-vector<const char *> GetExtensions(const vector<vk::ExtensionProperties>& available, const vector<const char*>& needed) {
-    vector<const char *> result = {};
-    for (const char* const& n : needed) {
-        for (vk::ExtensionProperties const &a : available) {
-            if (string(a.extensionName.data()).compare(n) == 0) {
-                result.emplace_back(n);
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-vector<const char *> GetLayers(const std::vector<vk::LayerProperties>& available, const std::vector<const char*>& needed) {
-    vector<const char *> result = {};
-    for (const char* const& n : needed) {
-        for (vk::LayerProperties const& a : available) {
-            if (string(a.layerName.data()).compare(n) == 0) {
-                result.emplace_back(n);
-                break;
-            }
-        }
-    }
-    return result;
-}
-
-uint32_t GetQueueIndex(vk::PhysicalDevice& physicalDevice, vk::QueueFlagBits flags) {
-    vector<vk::QueueFamilyProperties> queueProps = physicalDevice.getQueueFamilyProperties();
-    for (size_t i = 0; i < queueProps.size(); ++i) {
-        if (queueProps[i].queueFlags & flags) {
-            return static_cast<uint32_t>(i);
-        }
-    }
-    return 0;
-}
 
 uint32_t GetMemoryTypeIndex(vk::PhysicalDevice& physicalDevice, uint32_t typeBits, vk::MemoryPropertyFlags properties) {
     auto gpuMemoryProps = physicalDevice.getMemoryProperties();
@@ -86,79 +47,29 @@ uint32_t GetMemoryTypeIndex(vk::PhysicalDevice& physicalDevice, uint32_t typeBit
 
 VKContext::VKContext(void *window) {
     WindowHandle = reinterpret_cast<HWND>(window);
+    mInstance.Load();
+    sInstance = mInstance;
 }
 
 VKContext::~VKContext() {
-    Device.waitIdle();
+    mDevice->GetDevice().waitIdle();
     DestroyCommands();
     DestroyResources();
     
     // Destroy API
-    Device.destroyCommandPool(CommandPool);
-    Device.destroy();
-    Instance.destroySurfaceKHR(Surface);
-    Instance.destroy();
+    mDevice->GetDevice().destroyCommandPool(mDevice->mCommandPool);
+    mDevice->GetDevice().destroy();
+    mInstance.Call().destroySurfaceKHR(Surface);
+    mInstance.Call().destroy();
 }
 
 void VKContext::Load() {
-    // Source: https://alain.xyz/blog/raw-vulkan | https://gist.github.com/graphitemaster/e162a24e57379af840d4
+    // Sources: https://alain.xyz/blog/raw-vulkan | https://gist.github.com/graphitemaster/e162a24e57379af840d4
     vk::Result result;
 
-    // Instance Extensions
-    vector<vk::ExtensionProperties> availableExtensions = vk::enumerateInstanceExtensionProperties();
-    vector<const char *> neededExtensions = {
-        VK_KHR_SURFACE_EXTENSION_NAME,
-        #ifdef APP_DEBUG_MODE
-            VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-            VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-        #endif
-        #ifdef VK_USE_PLATFORM_WIN32_KHR
-            VK_KHR_WIN32_SURFACE_EXTENSION_NAME
-
-        #endif
-    };
-    vector<const char *> extensions = GetExtensions(availableExtensions, neededExtensions);
-
-    // Instance Layers
-    vector<vk::LayerProperties> availableLayers = vk::enumerateInstanceLayerProperties();
-    vector<const char *> neededLayers = {
-        "VK_LAYER_LUNARG_standard_validation"
-    };
-    vector<const char *> layers = GetLayers(availableLayers, neededLayers);
-
-    // Application Information
-    ApplicationInfo = {
-        .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pNext              = NULL,
-        .pApplicationName   = "App",
-        .applicationVersion = VK_MAKE_VERSION(0, 0, 0),
-        .pEngineName        = "Engine",
-        .engineVersion      = VK_MAKE_VERSION(0, 0, 0),
-        .apiVersion         = VK_API_VERSION_1_2,
-    };
-
-    // Instance Information
-    InstanceCreateInfo = {
-        .sType                      = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        .pNext                      = NULL,
-        .flags                      = 0,
-        //.pApplicationInfo           = &ApplicationInfo,
-        .enabledLayerCount          = static_cast<uint32_t>(layers.size()),
-        .ppEnabledLayerNames        = layers.data(),
-        .enabledExtensionCount      = static_cast<uint32_t>(extensions.size()),
-        .ppEnabledExtensionNames    = extensions.data(),
-    };
-    InstanceCreateInfo.pApplicationInfo = &ApplicationInfo;
-
-    // Create Instance
-    Instance = vk::createInstance(InstanceCreateInfo);
-
-    // Physical Device
-    vector<vk::PhysicalDevice> physicalDevices = Instance.enumeratePhysicalDevices();
-    PhysicalDevice = physicalDevices[0];
-
-    // Queue Family
-    QueueFamilyIndex = GetQueueIndex(PhysicalDevice, vk::QueueFlagBits::eGraphics);
+    mPhysicalDevice = CreateReference<VKPhysicalDevice>();
+    mDevice = CreateReference<VKDevice>(mPhysicalDevice);
+    QueueFamilyIndex = mPhysicalDevice->mQueueFamilyIndices.Graphics;
 
     // Surface
     VkSurfaceKHR surface;
@@ -169,37 +80,11 @@ void VKContext::Load() {
     info.flags = 0;
     info.hinstance = GetModuleHandle(NULL);
     info.hwnd = WindowHandle;
-    resultN = vkCreateWin32SurfaceKHR(static_cast<VkInstance>(Instance), &info, NULL, &surface);
+    resultN = vkCreateWin32SurfaceKHR(static_cast<VkInstance>(mInstance.Call()), &info, NULL, &surface);
     Surface = surface;
 
-    // Queue Creation
-    vk::DeviceQueueCreateInfo qcinfo;
-    qcinfo.setQueueFamilyIndex(QueueFamilyIndex);
-    qcinfo.setQueueCount(1);
-    QueuePriority = 0.5f;
-    qcinfo.setPQueuePriorities(&QueuePriority);
-
-    // Device
-    vector<vk::ExtensionProperties> availableDeviceExtensions = PhysicalDevice.enumerateDeviceExtensionProperties();
-    vector<const char*> neededDeviceExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
-    };
-    std::vector<const char*> deviceExtensions = GetExtensions(availableDeviceExtensions, neededDeviceExtensions);
-    vk::DeviceCreateInfo dinfo;
-    dinfo.setPQueueCreateInfos(&qcinfo);
-    dinfo.setQueueCreateInfoCount(1);
-    dinfo.setPpEnabledExtensionNames(deviceExtensions.data());
-    dinfo.setEnabledExtensionCount(static_cast<uint32_t>(deviceExtensions.size()));
-    Device = PhysicalDevice.createDevice(dinfo);
-
-    // Queue
-    Queue = Device.getQueue(QueueFamilyIndex, 0);
-
-    // Command Pool
-    CommandPool = Device.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer), QueueFamilyIndex));
-
     // Surface Attachment Formats
-    vector<vk::SurfaceFormatKHR> surfaceFormats = PhysicalDevice.getSurfaceFormatsKHR(Surface);
+    vector<vk::SurfaceFormatKHR> surfaceFormats = mPhysicalDevice->GePhysicalDevice().getSurfaceFormatsKHR(Surface);
     if (surfaceFormats.size() == 1 && surfaceFormats[0].format == vk::Format::eUndefined) {
         SurfaceColorFormat = vk::Format::eB8G8R8A8Unorm;
     } else {
@@ -214,7 +99,7 @@ void VKContext::Load() {
         vk::Format::eD16Unorm
     };
     for (vk::Format &format : depthFormats) {
-        vk::FormatProperties depthFormatProperties = PhysicalDevice.getFormatProperties(format);
+        vk::FormatProperties depthFormatProperties = mPhysicalDevice->GePhysicalDevice().getFormatProperties(format);
 
         // Format must support depth stencil attachment for optimal tiling
         if (depthFormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment) {
@@ -250,7 +135,7 @@ void VKContext::LoadResources() {
         )
     };
 
-    DescriptorPool = Device.createDescriptorPool(
+    DescriptorPool = mDevice->GetDevice().createDescriptorPool(
         vk::DescriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlags(),
         1,
@@ -272,7 +157,7 @@ void VKContext::LoadResources() {
     };
 
     DescriptorSetLayouts = {
-        Device.createDescriptorSetLayout(
+        mDevice->GetDevice().createDescriptorSetLayout(
             vk::DescriptorSetLayoutCreateInfo(
         vk::DescriptorSetLayoutCreateFlags(),
         static_cast<uint32_t>(descriptorSetLayoutBindings.size()),
@@ -281,7 +166,7 @@ void VKContext::LoadResources() {
         )
     };
 
-    DescriptorSets = Device.allocateDescriptorSets(
+    DescriptorSets = mDevice->GetDevice().allocateDescriptorSets(
         vk::DescriptorSetAllocateInfo(
         DescriptorPool,
         static_cast<uint32_t>(DescriptorSetLayouts.size()),
@@ -289,7 +174,7 @@ void VKContext::LoadResources() {
     )
     );
 
-    PipelineLayout = Device.createPipelineLayout(
+    PipelineLayout = mDevice->GetDevice().createPipelineLayout(
         vk::PipelineLayoutCreateInfo(
         vk::PipelineLayoutCreateFlags(),
         static_cast<uint32_t>(DescriptorSetLayouts.size()),
@@ -329,7 +214,7 @@ void VKContext::LoadResources() {
     } stagingBuffers;
 
     // Vertex buffer
-    stagingBuffers.vertices.buffer = Device.createBuffer(
+    stagingBuffers.vertices.buffer = mDevice->GetDevice().createBuffer(
         vk::BufferCreateInfo(
         vk::BufferCreateFlags(),
         vertexBufferSize,
@@ -340,25 +225,25 @@ void VKContext::LoadResources() {
     )
     );
 
-    auto memReqs = Device.getBufferMemoryRequirements(stagingBuffers.vertices.buffer);
+    auto memReqs = mDevice->GetDevice().getBufferMemoryRequirements(stagingBuffers.vertices.buffer);
 
     // Request a host visible memory type that can be used to copy our data do
     // Also request it to be coherent, so that writes are visible to the GPU right after unmapping the buffer
-    stagingBuffers.vertices.memory = Device.allocateMemory(
+    stagingBuffers.vertices.memory = mDevice->GetDevice().allocateMemory(
         vk::MemoryAllocateInfo(
         memReqs.size,
-        GetMemoryTypeIndex(PhysicalDevice, memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+        GetMemoryTypeIndex(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
     )
     );
 
     // Map and copy
-    data = Device.mapMemory(stagingBuffers.vertices.memory, 0, memReqs.size, vk::MemoryMapFlags());
+    data = mDevice->GetDevice().mapMemory(stagingBuffers.vertices.memory, 0, memReqs.size, vk::MemoryMapFlags());
     memcpy(data, VertexBufferData, vertexBufferSize);
-    Device.unmapMemory(stagingBuffers.vertices.memory);
-    Device.bindBufferMemory(stagingBuffers.vertices.buffer, stagingBuffers.vertices.memory, 0);
+    mDevice->GetDevice().unmapMemory(stagingBuffers.vertices.memory);
+    mDevice->GetDevice().bindBufferMemory(stagingBuffers.vertices.buffer, stagingBuffers.vertices.memory, 0);
 
     // Create a device local buffer to which the (host local) vertex data will be copied and which will be used for rendering
-    Vertices.buffer = Device.createBuffer(
+    Vertices.buffer = mDevice->GetDevice().createBuffer(
         vk::BufferCreateInfo(
         vk::BufferCreateFlags(),
         vertexBufferSize,
@@ -369,20 +254,20 @@ void VKContext::LoadResources() {
     )
     );
 
-    memReqs = Device.getBufferMemoryRequirements(Vertices.buffer);
+    memReqs = mDevice->GetDevice().getBufferMemoryRequirements(Vertices.buffer);
 
-    Vertices.memory = Device.allocateMemory(
+    Vertices.memory = mDevice->GetDevice().allocateMemory(
         vk::MemoryAllocateInfo(
         memReqs.size,
-        GetMemoryTypeIndex(PhysicalDevice, memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal)
+        GetMemoryTypeIndex(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal)
     )
     );
 
-    Device.bindBufferMemory(Vertices.buffer, Vertices.memory, 0);
+    mDevice->GetDevice().bindBufferMemory(Vertices.buffer, Vertices.memory, 0);
 
     // Index buffer
     // Copy index data to a buffer visible to the host (staging buffer)
-    stagingBuffers.indices.buffer = Device.createBuffer(
+    stagingBuffers.indices.buffer = mDevice->GetDevice().createBuffer(
         vk::BufferCreateInfo(
         vk::BufferCreateFlags(),
         indexBufferSize,
@@ -392,21 +277,21 @@ void VKContext::LoadResources() {
         &QueueFamilyIndex
     )
     );
-    memReqs = Device.getBufferMemoryRequirements(stagingBuffers.indices.buffer);
-    stagingBuffers.indices.memory = Device.allocateMemory(
+    memReqs = mDevice->GetDevice().getBufferMemoryRequirements(stagingBuffers.indices.buffer);
+    stagingBuffers.indices.memory = mDevice->GetDevice().allocateMemory(
         vk::MemoryAllocateInfo(
         memReqs.size,
-        GetMemoryTypeIndex(PhysicalDevice, memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+        GetMemoryTypeIndex(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
     )
     );
 
-    data = Device.mapMemory(stagingBuffers.indices.memory, 0, indexBufferSize, vk::MemoryMapFlags());
+    data = mDevice->GetDevice().mapMemory(stagingBuffers.indices.memory, 0, indexBufferSize, vk::MemoryMapFlags());
     memcpy(data, IndexBufferData, indexBufferSize);
-    Device.unmapMemory(stagingBuffers.indices.memory);
-    Device.bindBufferMemory(stagingBuffers.indices.buffer, stagingBuffers.indices.memory, 0);
+    mDevice->GetDevice().unmapMemory(stagingBuffers.indices.memory);
+    mDevice->GetDevice().bindBufferMemory(stagingBuffers.indices.buffer, stagingBuffers.indices.memory, 0);
 
     // Create destination buffer with device only visibility
-    Indices.buffer = Device.createBuffer(
+    Indices.buffer = mDevice->GetDevice().createBuffer(
         vk::BufferCreateInfo(
         vk::BufferCreateFlags(),
         indexBufferSize,
@@ -417,21 +302,21 @@ void VKContext::LoadResources() {
     )
     );
 
-    memReqs = Device.getBufferMemoryRequirements(Indices.buffer);
-    Indices.memory = Device.allocateMemory(
+    memReqs = mDevice->GetDevice().getBufferMemoryRequirements(Indices.buffer);
+    Indices.memory = mDevice->GetDevice().allocateMemory(
         vk::MemoryAllocateInfo(
         memReqs.size,
-        GetMemoryTypeIndex(PhysicalDevice, memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal
+        GetMemoryTypeIndex(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal
     )
     )
     );
 
-    Device.bindBufferMemory(Indices.buffer, Indices.memory, 0);
+    mDevice->GetDevice().bindBufferMemory(Indices.buffer, Indices.memory, 0);
 
     auto getCommandBuffer = [&](bool begin) {
-        vk::CommandBuffer cmdBuffer = Device.allocateCommandBuffers (
+        vk::CommandBuffer cmdBuffer = mDevice->GetDevice().allocateCommandBuffers (
             vk::CommandBufferAllocateInfo(
-            CommandPool,
+            mDevice->mCommandPool,
             vk::CommandBufferLevel::ePrimary,
             1)
         )[0];
@@ -476,24 +361,24 @@ void VKContext::LoadResources() {
         };
 
         // Create fence to ensure that the command buffer has finished executing
-        vk::Fence fence = Device.createFence(vk::FenceCreateInfo());
+        vk::Fence fence = mDevice->GetDevice().createFence(vk::FenceCreateInfo());
 
         // Submit to the queue
-        Queue.submit(submitInfos, fence);
+        mDevice->GetQueue().submit(submitInfos, fence);
         // Wait for the fence to signal that command buffer has finished executing
-        Device.waitForFences(1, &fence, VK_TRUE, UINT_MAX);
-        Device.destroyFence(fence);
-        Device.freeCommandBuffers(CommandPool, 1, &commandBuffer);
+        mDevice->GetDevice().waitForFences(1, &fence, VK_TRUE, UINT_MAX);
+        mDevice->GetDevice().destroyFence(fence);
+        mDevice->GetDevice().freeCommandBuffers(mDevice->mCommandPool, 1, &commandBuffer);
     };
 
     flushCommandBuffer(copyCmd);
 
     // Destroy staging buffers
     // Note: Staging buffer must not be deleted before the copies have been submitted and executed
-    Device.destroyBuffer(stagingBuffers.vertices.buffer);
-    Device.freeMemory(stagingBuffers.vertices.memory);
-    Device.destroyBuffer(stagingBuffers.indices.buffer);
-    Device.freeMemory(stagingBuffers.indices.memory);
+    mDevice->GetDevice().destroyBuffer(stagingBuffers.vertices.buffer);
+    mDevice->GetDevice().freeMemory(stagingBuffers.vertices.memory);
+    mDevice->GetDevice().destroyBuffer(stagingBuffers.indices.buffer);
+    mDevice->GetDevice().freeMemory(stagingBuffers.indices.memory);
 
 
     // Vertex input binding
@@ -534,7 +419,7 @@ void VKContext::LoadResources() {
     allocInfo.memoryTypeIndex = 0;
 
     // Create a new buffer
-    UniformDataVS.buffer = Device.createBuffer(
+    UniformDataVS.buffer = mDevice->GetDevice().createBuffer(
         vk::BufferCreateInfo(
             vk::BufferCreateFlags(),
             sizeof(uboVS),
@@ -542,17 +427,17 @@ void VKContext::LoadResources() {
         )
     );
     // Get memory requirements including size, alignment and memory type 
-    memReqs = Device.getBufferMemoryRequirements(UniformDataVS.buffer);
+    memReqs = mDevice->GetDevice().getBufferMemoryRequirements(UniformDataVS.buffer);
     allocInfo.allocationSize = memReqs.size;
     // Get the memory type index that supports host visible memory access
     // Most implementations offer multiple memory types and selecting the correct one to allocate memory from is crucial
     // We also want the buffer to be host coherent so we don't have to flush (or sync after every update.
     // Note: This may affect performance so you might not want to do this in a real world application that updates buffers on a regular base
-    allocInfo.memoryTypeIndex = GetMemoryTypeIndex(PhysicalDevice, memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    allocInfo.memoryTypeIndex = GetMemoryTypeIndex(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     // Allocate memory for the uniform buffer
-    UniformDataVS.memory = Device.allocateMemory(allocInfo);
+    UniformDataVS.memory = mDevice->GetDevice().allocateMemory(allocInfo);
     // Bind memory to buffer
-    Device.bindBufferMemory(UniformDataVS.buffer, UniformDataVS.memory, 0);
+    mDevice->GetDevice().bindBufferMemory(UniformDataVS.buffer, UniformDataVS.memory, 0);
 
     // Store information in the uniform's descriptor that is used by the descriptor set
     UniformDataVS.descriptor.buffer = UniformDataVS.buffer;
@@ -569,9 +454,9 @@ void VKContext::LoadResources() {
 
     // Map uniform buffer and update it
     void *pData;
-    pData = Device.mapMemory(UniformDataVS.memory, 0, sizeof(uboVS));
+    pData = mDevice->GetDevice().mapMemory(UniformDataVS.memory, 0, sizeof(uboVS));
     memcpy(pData, &uboVS, sizeof(uboVS));
-    Device.unmapMemory(UniformDataVS.memory);
+    mDevice->GetDevice().unmapMemory(UniformDataVS.memory);
 
 
     vector<vk::WriteDescriptorSet> descriptorWrites = {
@@ -587,7 +472,7 @@ void VKContext::LoadResources() {
         )
     };
 
-    Device.updateDescriptorSets(descriptorWrites, nullptr);
+    mDevice->GetDevice().updateDescriptorSets(descriptorWrites, nullptr);
 
     // Create Render Pass
     CreateRenderPass();
@@ -598,7 +483,7 @@ void VKContext::LoadResources() {
     string vertShaderCode = ReadFile("Assets/Shaders/triangle.vert.spv");
     string fragShaderCode = ReadFile("Assets/Shaders/triangle.frag.spv");
 
-    VertModule = Device.createShaderModule(
+    VertModule = mDevice->GetDevice().createShaderModule(
         vk::ShaderModuleCreateInfo(
         vk::ShaderModuleCreateFlags(),
         vertShaderCode.size(),
@@ -606,7 +491,7 @@ void VKContext::LoadResources() {
     )
     );
 
-    FragModule = Device.createShaderModule(
+    FragModule = mDevice->GetDevice().createShaderModule(
         vk::ShaderModuleCreateInfo(
             vk::ShaderModuleCreateFlags(),
             fragShaderCode.size(),
@@ -614,7 +499,7 @@ void VKContext::LoadResources() {
         )
     );
 
-    PipelineCache = Device.createPipelineCache(vk::PipelineCacheCreateInfo());
+    PipelineCache = mDevice->GetDevice().createPipelineCache(vk::PipelineCacheCreateInfo());
 
     std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStages = {
         vk::PipelineShaderStageCreateInfo(
@@ -714,7 +599,7 @@ void VKContext::LoadResources() {
         dynamicStates.data()
     );
 
-    Pipeline = static_cast<vk::Pipeline>(Device.createGraphicsPipeline(
+    Pipeline = static_cast<vk::Pipeline>(mDevice->GetDevice().createGraphicsPipeline(
         PipelineCache,
         vk::GraphicsPipelineCreateInfo(
             vk::PipelineCreateFlags(),
@@ -738,44 +623,44 @@ void VKContext::LoadResources() {
 
 void VKContext::DestroyResources() {
     // Vertices
-    Device.freeMemory(Vertices.memory);
-    Device.destroyBuffer(Vertices.buffer);
+    mDevice->GetDevice().freeMemory(Vertices.memory);
+    mDevice->GetDevice().destroyBuffer(Vertices.buffer);
 
     // Index buffer
-    Device.freeMemory(Indices.memory);
-    Device.destroyBuffer(Indices.buffer);
+    mDevice->GetDevice().freeMemory(Indices.memory);
+    mDevice->GetDevice().destroyBuffer(Indices.buffer);
 
     // Shader Module
-    Device.destroyShaderModule(VertModule);
-    Device.destroyShaderModule(FragModule);
+    mDevice->GetDevice().destroyShaderModule(VertModule);
+    mDevice->GetDevice().destroyShaderModule(FragModule);
 
     // Render Pass
-    Device.destroyRenderPass(RenderPass);
+    mDevice->GetDevice().destroyRenderPass(RenderPass);
 
     // Graphics Pipeline
-    Device.destroyPipelineCache(PipelineCache);
-    Device.destroyPipeline(Pipeline);
-    Device.destroyPipelineLayout(PipelineLayout);
+    mDevice->GetDevice().destroyPipelineCache(PipelineCache);
+    mDevice->GetDevice().destroyPipeline(Pipeline);
+    mDevice->GetDevice().destroyPipelineLayout(PipelineLayout);
 
     // Descriptor Pool
-    Device.destroyDescriptorPool(DescriptorPool);
+    mDevice->GetDevice().destroyDescriptorPool(DescriptorPool);
     for (vk::DescriptorSetLayout &dsl : DescriptorSetLayouts) {
-        Device.destroyDescriptorSetLayout(dsl);
+        mDevice->GetDevice().destroyDescriptorSetLayout(dsl);
     }
 
     // Uniform block object
-    Device.freeMemory(UniformDataVS.memory);
-    Device.destroyBuffer(UniformDataVS.buffer);
+    mDevice->GetDevice().freeMemory(UniformDataVS.memory);
+    mDevice->GetDevice().destroyBuffer(UniformDataVS.buffer);
 
     // Destroy Framebuffers, Image Views
     DestroyFrameBuffer();
-    Device.destroySwapchainKHR(Swapchain);
+    mDevice->GetDevice().destroySwapchainKHR(Swapchain);
 
     // Sync
-    Device.destroySemaphore(PresentCompleteSemaphore);
-    Device.destroySemaphore(RenderCompleteSemaphore);
+    mDevice->GetDevice().destroySemaphore(PresentCompleteSemaphore);
+    mDevice->GetDevice().destroySemaphore(RenderCompleteSemaphore);
     for (vk::Fence &f : WaitFences) {
-        Device.destroyFence(f);
+        mDevice->GetDevice().destroyFence(f);
     }
 
 }
@@ -827,9 +712,9 @@ void VKContext::SetupCommands() {
 }
 
 void VKContext::CreateCommands() {
-    CommandBuffers = Device.allocateCommandBuffers(
+    CommandBuffers = mDevice->GetDevice().allocateCommandBuffers(
         vk::CommandBufferAllocateInfo(
-        CommandPool,
+        mDevice->mCommandPool,
         vk::CommandBufferLevel::ePrimary,
         static_cast<uint32_t>(SwapchainBuffers.size())
     )
@@ -837,13 +722,13 @@ void VKContext::CreateCommands() {
 }
 
 void VKContext::DestroyCommands() {
-    Device.freeCommandBuffers(CommandPool, CommandBuffers);
+    mDevice->GetDevice().freeCommandBuffers(mDevice->mCommandPool, CommandBuffers);
 }
 
 
 void VKContext::LoadFrameBuffer() {
     // Create Depth Image Data
-    DepthImage = Device.createImage(
+    DepthImage = mDevice->GetDevice().createImage(
         vk::ImageCreateInfo(
             vk::ImageCreateFlags(),
             vk::ImageType::e2D,
@@ -861,24 +746,24 @@ void VKContext::LoadFrameBuffer() {
         )
     );
 
-    vk::MemoryRequirements depthMemoryReq = Device.getImageMemoryRequirements(DepthImage);
+    vk::MemoryRequirements depthMemoryReq = mDevice->GetDevice().getImageMemoryRequirements(DepthImage);
 
     // Search through GPU memory properies to see if this can be device local.
 
-    DepthImageMemory = Device.allocateMemory(
+    DepthImageMemory = mDevice->GetDevice().allocateMemory(
         vk::MemoryAllocateInfo(
         depthMemoryReq.size,
-        GetMemoryTypeIndex(PhysicalDevice, depthMemoryReq.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal)
+        GetMemoryTypeIndex(mPhysicalDevice->GePhysicalDevice(), depthMemoryReq.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal)
     )
     );
 
-    Device.bindImageMemory(
+    mDevice->GetDevice().bindImageMemory(
         DepthImage,
         DepthImageMemory,
         0
     );
 
-    vk::ImageView depthImageView = Device.createImageView(
+    vk::ImageView depthImageView = mDevice->GetDevice().createImageView(
         vk::ImageViewCreateInfo(
             vk::ImageViewCreateFlags(),
             DepthImage,
@@ -895,7 +780,7 @@ void VKContext::LoadFrameBuffer() {
         )
     );
 
-    std::vector<vk::Image> swapchainImages = Device.getSwapchainImagesKHR(Swapchain);
+    std::vector<vk::Image> swapchainImages = mDevice->GetDevice().getSwapchainImagesKHR(Swapchain);
 
     for (size_t i = 0; i < swapchainImages.size(); i++)
     {
@@ -903,7 +788,7 @@ void VKContext::LoadFrameBuffer() {
 
         // Color
         SwapchainBuffers[i].views[0] =
-            Device.createImageView(
+            mDevice->GetDevice().createImageView(
                 vk::ImageViewCreateInfo(
                     vk::ImageViewCreateFlags(),
                     swapchainImages[i],
@@ -923,7 +808,7 @@ void VKContext::LoadFrameBuffer() {
         // Depth
         SwapchainBuffers[i].views[1] = depthImageView;
 
-        SwapchainBuffers[i].frameBuffer = Device.createFramebuffer(
+        SwapchainBuffers[i].frameBuffer = mDevice->GetDevice().createFramebuffer(
             vk::FramebufferCreateInfo(
             vk::FramebufferCreateFlags(),
             RenderPass,
@@ -937,14 +822,14 @@ void VKContext::LoadFrameBuffer() {
 }
 
 void VKContext::DestroyFrameBuffer() {
-    Device.freeMemory(DepthImageMemory);
-    Device.destroyImage(DepthImage);
+    mDevice->GetDevice().freeMemory(DepthImageMemory);
+    mDevice->GetDevice().destroyImage(DepthImage);
     if (!SwapchainBuffers.empty()) {
-        Device.destroyImageView(SwapchainBuffers[0].views[1]);
+        mDevice->GetDevice().destroyImageView(SwapchainBuffers[0].views[1]);
     }
     for (size_t i = 0; i < SwapchainBuffers.size(); i++) {
-        Device.destroyImageView(SwapchainBuffers[i].views[0]);
-        Device.destroyFramebuffer(SwapchainBuffers[i].frameBuffer);
+        mDevice->GetDevice().destroyImageView(SwapchainBuffers[i].views[0]);
+        mDevice->GetDevice().destroyFramebuffer(SwapchainBuffers[i].frameBuffer);
     }
 }
 
@@ -1019,7 +904,7 @@ void VKContext::CreateRenderPass() {
         )
     };
 
-    RenderPass = Device.createRenderPass(
+    RenderPass = mDevice->GetDevice().createRenderPass(
         vk::RenderPassCreateInfo(
             vk::RenderPassCreateFlags(),
             static_cast<uint32_t>(attachmentDescriptions.size()),
@@ -1034,16 +919,16 @@ void VKContext::CreateRenderPass() {
 
 void VKContext::CreateSynchronization() {
     // Semaphore used to ensures that image presentation is complete before starting to submit again
-    PresentCompleteSemaphore = Device.createSemaphore(vk::SemaphoreCreateInfo());
+    PresentCompleteSemaphore = mDevice->GetDevice().createSemaphore(vk::SemaphoreCreateInfo());
 
     // Semaphore used to ensures that all commands submitted have been finished before submitting the image to the queue
-    RenderCompleteSemaphore = Device.createSemaphore(vk::SemaphoreCreateInfo());
+    RenderCompleteSemaphore = mDevice->GetDevice().createSemaphore(vk::SemaphoreCreateInfo());
 
     // Fence for command buffer completion
     WaitFences.resize(SwapchainBuffers.size());
 
     for (size_t i = 0; i < WaitFences.size(); i++) {
-        WaitFences[i] = Device.createFence(vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
+        WaitFences[i] = mDevice->GetDevice().createFence(vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
     }
 }
 
@@ -1052,7 +937,7 @@ void VKContext::SetupSwapChain() {
     uint32_t height = 1024;
 
     vk::Extent2D swapchainSize = vk::Extent2D(width, height);
-    vk::SurfaceCapabilitiesKHR surfaceCapabilities = PhysicalDevice.getSurfaceCapabilitiesKHR(Surface);
+    vk::SurfaceCapabilitiesKHR surfaceCapabilities = mPhysicalDevice->GePhysicalDevice().getSurfaceCapabilitiesKHR(Surface);
     if (!(surfaceCapabilities.currentExtent.width == -1 || surfaceCapabilities.currentExtent.height == -1)) {
         swapchainSize = surfaceCapabilities.currentExtent;
         RenderArea = vk::Rect2D(vk::Offset2D(), swapchainSize);
@@ -1060,7 +945,7 @@ void VKContext::SetupSwapChain() {
     }
 
     // VSync
-    std::vector<vk::PresentModeKHR> surfacePresentModes = PhysicalDevice.getSurfacePresentModesKHR(Surface);
+    std::vector<vk::PresentModeKHR> surfacePresentModes = mPhysicalDevice->GePhysicalDevice().getSurfacePresentModesKHR(Surface);
     vk::PresentModeKHR presentMode = vk::PresentModeKHR::eImmediate;
     for (vk::PresentModeKHR &pm : surfacePresentModes) {
         if (pm == vk::PresentModeKHR::eMailbox) {
@@ -1070,13 +955,13 @@ void VKContext::SetupSwapChain() {
     }
 
     // Create Swapchain, Images, Frame Buffers
-    Device.waitIdle();
+    mDevice->GetDevice().waitIdle();
     vk::SwapchainKHR oldSwapchain = Swapchain;
 
     // ToDo: uint32_t backbufferCount = clamp(surfaceCapabilities.maxImageCount, 1U, 2U);
     uint32_t backbufferCount = surfaceCapabilities.maxImageCount;
 
-    Swapchain = Device.createSwapchainKHR(
+    Swapchain = mDevice->GetDevice().createSwapchainKHR(
         vk::SwapchainCreateInfoKHR(
         vk::SwapchainCreateFlagsKHR(),
         Surface,
@@ -1106,7 +991,7 @@ void VKContext::SetupSwapChain() {
     // Destroy previous swapchain
     if (oldSwapchain != vk::SwapchainKHR(nullptr))
     {
-        Device.destroySwapchainKHR(oldSwapchain);
+        mDevice->GetDevice().destroySwapchainKHR(oldSwapchain);
     }
 
     // Resize swapchain buffers for use later
@@ -1115,6 +1000,10 @@ void VKContext::SetupSwapChain() {
 
 void VKContext::Attach() {}
 void VKContext::Detach() {}
+
+vk::Instance VKContext::GetInstance() {
+    return sInstance;
+}
 
 void *VKContext::GetNativeContext() {
     //IM_ASSERT(info->Instance != VK_NULL_HANDLE);
@@ -1126,17 +1015,17 @@ void *VKContext::GetNativeContext() {
     //IM_ASSERT(info->ImageCount >= info->MinImageCount);
     //IM_ASSERT(render_pass != VK_NULL_HANDLE);
     static VkContextData *data = new VkContextData();
-    data->Intance = Instance;
-    data->PhysicalDevice = PhysicalDevice;
-    data->Device = Device;
-    data->QueueIndex = QueueFamilyIndex;
-    data->Queue = Queue;
+    data->Intance = mInstance;
+    data->PhysicalDevice = mPhysicalDevice->GePhysicalDevice();
+    data->Device = mDevice->GetDevice();
+    data->QueueIndex = mPhysicalDevice->mQueueFamilyIndices.Graphics;
+    data->Queue = mDevice->GetQueue();
     data->PipelineCache = PipelineCache;
     data->DescriptorPool = DescriptorPool;
     data->RenderPass = RenderPass;
     data->Surface = Surface;
     data->Swapchain = Swapchain;
-    data->CommandPool = CommandPool;
+    data->CommandPool = mDevice->mCommandPool;
     data->Semaphore = RenderCompleteSemaphore;
     return (void*)data;
 }
@@ -1146,14 +1035,14 @@ bool const VKContext::IsCurrentContext() {
 }
 
 void VKContext::SetViewport(uint32_t width, uint32_t height, int32_t x, int32_t y) {
-    Device.waitIdle();
+    mDevice->GetDevice().waitIdle();
     DestroyFrameBuffer();
     SetupSwapChain();
     LoadFrameBuffer();
     DestroyCommands();
     CreateCommands();
     SetupCommands();
-    Device.waitIdle();
+    mDevice->GetDevice().waitIdle();
 
     // Uniforms
     uboVS.projectionMatrix = glm::perspective(45.0f, (float)Viewport.width / (float)Viewport.height, 0.01f, 1024.0f);
@@ -1169,7 +1058,7 @@ void VKContext::RenderTest(Timestamp delta) {
     // Swap backbuffers
     vk::Result result;
 
-    result = Device.acquireNextImageKHR(Swapchain, UINT64_MAX, PresentCompleteSemaphore, nullptr, &CurrentBuffer);
+    result = mDevice->GetDevice().acquireNextImageKHR(Swapchain, UINT64_MAX, PresentCompleteSemaphore, nullptr, &CurrentBuffer);
     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {
         // Swapchain lost, we'll try again next poll
         SetViewport(SurfaceSize.width, SurfaceSize.height, 0, 0);
@@ -1185,13 +1074,13 @@ void VKContext::RenderTest(Timestamp delta) {
     uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, (float)(0.001f *delta), glm::vec3( 0.0f, 1.0f, 0.0f ));
     
     void *pData;
-    pData = Device.mapMemory(UniformDataVS.memory, 0, sizeof(uboVS));
+    pData = mDevice->GetDevice().mapMemory(UniformDataVS.memory, 0, sizeof(uboVS));
     memcpy(pData, &uboVS, sizeof(uboVS));
-    Device.unmapMemory(UniformDataVS.memory);
+    mDevice->GetDevice().unmapMemory(UniformDataVS.memory);
 
     // Wait for Fences
-    Device.waitForFences(1, &WaitFences[CurrentBuffer], VK_TRUE, UINT64_MAX);
-    Device.resetFences(1, &WaitFences[CurrentBuffer]);
+    mDevice->GetDevice().waitForFences(1, &WaitFences[CurrentBuffer], VK_TRUE, UINT64_MAX);
+    mDevice->GetDevice().resetFences(1, &WaitFences[CurrentBuffer]);
 
     vk::SubmitInfo submitInfo;
     vk::PipelineStageFlags waitDstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
@@ -1203,7 +1092,7 @@ void VKContext::RenderTest(Timestamp delta) {
         .setPCommandBuffers(&CommandBuffers[CurrentBuffer])
         .setSignalSemaphoreCount(1)
         .setPSignalSemaphores(&RenderCompleteSemaphore);
-    result = Queue.submit(1, &submitInfo, WaitFences[CurrentBuffer]);
+    result = mDevice->GetQueue().submit(1, &submitInfo, WaitFences[CurrentBuffer]);
 
     if (result == vk::Result::eErrorDeviceLost)
     {
@@ -1211,7 +1100,7 @@ void VKContext::RenderTest(Timestamp delta) {
         exit(1);
     }
 
-    result = Queue.presentKHR(
+    result = mDevice->GetQueue().presentKHR(
         vk::PresentInfoKHR(
             1,
             &RenderCompleteSemaphore,

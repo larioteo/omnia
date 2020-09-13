@@ -62,6 +62,7 @@ set(OMNIA_LIBRARY_GFX_HEADERS
 	"Source/Platform/GFX/Vulkan/VKContext.h"
 	"Source/Platform/GFX/Vulkan/VKInstance.h"
 	"Source/Platform/GFX/Vulkan/VKDevice.h"
+	"Source/Platform/GFX/Vulkan/VKSwapChain.h"
 )
 set(OMNIA_LIBRARY_GFX_SOURCES
 	"Source/Omnia/GFX/Context.cpp"
@@ -71,6 +72,7 @@ set(OMNIA_LIBRARY_GFX_SOURCES
 	"Source/Platform/GFX/Vulkan/VKContext.cpp"
 	"Source/Platform/GFX/Vulkan/VKInstance.cpp"
 	"Source/Platform/GFX/Vulkan/VKDevice.cpp"
+	"Source/Platform/GFX/Vulkan/VKSwapChain.cpp"
 )
 list(APPEND OMNIA_HEADERS ${OMNIA_LIBRARY_GFX_HEADERS})
 list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_GFX_SOURCES})

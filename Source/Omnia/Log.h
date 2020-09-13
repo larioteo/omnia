@@ -244,7 +244,7 @@ template<typename ...Args> void AppLog(Args &&...args)			{ applog << Log::Defaul
 template<typename ...Args> void AppLogInfo(Args &&...args)		{ applog << Log::Info		; (applog << ... << args); applog << "\n"; }
 template<typename ...Args> void AppLogWarning(Args &&...args)	{ applog << Log::Warn		; (applog << ... << args); applog << "\n"; }
 template<typename ...Args> void AppLogError(Args &&...args)		{ applog << Log::Error		; (applog << ... << args); applog << "\n"; }
-template<typename ...Args> void AppLogCritical(Args &&...args)	{ applog << Log::Critical	; (applog << ... << args); applog << "\n"; }
+template<typename ...Args> void AppLogCritical(Args &&...args)	{ applog << Log::Critical	; (applog << ... << args); applog << "\n"; throw std::runtime_error(""); }
 
 #define APP_LOG(...)			AppLog			("[", __FUNCTION__, "]: ", __VA_ARGS__)
 #define APP_LOG_INFO(...)		AppLogInfo		("[", __FUNCTION__, "]: ", __VA_ARGS__)
@@ -253,19 +253,21 @@ template<typename ...Args> void AppLogCritical(Args &&...args)	{ applog << Log::
 #define APP_LOG_CRITICAL(...)	AppLogCritical	("[", __FUNCTION__, "]: ", __VA_ARGS__)
 
 #ifdef APP_DEBUG_MODE
-	template<typename T, typename ...Args> void AppAssert(T *object, Args &&...args) {
+	template<typename T, typename ...Args> bool AppAssert(T *object, Args &&...args) {
 		if (!object) {
 			applog << Log::Critical; (applog << ... << args); applog << "\n";
-			//APP_DEBUGBREAK();
+            return true;
 		}
+        return false;
 	}
-	template<typename T, typename ...Args> void AppAssert(T object, Args &&...args) {
+	template<typename T, typename ...Args> bool AppAssert(T object, Args &&...args) {
 		if (!object) {
 			applog << Log::Critical; (applog << ... << args); applog << "\n";
-			//APP_DEBUGBREAK();
+            return true;
 		}
+        return false;
 	}
-	#define AppAssert(x, ...) AppAssert(x, __VA_ARGS__); APP_DEBUGBREAK() // Workaround, at the debug break after the message.
+	#define AppAssert(x, ...) if(AppAssert(x, __VA_ARGS__)) APP_DEBUGBREAK() // Workaround, at the debug break after the message.
 	template<typename ...Args> void AppLogDebug(Args &&...args)		{ applog << Log::Debug		; (applog << ... << args); applog << "\n"; }
 	template<typename ...Args> void AppLogTrace(Args &&...args)		{ applog << Log::Trace		; (applog << ... << args); applog << "\n"; }
 	

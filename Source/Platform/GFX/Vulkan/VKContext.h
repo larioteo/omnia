@@ -17,11 +17,11 @@
 
 #include "VKInstance.h"
 #include "VKDevice.h"
+#include "VKSwapChain.h"
 
 namespace Omnia {
 
 struct VkContextData {
-    #if defined(APP_PLATFORM_WINDOWS)
     vk::Instance Intance;
     vk::PhysicalDevice PhysicalDevice;
     vk::Device Device;
@@ -37,7 +37,6 @@ struct VkContextData {
     vk::SwapchainKHR Swapchain;
     vk::CommandPool CommandPool;
     vk::Semaphore Semaphore;
-    #endif
 };
 
 class VKContext: public Context {
@@ -49,9 +48,6 @@ public:
 
     virtual void Attach() override;
     virtual void Detach() override;
-
-    // ToDo: Find a neat way to access running instances, instead of storing it statically
-    static vk::Instance GetInstance();
 
     // Accessors
     virtual void *GetNativeContext() override;
@@ -73,57 +69,26 @@ private:
     void CreateCommands();
     void DestroyCommands();
 
-    void LoadFrameBuffer();
-    void DestroyFrameBuffer();
-
-    void CreateRenderPass();
     void CreateSynchronization();
-    void SetupSwapChain();
 
 private:
     HWND WindowHandle;
-    static inline vk::Instance sInstance = nullptr;
 
-    VKInstance mInstance;
+    Reference<VKInstance> mInstance;
     Reference<VKPhysicalDevice> mPhysicalDevice;
     Reference<VKDevice> mDevice;
+    vk::SurfaceKHR Surface;
+    vk::SurfaceCapabilitiesKHR mCapabilities;
+    vk::SurfaceFormatKHR mFormat;
+    Reference<VKSwapChain> mSwapChain;
 
     // ToDo: CleanUp everything not needed...
     uint32_t QueueFamilyIndex;
-
-    vk::SwapchainKHR Swapchain;
-    vk::SurfaceKHR Surface;
-
     vector<vk::CommandBuffer> CommandBuffers;
     uint32_t CurrentBuffer = 0;
 
-    vk::Extent2D SurfaceSize;
-    vk::Rect2D RenderArea;
-    vk::Viewport Viewport;
-
-
-    // ToDo: Move everything needed by Ultra...
-    // Resources
-    vk::Format SurfaceColorFormat;
-    vk::ColorSpaceKHR SurfaceColorSpace;
-    vk::Format SurfaceDepthFormat;
-    vk::Image DepthImage;
-    vk::DeviceMemory DepthImageMemory;
-
-    vk::DescriptorPool DescriptorPool;
-    vector<vk::DescriptorSetLayout> DescriptorSetLayouts;
-    vector<vk::DescriptorSet> DescriptorSets;
-
-    vk::ShaderModule VertModule;
-    vk::ShaderModule FragModule;
-
-    vk::RenderPass RenderPass;
-
-    vk::Buffer VertexBuffer;
-    vk::Buffer IndexBuffer;
-
-    vk::PipelineCache PipelineCache;
     vk::Pipeline Pipeline;
+    vk::PipelineCache PipelineCache;
     vk::PipelineLayout PipelineLayout;
 
     // Synchronisation
@@ -131,14 +96,16 @@ private:
     vk::Semaphore RenderCompleteSemaphore;
     vector<vk::Fence> WaitFences;
 
-    // Swpachain
-    struct SwapChainBuffer {
-        vk::Image image;
-        std::array<vk::ImageView, 2> views;
-        vk::Framebuffer frameBuffer;
-    };
-    vector<SwapChainBuffer> SwapchainBuffers;
+    vk::Buffer IndexBuffer;
+    vk::Buffer VertexBuffer;
+    vk::ShaderModule VertModule;
+    vk::ShaderModule FragModule;
 
+    vk::DescriptorPool DescriptorPool;
+    vector<vk::DescriptorSetLayout> DescriptorSetLayouts;
+    vector<vk::DescriptorSet> DescriptorSets;
+
+    // Resources
     // Vertex buffer and attributes
     struct {
         vk::DeviceMemory memory;														// Handle to the device memory for this buffer

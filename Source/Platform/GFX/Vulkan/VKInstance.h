@@ -9,16 +9,15 @@ namespace Omnia {
 
 class VKInstance {
 public:
-    VKInstance() = default;
+    VKInstance();
     ~VKInstance() = default;
 
-    void Load();
     vk::Instance Call();
 
     operator vk::Instance();
 
 private:
-    Reference<vk::Instance> mInstance = nullptr;
+    vk::Instance mInstance = nullptr;
     static inline vk::InstanceCreateInfo mProperties = {};
 };
 

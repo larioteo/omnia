@@ -9,7 +9,118 @@
 
 namespace Omnia {
 
-// ToDo: Only for testing...
+uint32_t GetMemoryTypeIndex2(const vk::PhysicalDevice &physicalDevice, uint32_t typeBits, vk::MemoryPropertyFlags properties) {
+    auto gpuMemoryProps = physicalDevice.getMemoryProperties();
+    for (uint32_t i = 0; i < gpuMemoryProps.memoryTypeCount; i++) {
+        if ((typeBits & 1) == 1) {
+            if ((gpuMemoryProps.memoryTypes[i].propertyFlags & properties) == properties) {
+                return i;
+            }
+        }
+        typeBits >>= 1;
+    }
+    return 0;
+};
+
+VKContext::VKContext(void *window) {
+    WindowHandle = reinterpret_cast<HWND>(window);
+    mInstance = CreateReference<VKInstance>();
+    mPhysicalDevice = CreateReference<VKPhysicalDevice>(mInstance->Call());
+    mDevice = CreateReference<VKDevice>(mPhysicalDevice);
+}
+
+VKContext::~VKContext() {
+    mDevice->GetDevice().waitIdle();
+    DestroyCommands();
+    DestroyResources();
+    
+    // Destroy API
+    mDevice->Destroy();
+    mInstance->Call().destroySurfaceKHR(Surface);
+    mInstance->Call().destroy();
+}
+
+void VKContext::Load() {
+    // Sources: https://alain.xyz/blog/raw-vulkan | https://gist.github.com/graphitemaster/e162a24e57379af840d4
+    vk::Result result;
+    QueueFamilyIndex = mPhysicalDevice->mQueueFamilyIndices.Graphics;
+
+    // Surface
+    VkSurfaceKHR surface;
+    VkResult resultN = VK_RESULT_MAX_ENUM;
+    VkWin32SurfaceCreateInfoKHR surfaceCreateinfo;
+    surfaceCreateinfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    surfaceCreateinfo.pNext = NULL;
+    surfaceCreateinfo.flags = 0;
+    surfaceCreateinfo.hinstance = GetModuleHandle(NULL);
+    surfaceCreateinfo.hwnd = WindowHandle;
+    Surface = mInstance->Call().createWin32SurfaceKHR(surfaceCreateinfo);
+
+
+    // Swapchain
+    mSwapChain = CreateReference<VKSwapChain>(mInstance->Call(), mDevice, Surface);
+    mSwapChain->Create(1280, 1024);
+
+    // Command Buffers
+    CreateCommands();
+
+    // Sync
+    CreateSynchronization();
+
+    LoadResources();
+    SetupCommands();
+}
+
+void VKContext::Attach() {}
+void VKContext::Detach() {}
+
+void *VKContext::GetNativeContext() {
+    static VkContextData *data = new VkContextData();
+    data->Intance = mInstance->Call();
+    data->PhysicalDevice = mPhysicalDevice->GePhysicalDevice();
+    data->Device = mDevice->GetDevice();
+    data->QueueIndex = mPhysicalDevice->mQueueFamilyIndices.Graphics;
+    data->Queue = mDevice->GetQueue();
+    data->PipelineCache = PipelineCache;
+    data->DescriptorPool = DescriptorPool;
+    data->RenderPass = mSwapChain->RenderPass;
+    data->Surface = Surface;
+    data->Swapchain = mSwapChain->mSwapchain;
+    data->CommandPool = mDevice->mCommandPool;
+    data->Semaphore = RenderCompleteSemaphore;
+    return (void*)data;
+}
+
+bool const VKContext::IsCurrentContext() {
+    return nullptr;
+}
+
+void VKContext::SetViewport(uint32_t width, uint32_t height, int32_t x, int32_t y) {
+    mDevice->GetDevice().waitIdle();
+    mSwapChain->DestroyFrameBuffer();
+    mSwapChain->Create(width, height);
+    mSwapChain->LoadFrameBuffer();
+    DestroyCommands();
+    CreateCommands();
+    SetupCommands();
+    mDevice->GetDevice().waitIdle();
+
+    // Uniforms
+    //uboVS.projectionMatrix = glm::perspective(45.0f, (float)Viewport.width / (float)Viewport.height, 0.01f, 1024.0f);
+}
+
+void VKContext::SwapBuffers() {
+    RenderTest(Timestamp());
+}
+
+void VKContext::SetVSync(bool activate) {}
+
+
+
+
+
+
+// ToDo: CleanUp everything not needed...
 struct Vertex {
     float position[3];
     float color[3];
@@ -29,98 +140,6 @@ struct {
     glm::mat4 modelMatrix;
     glm::mat4 viewMatrix;
 } uboVS;
-// ~
-
-uint32_t GetMemoryTypeIndex(vk::PhysicalDevice& physicalDevice, uint32_t typeBits, vk::MemoryPropertyFlags properties) {
-    auto gpuMemoryProps = physicalDevice.getMemoryProperties();
-    for (uint32_t i = 0; i < gpuMemoryProps.memoryTypeCount; i++) {
-        if ((typeBits & 1) == 1) {
-            if ((gpuMemoryProps.memoryTypes[i].propertyFlags & properties) == properties) {
-                return i;
-            }
-        }
-        typeBits >>= 1;
-    }
-    return 0;
-};
-
-
-VKContext::VKContext(void *window) {
-    WindowHandle = reinterpret_cast<HWND>(window);
-    mInstance.Load();
-    sInstance = mInstance;
-}
-
-VKContext::~VKContext() {
-    mDevice->GetDevice().waitIdle();
-    DestroyCommands();
-    DestroyResources();
-    
-    // Destroy API
-    mDevice->GetDevice().destroyCommandPool(mDevice->mCommandPool);
-    mDevice->GetDevice().destroy();
-    mInstance.Call().destroySurfaceKHR(Surface);
-    mInstance.Call().destroy();
-}
-
-void VKContext::Load() {
-    // Sources: https://alain.xyz/blog/raw-vulkan | https://gist.github.com/graphitemaster/e162a24e57379af840d4
-    vk::Result result;
-
-    mPhysicalDevice = CreateReference<VKPhysicalDevice>();
-    mDevice = CreateReference<VKDevice>(mPhysicalDevice);
-    QueueFamilyIndex = mPhysicalDevice->mQueueFamilyIndices.Graphics;
-
-    // Surface
-    VkSurfaceKHR surface;
-    VkResult resultN = VK_RESULT_MAX_ENUM;
-    VkWin32SurfaceCreateInfoKHR info;
-    info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    info.pNext = NULL;
-    info.flags = 0;
-    info.hinstance = GetModuleHandle(NULL);
-    info.hwnd = WindowHandle;
-    resultN = vkCreateWin32SurfaceKHR(static_cast<VkInstance>(mInstance.Call()), &info, NULL, &surface);
-    Surface = surface;
-
-    // Surface Attachment Formats
-    vector<vk::SurfaceFormatKHR> surfaceFormats = mPhysicalDevice->GePhysicalDevice().getSurfaceFormatsKHR(Surface);
-    if (surfaceFormats.size() == 1 && surfaceFormats[0].format == vk::Format::eUndefined) {
-        SurfaceColorFormat = vk::Format::eB8G8R8A8Unorm;
-    } else {
-        SurfaceColorFormat = surfaceFormats[0].format;
-    }
-    SurfaceColorSpace = surfaceFormats[0].colorSpace;
-    vector<vk::Format> depthFormats = {
-        vk::Format::eD32SfloatS8Uint,
-        vk::Format::eD32Sfloat,
-        vk::Format::eD24UnormS8Uint,
-        vk::Format::eD16UnormS8Uint,
-        vk::Format::eD16Unorm
-    };
-    for (vk::Format &format : depthFormats) {
-        vk::FormatProperties depthFormatProperties = mPhysicalDevice->GePhysicalDevice().getFormatProperties(format);
-
-        // Format must support depth stencil attachment for optimal tiling
-        if (depthFormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment) {
-            SurfaceDepthFormat = format;
-            break;
-        }
-    }
-
-    // Swapchain
-    SetupSwapChain();
-
-    // Command Buffers
-    CreateCommands();
-
-    // Sync
-    CreateSynchronization();
-
-    LoadResources();
-    SetupCommands();
-}
-
 
 void VKContext::LoadResources() {
     /**
@@ -128,60 +147,27 @@ void VKContext::LoadResources() {
     */
 
     //Descriptor Pool
-    vector<vk::DescriptorPoolSize> descriptorPoolSizes = {
-        vk::DescriptorPoolSize(
-            vk::DescriptorType::eUniformBuffer,
-            1
-        )
-    };
+    vector<vk::DescriptorPoolSize> descriptorPoolSizes = { vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 1) };
 
     DescriptorPool = mDevice->GetDevice().createDescriptorPool(
-        vk::DescriptorPoolCreateInfo(
-        vk::DescriptorPoolCreateFlags(),
-        1,
-        static_cast<uint32_t>(descriptorPoolSizes.size()),
-        descriptorPoolSizes.data()
-    )
+        vk::DescriptorPoolCreateInfo( vk::DescriptorPoolCreateFlags(), 1, static_cast<uint32_t>(descriptorPoolSizes.size()),  descriptorPoolSizes.data())
     );
 
-    //Descriptor Set Layout
-    // Binding 0: Uniform buffer (Vertex shader)
+    // Descriptor Set Layout ~ Binding 0: Uniform buffer (Vertex shader)
     vector<vk::DescriptorSetLayoutBinding> descriptorSetLayoutBindings = {
-        vk::DescriptorSetLayoutBinding(
-            0,
-        vk::DescriptorType::eUniformBuffer,
-        1,
-        vk::ShaderStageFlagBits::eVertex,
-        nullptr
-        )
+        vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr)
     };
 
     DescriptorSetLayouts = {
-        mDevice->GetDevice().createDescriptorSetLayout(
-            vk::DescriptorSetLayoutCreateInfo(
-        vk::DescriptorSetLayoutCreateFlags(),
-        static_cast<uint32_t>(descriptorSetLayoutBindings.size()),
-        descriptorSetLayoutBindings.data()
-        )
-        )
+        mDevice->GetDevice().createDescriptorSetLayout( vk::DescriptorSetLayoutCreateInfo( vk::DescriptorSetLayoutCreateFlags(), static_cast<uint32_t>(descriptorSetLayoutBindings.size()), descriptorSetLayoutBindings.data()))
     };
 
     DescriptorSets = mDevice->GetDevice().allocateDescriptorSets(
-        vk::DescriptorSetAllocateInfo(
-        DescriptorPool,
-        static_cast<uint32_t>(DescriptorSetLayouts.size()),
-        DescriptorSetLayouts.data()
-    )
+        vk::DescriptorSetAllocateInfo(DescriptorPool, static_cast<uint32_t>(DescriptorSetLayouts.size()), DescriptorSetLayouts.data())
     );
 
     PipelineLayout = mDevice->GetDevice().createPipelineLayout(
-        vk::PipelineLayoutCreateInfo(
-        vk::PipelineLayoutCreateFlags(),
-        static_cast<uint32_t>(DescriptorSetLayouts.size()),
-        DescriptorSetLayouts.data(),
-        0,
-        nullptr
-    )
+        vk::PipelineLayoutCreateInfo(vk::PipelineLayoutCreateFlags(), static_cast<uint32_t>(DescriptorSetLayouts.size()), DescriptorSetLayouts.data(), 0, nullptr)
     );
 
     // Setup vertices data
@@ -192,8 +178,7 @@ void VKContext::LoadResources() {
     uint32_t indexBufferSize = Indices.count * sizeof(uint32_t);
 
     void *data;
-    // Static data like vertex and index buffer should be stored on the device memory 
-    // for optimal (and fastest) access by the GPU
+    // Static data like vertex and index buffer should be stored on the device memory  for optimal (and fastest) access by the GPU
     //
     // To achieve this we use so-called "staging buffers" :
     // - Create a buffer that's visible to the host (and can be mapped)
@@ -232,7 +217,7 @@ void VKContext::LoadResources() {
     stagingBuffers.vertices.memory = mDevice->GetDevice().allocateMemory(
         vk::MemoryAllocateInfo(
         memReqs.size,
-        GetMemoryTypeIndex(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+        GetMemoryTypeIndex2(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
     )
     );
 
@@ -259,7 +244,7 @@ void VKContext::LoadResources() {
     Vertices.memory = mDevice->GetDevice().allocateMemory(
         vk::MemoryAllocateInfo(
         memReqs.size,
-        GetMemoryTypeIndex(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal)
+        GetMemoryTypeIndex2(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal)
     )
     );
 
@@ -281,7 +266,7 @@ void VKContext::LoadResources() {
     stagingBuffers.indices.memory = mDevice->GetDevice().allocateMemory(
         vk::MemoryAllocateInfo(
         memReqs.size,
-        GetMemoryTypeIndex(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+        GetMemoryTypeIndex2(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
     )
     );
 
@@ -306,7 +291,7 @@ void VKContext::LoadResources() {
     Indices.memory = mDevice->GetDevice().allocateMemory(
         vk::MemoryAllocateInfo(
         memReqs.size,
-        GetMemoryTypeIndex(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal
+        GetMemoryTypeIndex2(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal
     )
     )
     );
@@ -421,10 +406,10 @@ void VKContext::LoadResources() {
     // Create a new buffer
     UniformDataVS.buffer = mDevice->GetDevice().createBuffer(
         vk::BufferCreateInfo(
-            vk::BufferCreateFlags(),
-            sizeof(uboVS),
-            vk::BufferUsageFlagBits::eUniformBuffer
-        )
+        vk::BufferCreateFlags(),
+        sizeof(uboVS),
+        vk::BufferUsageFlagBits::eUniformBuffer
+    )
     );
     // Get memory requirements including size, alignment and memory type 
     memReqs = mDevice->GetDevice().getBufferMemoryRequirements(UniformDataVS.buffer);
@@ -433,7 +418,7 @@ void VKContext::LoadResources() {
     // Most implementations offer multiple memory types and selecting the correct one to allocate memory from is crucial
     // We also want the buffer to be host coherent so we don't have to flush (or sync after every update.
     // Note: This may affect performance so you might not want to do this in a real world application that updates buffers on a regular base
-    allocInfo.memoryTypeIndex = GetMemoryTypeIndex(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    allocInfo.memoryTypeIndex = GetMemoryTypeIndex2(mPhysicalDevice->GePhysicalDevice(), memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     // Allocate memory for the uniform buffer
     UniformDataVS.memory = mDevice->GetDevice().allocateMemory(allocInfo);
     // Bind memory to buffer
@@ -448,7 +433,7 @@ void VKContext::LoadResources() {
     float zoom = -2.5f;
 
     // Update matrices
-    uboVS.projectionMatrix = glm::perspective(45.0f, (float)Viewport.width / (float)Viewport.height, 0.01f, 1024.0f);
+    uboVS.projectionMatrix = glm::perspective(45.0f, (float)mSwapChain->mViewport.width / (float)mSwapChain->mViewport.height, 0.01f, 1024.0f);
     uboVS.viewMatrix = glm::translate(glm::identity<glm::mat4>(), { 0.0f, 0.0f, zoom });
     uboVS.modelMatrix = glm::identity<glm::mat4>();
 
@@ -475,8 +460,8 @@ void VKContext::LoadResources() {
     mDevice->GetDevice().updateDescriptorSets(descriptorWrites, nullptr);
 
     // Create Render Pass
-    CreateRenderPass();
-    LoadFrameBuffer();
+    mSwapChain->CreateRenderPass();
+    mSwapChain->LoadFrameBuffer();
 
     // Create Graphics Pipeline
 
@@ -493,10 +478,10 @@ void VKContext::LoadResources() {
 
     FragModule = mDevice->GetDevice().createShaderModule(
         vk::ShaderModuleCreateInfo(
-            vk::ShaderModuleCreateFlags(),
-            fragShaderCode.size(),
-            (uint32_t*)fragShaderCode.data()
-        )
+        vk::ShaderModuleCreateFlags(),
+        fragShaderCode.size(),
+        (uint32_t*)fragShaderCode.data()
+    )
     );
 
     PipelineCache = mDevice->GetDevice().createPipelineCache(vk::PipelineCacheCreateInfo());
@@ -528,9 +513,9 @@ void VKContext::LoadResources() {
     vk::PipelineViewportStateCreateInfo pv(
         vk::PipelineViewportStateCreateFlagBits(),
         1,
-        &Viewport,
+        &mSwapChain->mViewport,
         1,
-        &RenderArea
+        &mSwapChain->mRenderArea
     );
 
     vk::PipelineRasterizationStateCreateInfo pr(
@@ -570,13 +555,13 @@ void VKContext::LoadResources() {
     vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments = {
         vk::PipelineColorBlendAttachmentState(
             VK_FALSE,
-            vk::BlendFactor::eZero,
-            vk::BlendFactor::eOne,
-            vk::BlendOp::eAdd,
-            vk::BlendFactor::eZero,
-            vk::BlendFactor::eZero,
-            vk::BlendOp::eAdd,
-            vk::ColorComponentFlags(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA)
+        vk::BlendFactor::eZero,
+        vk::BlendFactor::eOne,
+        vk::BlendOp::eAdd,
+        vk::BlendFactor::eZero,
+        vk::BlendFactor::eZero,
+        vk::BlendOp::eAdd,
+        vk::ColorComponentFlags(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA)
         )
     };
 
@@ -602,23 +587,23 @@ void VKContext::LoadResources() {
     Pipeline = static_cast<vk::Pipeline>(mDevice->GetDevice().createGraphicsPipeline(
         PipelineCache,
         vk::GraphicsPipelineCreateInfo(
-            vk::PipelineCreateFlags(),
-            static_cast<uint32_t>(pipelineShaderStages.size()),
-            pipelineShaderStages.data(),
-            &pvi,
-            &pia,
-            nullptr,
-            &pv,
-            &pr,
-            &pm,
-            &pds,
-            &pbs,
-            &pdy,
-            PipelineLayout,
-            RenderPass,
-            0
+        vk::PipelineCreateFlags(),
+        static_cast<uint32_t>(pipelineShaderStages.size()),
+        pipelineShaderStages.data(),
+        &pvi,
+        &pia,
+        nullptr,
+        &pv,
+        &pr,
+        &pm,
+        &pds,
+        &pbs,
+        &pdy,
+        PipelineLayout,
+        mSwapChain->RenderPass,
+        0
         )
-    ));
+        ));
 }
 
 void VKContext::DestroyResources() {
@@ -635,7 +620,7 @@ void VKContext::DestroyResources() {
     mDevice->GetDevice().destroyShaderModule(FragModule);
 
     // Render Pass
-    mDevice->GetDevice().destroyRenderPass(RenderPass);
+    mDevice->GetDevice().destroyRenderPass(mSwapChain->RenderPass);
 
     // Graphics Pipeline
     mDevice->GetDevice().destroyPipelineCache(PipelineCache);
@@ -653,8 +638,8 @@ void VKContext::DestroyResources() {
     mDevice->GetDevice().destroyBuffer(UniformDataVS.buffer);
 
     // Destroy Framebuffers, Image Views
-    DestroyFrameBuffer();
-    mDevice->GetDevice().destroySwapchainKHR(Swapchain);
+    mSwapChain->DestroyFrameBuffer();
+    mDevice->GetDevice().destroySwapchainKHR(mSwapChain->mSwapchain);
 
     // Sync
     mDevice->GetDevice().destroySemaphore(PresentCompleteSemaphore);
@@ -665,7 +650,6 @@ void VKContext::DestroyResources() {
 
 }
 
-
 void VKContext::SetupCommands() {
     vector<vk::ClearValue> clearValues = {
         vk::ClearColorValue(
@@ -673,23 +657,22 @@ void VKContext::SetupCommands() {
         vk::ClearDepthStencilValue(1.0f, 0)
     };
 
-    for (size_t i = 0; i < CommandBuffers.size(); ++i)
-    {
+    for (size_t i = 0; i < CommandBuffers.size(); ++i){
         vk::CommandBuffer& cmd = CommandBuffers[i];
         cmd.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
         cmd.begin(vk::CommandBufferBeginInfo());
         cmd.beginRenderPass(
             vk::RenderPassBeginInfo(
-            RenderPass,
-            SwapchainBuffers[i].frameBuffer,
-            RenderArea,
+            mSwapChain->RenderPass,
+            mSwapChain->GetSwapchainBuffer()[i].frameBuffer,
+            mSwapChain->mRenderArea,
             static_cast<uint32_t>(clearValues.size()),
             clearValues.data()),
             vk::SubpassContents::eInline);
 
-        cmd.setViewport(0, 1, &Viewport);
+        cmd.setViewport(0, 1, &mSwapChain->mViewport);
 
-        cmd.setScissor(0, 1, &RenderArea);
+        cmd.setScissor(0, 1, &mSwapChain->mRenderArea);
 
         // Bind Descriptor Sets, these are attribute/uniform "descriptions"
         cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, Pipeline);
@@ -716,205 +699,13 @@ void VKContext::CreateCommands() {
         vk::CommandBufferAllocateInfo(
         mDevice->mCommandPool,
         vk::CommandBufferLevel::ePrimary,
-        static_cast<uint32_t>(SwapchainBuffers.size())
+        static_cast<uint32_t>(mSwapChain->GetSwapchainBuffer().size())
     )
     );
 }
 
 void VKContext::DestroyCommands() {
     mDevice->GetDevice().freeCommandBuffers(mDevice->mCommandPool, CommandBuffers);
-}
-
-
-void VKContext::LoadFrameBuffer() {
-    // Create Depth Image Data
-    DepthImage = mDevice->GetDevice().createImage(
-        vk::ImageCreateInfo(
-            vk::ImageCreateFlags(),
-            vk::ImageType::e2D,
-            SurfaceDepthFormat,
-            vk::Extent3D(SurfaceSize.width, SurfaceSize.height, 1),
-            1U,
-            1U,
-            vk::SampleCountFlagBits::e1,
-            vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferSrc,
-            vk::SharingMode::eExclusive,
-            1,
-            &QueueFamilyIndex,
-            vk::ImageLayout::eUndefined
-        )
-    );
-
-    vk::MemoryRequirements depthMemoryReq = mDevice->GetDevice().getImageMemoryRequirements(DepthImage);
-
-    // Search through GPU memory properies to see if this can be device local.
-
-    DepthImageMemory = mDevice->GetDevice().allocateMemory(
-        vk::MemoryAllocateInfo(
-        depthMemoryReq.size,
-        GetMemoryTypeIndex(mPhysicalDevice->GePhysicalDevice(), depthMemoryReq.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal)
-    )
-    );
-
-    mDevice->GetDevice().bindImageMemory(
-        DepthImage,
-        DepthImageMemory,
-        0
-    );
-
-    vk::ImageView depthImageView = mDevice->GetDevice().createImageView(
-        vk::ImageViewCreateInfo(
-            vk::ImageViewCreateFlags(),
-            DepthImage,
-            vk::ImageViewType::e2D,
-            SurfaceDepthFormat,
-            vk::ComponentMapping(),
-            vk::ImageSubresourceRange(
-                vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
-                0,
-                1,
-                0,
-                1
-            )
-        )
-    );
-
-    std::vector<vk::Image> swapchainImages = mDevice->GetDevice().getSwapchainImagesKHR(Swapchain);
-
-    for (size_t i = 0; i < swapchainImages.size(); i++)
-    {
-        SwapchainBuffers[i].image = swapchainImages[i];
-
-        // Color
-        SwapchainBuffers[i].views[0] =
-            mDevice->GetDevice().createImageView(
-                vk::ImageViewCreateInfo(
-                    vk::ImageViewCreateFlags(),
-                    swapchainImages[i],
-                    vk::ImageViewType::e2D,
-                    SurfaceColorFormat,
-                    vk::ComponentMapping(),
-                    vk::ImageSubresourceRange(
-                        vk::ImageAspectFlagBits::eColor,
-                        0,
-                        1,
-                        0,
-                        1
-                    )
-                )
-            );
-
-        // Depth
-        SwapchainBuffers[i].views[1] = depthImageView;
-
-        SwapchainBuffers[i].frameBuffer = mDevice->GetDevice().createFramebuffer(
-            vk::FramebufferCreateInfo(
-            vk::FramebufferCreateFlags(),
-            RenderPass,
-            static_cast<uint32_t>(SwapchainBuffers[i].views.size()),
-            SwapchainBuffers[i].views.data(),
-            SurfaceSize.width, SurfaceSize.height,
-            1
-        )
-        );
-    }
-}
-
-void VKContext::DestroyFrameBuffer() {
-    mDevice->GetDevice().freeMemory(DepthImageMemory);
-    mDevice->GetDevice().destroyImage(DepthImage);
-    if (!SwapchainBuffers.empty()) {
-        mDevice->GetDevice().destroyImageView(SwapchainBuffers[0].views[1]);
-    }
-    for (size_t i = 0; i < SwapchainBuffers.size(); i++) {
-        mDevice->GetDevice().destroyImageView(SwapchainBuffers[i].views[0]);
-        mDevice->GetDevice().destroyFramebuffer(SwapchainBuffers[i].frameBuffer);
-    }
-}
-
-
-void VKContext::CreateRenderPass() {
-    vector<vk::AttachmentDescription> attachmentDescriptions = {
-        vk::AttachmentDescription(
-            vk::AttachmentDescriptionFlags(),
-            SurfaceColorFormat,
-            vk::SampleCountFlagBits::e1,
-            vk::AttachmentLoadOp::eClear,
-            vk::AttachmentStoreOp::eStore,
-            vk::AttachmentLoadOp::eDontCare,
-            vk::AttachmentStoreOp::eDontCare,
-            vk::ImageLayout::eUndefined,
-            vk::ImageLayout::ePresentSrcKHR
-        ),
-        vk::AttachmentDescription(
-            vk::AttachmentDescriptionFlags(),
-            SurfaceDepthFormat,
-            vk::SampleCountFlagBits::e1,
-            vk::AttachmentLoadOp::eClear,
-            vk::AttachmentStoreOp::eDontCare,
-            vk::AttachmentLoadOp::eDontCare,
-            vk::AttachmentStoreOp::eDontCare,
-            vk::ImageLayout::eUndefined,
-            vk::ImageLayout::eDepthStencilAttachmentOptimal
-        )
-    };
-
-    vector<vk::AttachmentReference> colorReferences = {
-        vk::AttachmentReference(0, vk::ImageLayout::eColorAttachmentOptimal)
-    };
-
-    vector<vk::AttachmentReference> depthReferences = {
-        vk::AttachmentReference(1, vk::ImageLayout::eDepthStencilAttachmentOptimal)
-    };
-
-    vector<vk::SubpassDescription> subpasses = {
-        vk::SubpassDescription(
-            vk::SubpassDescriptionFlags(),
-            vk::PipelineBindPoint::eGraphics,
-            0,
-            nullptr,
-            static_cast<uint32_t>(colorReferences.size()),
-            colorReferences.data(),
-            nullptr,
-            depthReferences.data(),
-            0,
-            nullptr
-        )
-    };
-
-    vector<vk::SubpassDependency> dependencies = {
-        vk::SubpassDependency(
-            ~0U,
-            0,
-            vk::PipelineStageFlagBits::eBottomOfPipe,
-            vk::PipelineStageFlagBits::eColorAttachmentOutput,
-            vk::AccessFlagBits::eMemoryRead,
-            vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite,
-            vk::DependencyFlagBits::eByRegion
-        ),
-        vk::SubpassDependency(
-            0,
-            ~0U,
-            vk::PipelineStageFlagBits::eColorAttachmentOutput,
-            vk::PipelineStageFlagBits::eBottomOfPipe,
-            vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite,
-            vk::AccessFlagBits::eMemoryRead,
-            vk::DependencyFlagBits::eByRegion
-        )
-    };
-
-    RenderPass = mDevice->GetDevice().createRenderPass(
-        vk::RenderPassCreateInfo(
-            vk::RenderPassCreateFlags(),
-            static_cast<uint32_t>(attachmentDescriptions.size()),
-            attachmentDescriptions.data(),
-            static_cast<uint32_t>(subpasses.size()),
-            subpasses.data(),
-            static_cast<uint32_t>(dependencies.size()),
-            dependencies.data()
-        )
-    );
 }
 
 void VKContext::CreateSynchronization() {
@@ -925,150 +716,24 @@ void VKContext::CreateSynchronization() {
     RenderCompleteSemaphore = mDevice->GetDevice().createSemaphore(vk::SemaphoreCreateInfo());
 
     // Fence for command buffer completion
-    WaitFences.resize(SwapchainBuffers.size());
+    WaitFences.resize(mSwapChain->GetSwapchainBuffer().size());
 
     for (size_t i = 0; i < WaitFences.size(); i++) {
         WaitFences[i] = mDevice->GetDevice().createFence(vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
     }
 }
 
-void VKContext::SetupSwapChain() {
-    uint32_t width = 1280;
-    uint32_t height = 1024;
-
-    vk::Extent2D swapchainSize = vk::Extent2D(width, height);
-    vk::SurfaceCapabilitiesKHR surfaceCapabilities = mPhysicalDevice->GePhysicalDevice().getSurfaceCapabilitiesKHR(Surface);
-    if (!(surfaceCapabilities.currentExtent.width == -1 || surfaceCapabilities.currentExtent.height == -1)) {
-        swapchainSize = surfaceCapabilities.currentExtent;
-        RenderArea = vk::Rect2D(vk::Offset2D(), swapchainSize);
-        Viewport = vk::Viewport(0.0f, 0.0f, static_cast<float>(swapchainSize.width), static_cast<float>(swapchainSize.height), 0, 1.0f);
-    }
-
-    // VSync
-    std::vector<vk::PresentModeKHR> surfacePresentModes = mPhysicalDevice->GePhysicalDevice().getSurfacePresentModesKHR(Surface);
-    vk::PresentModeKHR presentMode = vk::PresentModeKHR::eImmediate;
-    for (vk::PresentModeKHR &pm : surfacePresentModes) {
-        if (pm == vk::PresentModeKHR::eMailbox) {
-            presentMode = vk::PresentModeKHR::eMailbox;
-            break;
-        }
-    }
-
-    // Create Swapchain, Images, Frame Buffers
-    mDevice->GetDevice().waitIdle();
-    vk::SwapchainKHR oldSwapchain = Swapchain;
-
-    // ToDo: uint32_t backbufferCount = clamp(surfaceCapabilities.maxImageCount, 1U, 2U);
-    uint32_t backbufferCount = surfaceCapabilities.maxImageCount;
-
-    Swapchain = mDevice->GetDevice().createSwapchainKHR(
-        vk::SwapchainCreateInfoKHR(
-        vk::SwapchainCreateFlagsKHR(),
-        Surface,
-        backbufferCount,
-        SurfaceColorFormat,
-        SurfaceColorSpace,
-        swapchainSize,
-        1,
-        vk::ImageUsageFlagBits::eColorAttachment,
-        vk::SharingMode::eExclusive,
-        1,
-        &QueueFamilyIndex,
-        vk::SurfaceTransformFlagBitsKHR::eIdentity,
-        vk::CompositeAlphaFlagBitsKHR::eOpaque,
-        presentMode,
-        VK_TRUE,
-        oldSwapchain
-    )
-    );
-
-    // ToDo: SurfaceSize = vk::Extent2D(clamp(swapchainSize.width, 1U, 8192U), clamp(swapchainSize.height, 1U, 8192U));
-    SurfaceSize = vk::Extent2D(swapchainSize.width, swapchainSize.height);
-    RenderArea = vk::Rect2D(vk::Offset2D(), SurfaceSize);
-    Viewport = vk::Viewport(0.0f, 0.0f, static_cast<float>(SurfaceSize.width), static_cast<float>(SurfaceSize.height), 0, 1.0f);
-
-
-    // Destroy previous swapchain
-    if (oldSwapchain != vk::SwapchainKHR(nullptr))
-    {
-        mDevice->GetDevice().destroySwapchainKHR(oldSwapchain);
-    }
-
-    // Resize swapchain buffers for use later
-    SwapchainBuffers.resize(backbufferCount);
-}
-
-void VKContext::Attach() {}
-void VKContext::Detach() {}
-
-vk::Instance VKContext::GetInstance() {
-    return sInstance;
-}
-
-void *VKContext::GetNativeContext() {
-    //IM_ASSERT(info->Instance != VK_NULL_HANDLE);
-    //IM_ASSERT(info->PhysicalDevice != VK_NULL_HANDLE);
-    //IM_ASSERT(info->Device != VK_NULL_HANDLE);
-    //IM_ASSERT(info->Queue != VK_NULL_HANDLE);
-    //IM_ASSERT(info->DescriptorPool != VK_NULL_HANDLE);
-    //IM_ASSERT(info->MinImageCount >= 2);
-    //IM_ASSERT(info->ImageCount >= info->MinImageCount);
-    //IM_ASSERT(render_pass != VK_NULL_HANDLE);
-    static VkContextData *data = new VkContextData();
-    data->Intance = mInstance;
-    data->PhysicalDevice = mPhysicalDevice->GePhysicalDevice();
-    data->Device = mDevice->GetDevice();
-    data->QueueIndex = mPhysicalDevice->mQueueFamilyIndices.Graphics;
-    data->Queue = mDevice->GetQueue();
-    data->PipelineCache = PipelineCache;
-    data->DescriptorPool = DescriptorPool;
-    data->RenderPass = RenderPass;
-    data->Surface = Surface;
-    data->Swapchain = Swapchain;
-    data->CommandPool = mDevice->mCommandPool;
-    data->Semaphore = RenderCompleteSemaphore;
-    return (void*)data;
-}
-
-bool const VKContext::IsCurrentContext() {
-    return nullptr;
-}
-
-void VKContext::SetViewport(uint32_t width, uint32_t height, int32_t x, int32_t y) {
-    mDevice->GetDevice().waitIdle();
-    DestroyFrameBuffer();
-    SetupSwapChain();
-    LoadFrameBuffer();
-    DestroyCommands();
-    CreateCommands();
-    SetupCommands();
-    mDevice->GetDevice().waitIdle();
-
-    // Uniforms
-    uboVS.projectionMatrix = glm::perspective(45.0f, (float)Viewport.width / (float)Viewport.height, 0.01f, 1024.0f);
-}
-
-void VKContext::SwapBuffers() {
-    RenderTest(Timestamp());
-}
-
-void VKContext::SetVSync(bool activate) {}
-
 void VKContext::RenderTest(Timestamp delta) {
     // Swap backbuffers
     vk::Result result;
 
-    result = mDevice->GetDevice().acquireNextImageKHR(Swapchain, UINT64_MAX, PresentCompleteSemaphore, nullptr, &CurrentBuffer);
+    result = mDevice->GetDevice().acquireNextImageKHR(mSwapChain->mSwapchain, UINT64_MAX, PresentCompleteSemaphore, nullptr, &CurrentBuffer);
     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {
         // Swapchain lost, we'll try again next poll
-        SetViewport(SurfaceSize.width, SurfaceSize.height, 0, 0);
+        SetViewport(mSwapChain->mSurfaceSize.width, mSwapChain->mSurfaceSize.height, 0, 0);
         return;
-
     }
-    if (result == vk::Result::eErrorDeviceLost) {
-        // driver lost, we'll crash in this case:
-        exit(1);
-    }
+    if (result == vk::Result::eErrorDeviceLost) exit(1); // driver lost, we'll crash in this case:
 
     // Update Uniforms
     uboVS.modelMatrix = glm::rotate(uboVS.modelMatrix, (float)(0.001f *delta), glm::vec3( 0.0f, 1.0f, 0.0f ));
@@ -1081,7 +746,6 @@ void VKContext::RenderTest(Timestamp delta) {
     // Wait for Fences
     mDevice->GetDevice().waitForFences(1, &WaitFences[CurrentBuffer], VK_TRUE, UINT64_MAX);
     mDevice->GetDevice().resetFences(1, &WaitFences[CurrentBuffer]);
-
     vk::SubmitInfo submitInfo;
     vk::PipelineStageFlags waitDstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
     submitInfo
@@ -1100,20 +764,11 @@ void VKContext::RenderTest(Timestamp delta) {
         exit(1);
     }
 
-    result = mDevice->GetQueue().presentKHR(
-        vk::PresentInfoKHR(
-            1,
-            &RenderCompleteSemaphore,
-            1,
-            &Swapchain,
-            &CurrentBuffer,
-            nullptr
-        )
-    );
+    result = mDevice->GetQueue().presentKHR(vk::PresentInfoKHR(1, &RenderCompleteSemaphore, 1, &mSwapChain->mSwapchain, &CurrentBuffer, nullptr));
 
     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {
         // Swapchain lost, we'll try again next poll
-        SetViewport(SurfaceSize.width, SurfaceSize.height, 0, 0);
+        SetViewport(mSwapChain->mSurfaceSize.width, mSwapChain->mSurfaceSize.height, 0, 0);
         return;
     }
 }

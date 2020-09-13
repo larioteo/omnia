@@ -29,7 +29,7 @@ vector<const char *> GetLayers(const std::vector<vk::LayerProperties> &available
 }
 
 
-void VKInstance::Load() {
+VKInstance::VKInstance() {
     // Application Information
     vk::ApplicationInfo applicationInfo;
     applicationInfo = {
@@ -41,17 +41,17 @@ void VKInstance::Load() {
         .engineVersion      = VK_MAKE_VERSION(0, 0, 0),
         .apiVersion         = VK_API_VERSION_1_2,
     };
-    
+
     // Extensions
     vector<vk::ExtensionProperties> availableExtensions = vk::enumerateInstanceExtensionProperties();
     vector<const char *> neededExtensions = {
         VK_KHR_SURFACE_EXTENSION_NAME,
         #ifdef APP_DEBUG_MODE
-            VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-            VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+        VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+        VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
         #endif
         #ifdef VK_USE_PLATFORM_WIN32_KHR
-            VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+        VK_KHR_WIN32_SURFACE_EXTENSION_NAME
         #endif
     };
     vector<const char *> extensions = GetExtensions(availableExtensions, neededExtensions);
@@ -77,16 +77,16 @@ void VKInstance::Load() {
     mProperties.pApplicationInfo = &applicationInfo;
 
     // Create Instance
-    mInstance = CreateReference<vk::Instance>(vk::createInstance(mProperties));
+    mInstance = vk::createInstance(mProperties);
 }
 
 vk::Instance VKInstance::Call() {
-    return *mInstance;
+    return mInstance;
 }
 
 
 VKInstance::operator vk::Instance() {
-    return *mInstance;
+    return mInstance;
 }
 
 }

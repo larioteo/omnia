@@ -1,7 +1,8 @@
 ﻿#include "VKDevice.h"
 
-#include "VKContext.h"
 #include "Omnia/Log.h"
+
+// ToDo: Feature to support multiple physical devices
 
 namespace Omnia {
 
@@ -33,69 +34,152 @@ vector<const char *> GetExtensions(const vector<vk::ExtensionProperties>& availa
 
 }
 
-
-VKPhysicalDevice::VKPhysicalDevice() {
-    auto &instance = VKContext::GetInstance();
-
-    // Get a vulkan supporting GPU
+/*
+ * Physical Device
+*/
+VKPhysicalDevice::VKPhysicalDevice(const vk::Instance &instance): mInstance(instance) {
+    // Get available physical devices and choose the "best" one
     mPhysicalDevices = instance.enumeratePhysicalDevices();
-    for (auto &device : mPhysicalDevices) {
-        mProperties = device.getProperties();
-        // ToDo: Prefer discrete GPU but support also everything else
-        if (mProperties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) {
-            mPhysicalDevice = device;
-            if (mPhysicalDevice) break;
-        }
-    }
-
+    mPhysicalDevice = ChoosePhysicalDevice(mPhysicalDevices);
+    AppAssert(mPhysicalDevice, "GFX:VKPhysicalDevice: ", "No suiteable vulkan supporting deivce found!");
+    
+    // Get features and properties
     mFeatures = mPhysicalDevice.getFeatures();
     mMemoryProperties = mPhysicalDevice.getMemoryProperties();
+    mProperties = mPhysicalDevice.getProperties();
     mQueueFamilyProperties = mPhysicalDevice.getQueueFamilyProperties();
-
     for (auto &extension : mPhysicalDevice.enumerateDeviceExtensionProperties()) {
         mSupportedExtensions.emplace(extension.extensionName.data());
         //AppLogTrace(extension.extensionName);
     }
 
-    static const float defaultPriority = 0.0f;
-    int requestedQueueTypes = (int)vk::QueueFlagBits::eGraphics | (int)vk::QueueFlagBits::eCompute | (int)vk::QueueFlagBits::eTransfer;
+    // Get Queues
+    vk::QueueFlags requestedQueueTypes = vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eTransfer;
     mQueueFamilyIndices = GetQueueFamilyIndices(requestedQueueTypes);
-
-    if (requestedQueueTypes & (int)vk::QueueFlagBits::eGraphics) {
-        vk::DeviceQueueCreateInfo info {};
-        info.queueFamilyIndex = mQueueFamilyIndices.Graphics;
-        info.queueCount = 1;
-        info.pQueuePriorities = &defaultPriority;
-        mQueueCreateInformation.push_back(info);
-    }
-
-    if (requestedQueueTypes & (int)vk::QueueFlagBits::eCompute) {
+    if (requestedQueueTypes & vk::QueueFlagBits::eCompute) {
         vk::DeviceQueueCreateInfo info {};
         info.queueFamilyIndex = mQueueFamilyIndices.Compute;
         info.queueCount = 1;
-        info.pQueuePriorities = &defaultPriority;
+        info.pQueuePriorities = &DefaultPriority;
         mQueueCreateInformation.push_back(info);
     }
-
-    if (requestedQueueTypes & (int)vk::QueueFlagBits::eTransfer) {
+    if (requestedQueueTypes & vk::QueueFlagBits::eGraphics) {
+        vk::DeviceQueueCreateInfo info {};
+        info.queueFamilyIndex = mQueueFamilyIndices.Graphics;
+        info.queueCount = 1;
+        info.pQueuePriorities = &DefaultPriority;
+        mQueueCreateInformation.push_back(info);
+    }
+    if (requestedQueueTypes & vk::QueueFlagBits::eProtected) {
+        vk::DeviceQueueCreateInfo info {};
+        info.queueFamilyIndex = mQueueFamilyIndices.Protected;
+        info.queueCount = 1;
+        info.pQueuePriorities = &DefaultPriority;
+        mQueueCreateInformation.push_back(info);
+    }
+    if (requestedQueueTypes & vk::QueueFlagBits::eSparseBinding) {
+        vk::DeviceQueueCreateInfo info {};
+        info.queueFamilyIndex = mQueueFamilyIndices.SparseBinding;
+        info.queueCount = 1;
+        info.pQueuePriorities = &DefaultPriority;
+        mQueueCreateInformation.push_back(info);
+    }
+    if (requestedQueueTypes & vk::QueueFlagBits::eTransfer) {
         vk::DeviceQueueCreateInfo info {};
         info.queueFamilyIndex = mQueueFamilyIndices.Transfer;
         info.queueCount = 1;
-        info.pQueuePriorities = &defaultPriority;
+        info.pQueuePriorities = &DefaultPriority;
         mQueueCreateInformation.push_back(info);
     }
+    AppLogTrace("GFX:VKPhysicalDevice: ", (string)*this);
 }
 
-VKPhysicalDevice::~VKPhysicalDevice() {}
-
-Reference<VKPhysicalDevice> VKPhysicalDevice::Select() {
-    return Reference<VKPhysicalDevice>();
+// Accessors
+const vk::PhysicalDevice &VKPhysicalDevice::GePhysicalDevice() const {
+    return mPhysicalDevice;
 }
 
-VKQueueFamilyIndices VKPhysicalDevice::GetQueueFamilyIndices(int32_t flags) {
+const vk::PhysicalDeviceFeatures &VKPhysicalDevice::GetFeatures() const {
+    return mFeatures;
+}
+
+const vk::PhysicalDeviceProperties &VKPhysicalDevice::GetProperties() const {
+    return mProperties;
+}
+
+const vk::PhysicalDeviceMemoryProperties &VKPhysicalDevice::GetMemoryProperties() const {
+    return mMemoryProperties;
+}
+
+// Conversions
+VKPhysicalDevice::operator const vk::PhysicalDevice &() const {
+    return mPhysicalDevice;
+}
+
+VKPhysicalDevice::operator const string() const {
+    stringstream stream;
+
+    // Caption
+    stream << "Selected physical device '" << mProperties.deviceName << "' [";
+
+    // Vendor ID
+    stream << "VendorID='";
+    switch (mProperties.vendorID) {
+        case 0x1002:    { stream << "AMD";      break; }
+        case 0x8086:    { stream << "Intel";    break; }
+        case 0x10DE:    { stream << "nVidia";   break; }
+        default:        { stream << "#" << mProperties.vendorID; break; }
+    }
+    stream << "' | ";
+
+    // Device Type
+    stream << "Type='";
+    switch (mProperties.deviceType) {
+        case vk::PhysicalDeviceType::eCpu:              { stream << "CPU";    break; }
+        case vk::PhysicalDeviceType::eDiscreteGpu:      { stream << "GPU";    break; }
+        case vk::PhysicalDeviceType::eIntegratedGpu:    { stream << "I-GPU";  break; }
+        case vk::PhysicalDeviceType::eVirtualGpu:       { stream << "V-GPU";  break; }
+        default:                                        { stream << "Other";  break; }
+    }
+    stream << "'";
+    
+    stream << "]";
+    return stream.str();
+}
+
+// Queries
+bool VKPhysicalDevice::IsExtensionSupport(const string &name) const {
+    //return mSupportedExtensions.find(name) != mSupportedExtensions.end();
+    return false;
+}
+
+// Internal
+vk::PhysicalDevice VKPhysicalDevice::ChoosePhysicalDevice(const vector<vk::PhysicalDevice> &devices) {
+    std::multimap<uint32_t, vk::PhysicalDevice> rankingList;
+    for (const auto &device : devices) {
+        rankingList.emplace(GetPhysicalDeviceRanking(device), device);
+    }
+
+    if (rankingList.rbegin()->first > 0) return rankingList.rbegin()->second;
+    return nullptr;
+}
+
+uint32_t VKPhysicalDevice::GetPhysicalDeviceRanking(const vk::PhysicalDevice &device) {
+    // ToDo:: Choose device which supports all extensions that are needed, rather than basically counting how many are supported
+    uint32_t score = 0;
+    vector<vk::ExtensionProperties> extensionProperties = device.enumerateDeviceExtensionProperties();
+
+    auto &properties = device.getProperties();
+    if (mProperties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) score += 1024;
+    score += extensionProperties.size();
+
+    return score;
+}
+
+VKQueueFamilyIndices VKPhysicalDevice::GetQueueFamilyIndices(vk::QueueFlags flags) {
     VKQueueFamilyIndices indices = {};
 
-    if (flags & (int)vk::QueueFlagBits::eTransfer) {
+    if (flags & vk::QueueFlagBits::eTransfer) {
         for (uint32_t i = 0; i < mQueueFamilyProperties.size(); i++) {
             auto &properties = mQueueFamilyProperties[i];
             if ((properties.queueFlags & vk::QueueFlagBits::eTransfer) && !(properties.queueFlags & vk::QueueFlagBits::eGraphics) && !(properties.queueFlags & vk::QueueFlagBits::eCompute)) {
@@ -105,7 +189,7 @@ VKQueueFamilyIndices VKPhysicalDevice::GetQueueFamilyIndices(int32_t flags) {
         }
     }
 
-    if (flags & (int)vk::QueueFlagBits::eCompute) {
+    if (flags & vk::QueueFlagBits::eCompute) {
         for (uint32_t i = 0; i < mQueueFamilyProperties.size(); i++) {
             auto &properties = mQueueFamilyProperties[i];
             if ((properties.queueFlags & vk::QueueFlagBits::eCompute) && !(properties.queueFlags & vk::QueueFlagBits::eGraphics)) {
@@ -117,22 +201,18 @@ VKQueueFamilyIndices VKPhysicalDevice::GetQueueFamilyIndices(int32_t flags) {
 
     for (uint32_t i = 0; i < mQueueFamilyProperties.size(); i++) {
         auto &properties = mQueueFamilyProperties[i];
-        if (flags & (int)vk::QueueFlagBits::eTransfer && indices.Transfer == -1) {
+        if (flags & vk::QueueFlagBits::eTransfer && indices.Transfer == -1) {
             if (properties.queueFlags & vk::QueueFlagBits::eTransfer) indices.Transfer = i;
         }
-        if (flags & (int)vk::QueueFlagBits::eCompute && indices.Compute == -1) {
+        if (flags & vk::QueueFlagBits::eCompute && indices.Compute == -1) {
             if (properties.queueFlags & vk::QueueFlagBits::eCompute) indices.Compute = i;
         }
-        if (flags & (int)vk::QueueFlagBits::eGraphics) {
+        if (flags & vk::QueueFlagBits::eGraphics) {
             if (properties.queueFlags & vk::QueueFlagBits::eGraphics) indices.Graphics = i;
         }
     }
 
     return indices;
-}
-
-vk::PhysicalDevice VKPhysicalDevice::GePhysicalDevice() const {
-    return mPhysicalDevice;
 }
 
 uint32_t VKPhysicalDevice::GetMemoryTypeIndex(uint32_t bits, vk::MemoryPropertyFlags properties) {
@@ -147,15 +227,14 @@ uint32_t VKPhysicalDevice::GetMemoryTypeIndex(uint32_t bits, vk::MemoryPropertyF
     return UINT32_MAX;
 }
 
-bool VKPhysicalDevice::IsExtensionSupport(const string &name) const {
-    //return mSupportedExtensions.find(name) != mSupportedExtensions.end();
-    return false;
-}
 
 
+/*
+* Logical Device
+*/
 
-VKDevice::VKDevice(const Reference<VKPhysicalDevice> &physicalDeice):
-    mPhysicalDevice { physicalDeice } {
+VKDevice::VKDevice(const Reference<VKPhysicalDevice> &physicalDevice):
+    mPhysicalDevice { physicalDevice } {
 
     vector<vk::ExtensionProperties> availableDeviceExtensions = mPhysicalDevice->GePhysicalDevice().enumerateDeviceExtensionProperties();
     vector<const char*> neededDeviceExtensions = {
@@ -163,37 +242,42 @@ VKDevice::VKDevice(const Reference<VKPhysicalDevice> &physicalDeice):
     };
     std::vector<const char*> deviceExtensions = GetExtensions(availableDeviceExtensions, neededDeviceExtensions);
 
-    vk::DeviceCreateInfo dinfo;
-    dinfo.setQueueCreateInfoCount(static_cast<uint32_t>(mPhysicalDevice->mQueueCreateInformation.size()));
-    dinfo.setPQueueCreateInfos(mPhysicalDevice->mQueueCreateInformation.data());
-    dinfo.setEnabledExtensionCount(static_cast<uint32_t>(deviceExtensions.size()));
-    dinfo.setPpEnabledExtensionNames(deviceExtensions.data());
-    mDevice = mPhysicalDevice->GePhysicalDevice().createDevice(dinfo);
+    vk::DeviceCreateInfo deviceCreateInfo;
+    deviceCreateInfo.setQueueCreateInfoCount(static_cast<uint32_t>(mPhysicalDevice->mQueueCreateInformation.size()));
+    deviceCreateInfo.setPQueueCreateInfos(mPhysicalDevice->mQueueCreateInformation.data());
+    deviceCreateInfo.setEnabledExtensionCount(static_cast<uint32_t>(deviceExtensions.size()));
+    deviceCreateInfo.setPpEnabledExtensionNames(deviceExtensions.data());
+    mDevice = mPhysicalDevice->GePhysicalDevice().createDevice(deviceCreateInfo);
 
     vk::PhysicalDeviceFeatures2 features2 = {};
-    mDevice = mPhysicalDevice->GePhysicalDevice().createDevice(dinfo);
+    mDevice = mPhysicalDevice->GePhysicalDevice().createDevice(deviceCreateInfo);
 
-    vk::CommandPoolCreateInfo poolInfo = {};
-    poolInfo.queueFamilyIndex = mPhysicalDevice->mQueueFamilyIndices.Graphics;
-    poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
-    mCommandPool = mDevice.createCommandPool(poolInfo);
+    vk::CommandPoolCreateInfo commandPoolCreateInfo = {};
+    commandPoolCreateInfo.queueFamilyIndex = mPhysicalDevice->mQueueFamilyIndices.Graphics;
+    commandPoolCreateInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
+    mCommandPool = mDevice.createCommandPool(commandPoolCreateInfo);
+
     mQueue = mDevice.getQueue(mPhysicalDevice->mQueueFamilyIndices.Graphics, 0);
 }
 
-VKDevice::~VKDevice() {}
+void VKDevice::Destroy() {
+    mDevice.destroyCommandPool(mCommandPool);
+    mDevice.destroy();
+}
 
-vk::Device VKDevice::GetDevice() const {
+// Accessors
+const vk::Device &VKDevice::GetDevice() const {
     return mDevice;
 }
 
-vk::CommandBuffer VKDevice::GetCommandBuffer(bool start) {
+const vk::CommandBuffer &VKDevice::GetCommandBuffer(bool start) const  {
     vk::CommandBuffer buffer = nullptr;
-    vk::CommandBufferAllocateInfo bufferAlcoateInfo = {};
-    bufferAlcoateInfo.commandPool = mCommandPool;
-    bufferAlcoateInfo.level = vk::CommandBufferLevel::ePrimary;
-    bufferAlcoateInfo.commandBufferCount = 1;
+    vk::CommandBufferAllocateInfo bufferAllcoateInfo = {};
+    bufferAllcoateInfo.commandPool = mCommandPool;
+    bufferAllcoateInfo.level = vk::CommandBufferLevel::ePrimary;
+    bufferAllcoateInfo.commandBufferCount = 1;
 
-    buffer = (mDevice.allocateCommandBuffers(bufferAlcoateInfo))[0];
+    buffer = (mDevice.allocateCommandBuffers(bufferAllcoateInfo))[0];
 
     if (start) {
         vk::CommandBufferBeginInfo bufferBeginInfo = {};
@@ -203,7 +287,7 @@ vk::CommandBuffer VKDevice::GetCommandBuffer(bool start) {
     return buffer;
 }
 
-vk::Queue VKDevice::GetQueue() {
+const vk::Queue &VKDevice::GetQueue() const {
     return mQueue;
 }
 
@@ -211,13 +295,25 @@ const Reference<VKPhysicalDevice> &VKDevice::GetPhysicalDevice() const {
     return mPhysicalDevice;
 }
 
-void VKDevice::FlushCommandBuffer(vk::CommandBuffer buffer) {
-    const uint64_t DefaultFenceTimeout = 1000000000000;
+// Conversions
+VKDevice::operator const vk::Device &() const {
+    return mDevice;
+}
+
+// Commands
+void VKDevice::FlushCommandBuffer(vk::CommandBuffer &buffer) {
+    const uint64_t DefaultFenceTimeout = UINT64_MAX;
     buffer.end();
 
+    vk::PipelineStageFlags waitDstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
     vk::SubmitInfo submitInfo = {};
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &buffer;
+    submitInfo.signalSemaphoreCount = 0;
+    submitInfo.pSignalSemaphores = nullptr;
+    submitInfo.pWaitSemaphores = nullptr;
+    submitInfo.pWaitDstStageMask = &waitDstStageMask;
+
 
     vk::FenceCreateInfo fenceCreateInfo = {};
     fenceCreateInfo.flags = vk::FenceCreateFlagBits::eSignaled;
@@ -227,6 +323,7 @@ void VKDevice::FlushCommandBuffer(vk::CommandBuffer buffer) {
     mQueue.submit(submitInfo, fence);
     mDevice.waitForFences(fence, VK_TRUE, DefaultFenceTimeout);
     mDevice.destroyFence(fence, nullptr);
+
     mDevice.freeCommandBuffers(mCommandPool, buffer);
 }
 

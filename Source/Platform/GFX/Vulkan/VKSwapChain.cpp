@@ -17,13 +17,18 @@ uint32_t GetMemoryTypeIndex(const vk::PhysicalDevice &physicalDevice, uint32_t t
     return 0;
 };
 
-VKSwapChain::VKSwapChain(const vk::Instance &instance, Reference<VKDevice> &device, const vk::SurfaceKHR &surface): mInstance(instance), mDevice(device), mSurface(surface) {}
+VKSwapChain::VKSwapChain(const vk::Instance &instance, Reference<VKDevice> &device, const vk::SurfaceKHR &surface): mInstance(instance), mDevice(device), mSurface(surface) {
+    
+    
+}
 
 void VKSwapChain::Create(uint32_t width, uint32_t height) {
     const vk::PhysicalDevice &physicalDevice = mDevice->GetPhysicalDevice()->GePhysicalDevice();
+    QueueFamilyIndex = mDevice->GetPhysicalDevice()->mQueueFamilyIndices.Graphics;
+    vk::Extent2D swapchainSize = vk::Extent2D(width, height);
 
 
-    // Surface Attachment Formats
+    // Surface Formats
     vector<vk::SurfaceFormatKHR> surfaceFormats = physicalDevice.getSurfaceFormatsKHR(mSurface);
     if (surfaceFormats.size() == 1 && surfaceFormats[0].format == vk::Format::eUndefined) {
         SurfaceColorFormat = vk::Format::eB8G8R8A8Unorm;
@@ -49,11 +54,6 @@ void VKSwapChain::Create(uint32_t width, uint32_t height) {
     }
 
 
-    QueueFamilyIndex = mDevice->GetPhysicalDevice()->mQueueFamilyIndices.Graphics;
-
-    vk::Extent2D swapchainSize = vk::Extent2D(width, height);
-
-
     vk::SurfaceCapabilitiesKHR surfaceCapabilities = physicalDevice.getSurfaceCapabilitiesKHR(mSurface);
     if (!(surfaceCapabilities.currentExtent.width == -1 || surfaceCapabilities.currentExtent.height == -1)) {
         swapchainSize = surfaceCapabilities.currentExtent;
@@ -61,58 +61,58 @@ void VKSwapChain::Create(uint32_t width, uint32_t height) {
         mViewport = vk::Viewport(0.0f, 0.0f, static_cast<float>(swapchainSize.width), static_cast<float>(swapchainSize.height), 0, 1.0f);
     }
 
-    // VSync
+    // VSync: Disabled
     std::vector<vk::PresentModeKHR> surfacePresentModes = physicalDevice.getSurfacePresentModesKHR(mSurface);
     vk::PresentModeKHR presentMode = vk::PresentModeKHR::eImmediate;
-    for (vk::PresentModeKHR &pm : surfacePresentModes) {
-        if (pm == vk::PresentModeKHR::eMailbox) {
+    for (vk::PresentModeKHR &mode : surfacePresentModes) {
+        if (mode == vk::PresentModeKHR::eMailbox) {
             presentMode = vk::PresentModeKHR::eMailbox;
             break;
         }
     }
 
-    // Create Swapchain, Images, Frame Buffers
+    // Create Swapchain
     mDevice->GetDevice().waitIdle();
     vk::SwapchainKHR oldSwapchain = mSwapchain;
 
-    // ToDo: uint32_t backbufferCount = clamp(surfaceCapabilities.maxImageCount, 1U, 2U);
-    uint32_t backbufferCount = surfaceCapabilities.maxImageCount;
-
-    mSwapchain = mDevice->GetDevice().createSwapchainKHR(
-        vk::SwapchainCreateInfoKHR(
-        vk::SwapchainCreateFlagsKHR(),
-        mSurface,
-        backbufferCount,
-        SurfaceColorFormat,
-        SurfaceColorSpace,
-        swapchainSize,
-        1,
-        vk::ImageUsageFlagBits::eColorAttachment,
-        vk::SharingMode::eExclusive,
-        1,
-        &QueueFamilyIndex,
-        vk::SurfaceTransformFlagBitsKHR::eIdentity,
-        vk::CompositeAlphaFlagBitsKHR::eOpaque,
-        presentMode,
-        VK_TRUE,
-        oldSwapchain
-    )
-    );
-
-    // ToDo: SurfaceSize = vk::Extent2D(clamp(swapchainSize.width, 1U, 8192U), clamp(swapchainSize.height, 1U, 8192U));
-    mSurfaceSize = vk::Extent2D(swapchainSize.width, swapchainSize.height);
+    uint32_t imageCount = std::clamp(surfaceCapabilities.maxImageCount, 1U, 3U);
     mRenderArea = vk::Rect2D(vk::Offset2D(), mSurfaceSize);
+    mSurfaceSize = vk::Extent2D(std::clamp(width, 1U, 8192U), std::clamp(height, 1U, 8192U));
     mViewport = vk::Viewport(0.0f, 0.0f, static_cast<float>(mSurfaceSize.width), static_cast<float>(mSurfaceSize.height), 0, 1.0f);
+    
+    vk::SwapchainCreateInfoKHR createInfo = {};
+    createInfo.flags = vk::SwapchainCreateFlagsKHR();
+    createInfo.surface = mSurface;
+    createInfo.minImageCount = imageCount;
+    createInfo.imageFormat = SurfaceColorFormat;
+    createInfo.imageColorSpace = SurfaceColorSpace;
+    createInfo.imageExtent = mSurfaceSize;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+    createInfo.imageSharingMode = vk::SharingMode::eExclusive;
+    createInfo.queueFamilyIndexCount = 1;
+    createInfo.pQueueFamilyIndices = &QueueFamilyIndex;
+    createInfo.preTransform = vk::SurfaceTransformFlagBitsKHR::eIdentity;
+    createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+    createInfo.presentMode = presentMode;
+    createInfo.clipped = VK_TRUE;
+    createInfo.oldSwapchain = oldSwapchain;
 
+    mSwapchain = mDevice->GetDevice().createSwapchainKHR(createInfo);
+    if (oldSwapchain != vk::SwapchainKHR(nullptr)) mDevice->GetDevice().destroySwapchainKHR(oldSwapchain);
+    mSwapchainBuffers.resize(imageCount);
+}
 
-    // Destroy previous swapchain
-    if (oldSwapchain != vk::SwapchainKHR(nullptr))
-    {
-        mDevice->GetDevice().destroySwapchainKHR(oldSwapchain);
+void VKSwapChain::Destroy() {
+    mDevice->GetDevice().destroyRenderPass(RenderPass);
+    DestroyFrameBuffer();
+    mDevice->GetDevice().destroySwapchainKHR(mSwapchain);
+
+    mDevice->GetDevice().destroySemaphore(PresentCompleteSemaphore);
+    mDevice->GetDevice().destroySemaphore(RenderCompleteSemaphore);
+    for (vk::Fence &fence : WaitFences) {
+        mDevice->GetDevice().destroyFence(fence);
     }
-
-    // Resize swapchain buffers for use later
-    mSwapchainBuffers.resize(backbufferCount);
 }
 
 void VKSwapChain::Resize(uint32_t width, uint32_t height) {
@@ -123,25 +123,25 @@ void VKSwapChain::CreateRenderPass() {
     vector<vk::AttachmentDescription> attachmentDescriptions = {
         vk::AttachmentDescription(
             vk::AttachmentDescriptionFlags(),
-        SurfaceColorFormat,
-        vk::SampleCountFlagBits::e1,
-        vk::AttachmentLoadOp::eClear,
-        vk::AttachmentStoreOp::eStore,
-        vk::AttachmentLoadOp::eDontCare,
-        vk::AttachmentStoreOp::eDontCare,
-        vk::ImageLayout::eUndefined,
-        vk::ImageLayout::ePresentSrcKHR
+            SurfaceColorFormat,
+            vk::SampleCountFlagBits::e1,
+            vk::AttachmentLoadOp::eClear,
+            vk::AttachmentStoreOp::eStore,
+            vk::AttachmentLoadOp::eDontCare,
+            vk::AttachmentStoreOp::eDontCare,
+            vk::ImageLayout::eUndefined,
+            vk::ImageLayout::ePresentSrcKHR
         ),
         vk::AttachmentDescription(
-        vk::AttachmentDescriptionFlags(),
-        SurfaceDepthFormat,
-        vk::SampleCountFlagBits::e1,
-        vk::AttachmentLoadOp::eClear,
-        vk::AttachmentStoreOp::eDontCare,
-        vk::AttachmentLoadOp::eDontCare,
-        vk::AttachmentStoreOp::eDontCare,
-        vk::ImageLayout::eUndefined,
-        vk::ImageLayout::eDepthStencilAttachmentOptimal
+            vk::AttachmentDescriptionFlags(),
+            SurfaceDepthFormat,
+            vk::SampleCountFlagBits::e1,
+            vk::AttachmentLoadOp::eClear,
+            vk::AttachmentStoreOp::eDontCare,
+            vk::AttachmentLoadOp::eDontCare,
+            vk::AttachmentStoreOp::eDontCare,
+            vk::ImageLayout::eUndefined,
+            vk::ImageLayout::eDepthStencilAttachmentOptimal
         )
     };
 
@@ -202,11 +202,25 @@ void VKSwapChain::CreateRenderPass() {
     );
 }
 
+void VKSwapChain::CreateSynchronization() {
+    // Semaphore used to ensures that image presentation is complete before starting to submit again
+    PresentCompleteSemaphore = mDevice->GetDevice().createSemaphore(vk::SemaphoreCreateInfo());
+
+    // Semaphore used to ensures that all commands submitted have been finished before submitting the image to the queue
+    RenderCompleteSemaphore = mDevice->GetDevice().createSemaphore(vk::SemaphoreCreateInfo());
+
+    // Fence for command buffer completion
+    WaitFences.resize(GetSwapchainBuffer().size());
+
+    for (size_t i = 0; i < WaitFences.size(); i++) {
+        WaitFences[i] = mDevice->GetDevice().createFence(vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
+    }
+}
+
 
 void VKSwapChain::LoadFrameBuffer() {
-    // Create Depth Image Data
-    DepthImage = mDevice->GetDevice().createImage(
-        vk::ImageCreateInfo(
+    // Create Depth Image
+    DepthImage = mDevice->GetDevice().createImage(vk::ImageCreateInfo(
         vk::ImageCreateFlags(),
         vk::ImageType::e2D,
         SurfaceDepthFormat,
@@ -220,15 +234,12 @@ void VKSwapChain::LoadFrameBuffer() {
         1,
         &QueueFamilyIndex,
         vk::ImageLayout::eUndefined
-    )
-    );
+    ));
 
     vk::MemoryRequirements depthMemoryReq = mDevice->GetDevice().getImageMemoryRequirements(DepthImage);
 
     // Search through GPU memory properies to see if this can be device local.
-
-    DepthImageMemory = mDevice->GetDevice().allocateMemory(
-        vk::MemoryAllocateInfo(
+    DepthImageMemory = mDevice->GetDevice().allocateMemory(vk::MemoryAllocateInfo(
         depthMemoryReq.size,
         GetMemoryTypeIndex(mDevice->GetPhysicalDevice()->GePhysicalDevice(), depthMemoryReq.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal)
     )

@@ -169,7 +169,7 @@ uint32_t VKPhysicalDevice::GetPhysicalDeviceRanking(const vk::PhysicalDevice &de
     uint32_t score = 0;
     vector<vk::ExtensionProperties> extensionProperties = device.enumerateDeviceExtensionProperties();
 
-    auto &properties = device.getProperties();
+    auto properties = device.getProperties();
     if (mProperties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) score += 1024;
     score += extensionProperties.size();
 

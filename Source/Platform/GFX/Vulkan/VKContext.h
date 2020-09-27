@@ -19,6 +19,10 @@
 #include "VKDevice.h"
 #include "VKSwapChain.h"
 
+namespace Ultra {
+class VKTest;
+}
+
 namespace Omnia {
 
 struct VkContextData {
@@ -39,7 +43,10 @@ struct VkContextData {
     vk::Semaphore Semaphore;
 };
 
+
 class VKContext: public Context {
+    friend Ultra::VKTest;
+
 public:
     VKContext(void *window);	// previous CreateContext
     virtual ~VKContext();		// previous DestroyContext
@@ -60,16 +67,6 @@ public:
     // Settings
     virtual void SetVSync(bool activate) override;
 
-private:
-    void RenderTest(Timestamp delta);
-    void LoadResources();
-    void DestroyResources();
-
-    void SetupCommands();
-    void CreateCommands();
-    void DestroyCommands();
-
-    void CreateSynchronization();
 
 private:
     HWND WindowHandle;
@@ -81,53 +78,6 @@ private:
     vk::SurfaceCapabilitiesKHR mCapabilities;
     vk::SurfaceFormatKHR mFormat;
     Reference<VKSwapChain> mSwapChain;
-
-    // ToDo: CleanUp everything not needed...
-    uint32_t QueueFamilyIndex;
-    vector<vk::CommandBuffer> CommandBuffers;
-    uint32_t CurrentBuffer = 0;
-
-    vk::Pipeline Pipeline;
-    vk::PipelineCache PipelineCache;
-    vk::PipelineLayout PipelineLayout;
-
-    // Synchronisation
-    vk::Semaphore PresentCompleteSemaphore;
-    vk::Semaphore RenderCompleteSemaphore;
-    vector<vk::Fence> WaitFences;
-
-    vk::Buffer IndexBuffer;
-    vk::Buffer VertexBuffer;
-    vk::ShaderModule VertModule;
-    vk::ShaderModule FragModule;
-
-    vk::DescriptorPool DescriptorPool;
-    vector<vk::DescriptorSetLayout> DescriptorSetLayouts;
-    vector<vk::DescriptorSet> DescriptorSets;
-
-    // Resources
-    // Vertex buffer and attributes
-    struct {
-        vk::DeviceMemory memory;														// Handle to the device memory for this buffer
-        vk::Buffer buffer;																// Handle to the Vulkan buffer object that the memory is bound to
-        vk::PipelineVertexInputStateCreateInfo inputState;
-        vk::VertexInputBindingDescription inputBinding;
-        std::vector<vk::VertexInputAttributeDescription> inputAttributes;
-    } Vertices;
-
-    // Index buffer
-    struct {
-        vk::DeviceMemory memory;
-        vk::Buffer buffer;
-        uint32_t count;
-    } Indices;
-
-    // Uniform block object
-    struct {
-        vk::DeviceMemory memory;
-        vk::Buffer buffer;
-        vk::DescriptorBufferInfo descriptor;
-    } UniformDataVS;
 };
 
 }

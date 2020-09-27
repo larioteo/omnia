@@ -5,6 +5,10 @@
 
 #include "Vulkan.h"
 
+namespace Ultra {
+class VKTest;
+}
+
 namespace Omnia {
 
 struct VKQueueFamilyIndices {
@@ -16,6 +20,7 @@ struct VKQueueFamilyIndices {
 };
 
 class VKPhysicalDevice {
+    friend Ultra::VKTest;
     friend class VKContext; // ToDo: Only needed while porting code
     friend class VKDevice;
     friend class VKSwapChain; // ToDo: Only needed while porting code
@@ -62,7 +67,9 @@ private:
 };
 
 class VKDevice {
+    friend Ultra::VKTest;
     friend class VKContext; // ToDo: Only needed while porting code
+    friend class VKSwapChain; // ToDo: Only needed while porting code
 
 public:
     VKDevice(const Reference<VKPhysicalDevice> &physicalDevice);

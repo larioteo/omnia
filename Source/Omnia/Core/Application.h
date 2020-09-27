@@ -138,7 +138,9 @@ private:
     Reference<Config> pConfig;
     Reference<Dialog> pDialog;
     Reference<Window> pWindow;
+public:
     Reference<Context> pContext;
+private:
     Reference<EventListener> pListener;
 
     bool Paused;

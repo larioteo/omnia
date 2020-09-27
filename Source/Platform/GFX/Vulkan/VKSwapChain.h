@@ -7,6 +7,10 @@
 
 #include "VKDevice.h"
 
+namespace Ultra {
+class VKTest;
+}
+
 
 namespace Omnia {
 
@@ -33,6 +37,7 @@ struct VKDepthStencil {
 };
 
 class VKSwapChain {
+    friend Ultra::VKTest;
     friend class VKContext; // ToDo: Only needed while porting code
 
 public:
@@ -40,13 +45,14 @@ public:
     ~VKSwapChain() = default;
 
     void Create(uint32_t width, uint32_t height);
+    void Destroy();
     void Resize(uint32_t width, uint32_t height);
 
     void CreateRenderPass();
+    void CreateSynchronization();
     void LoadFrameBuffer();
     void DestroyFrameBuffer();
 
-    
 private:
     vk::Instance mInstance = nullptr;
     Reference<VKDevice> mDevice = nullptr;
@@ -71,6 +77,11 @@ private:
     vector<SwapChainBuffer> mSwapchainBuffers;
 
     uint32_t QueueFamilyIndex = 0;
+
+    // Synchronisation
+    vk::Semaphore PresentCompleteSemaphore;
+    vk::Semaphore RenderCompleteSemaphore;
+    vector<vk::Fence> WaitFences;
 
 
 public:

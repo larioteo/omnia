@@ -20,7 +20,6 @@ Application::Application(const ApplicationProperties &properties):
 
 	// Initialization
 	applog << Log::Caption << "Initialization" << "\n";
-    Context::API = GraphicsAPI::OpenGL;
 
 	// Load Configuration
 	pConfig = CreateReference<Config>();
@@ -107,13 +106,10 @@ void Application::Run() {
 		pContext->Attach();
         for (Layer *layer : Layers) layer->Update(deltaTime);
         Update(deltaTime);
-        // ToDo: Work on Support for Vulkan
-        if (Context::API == GraphicsAPI::OpenGL) {
-            if (pWindow->GetState(WindowState::Alive)) {
-                CoreLayer->Prepare();
-                for (Layer *layer : Layers) layer->GuiUpdate();
-                CoreLayer->Finish();
-            }
+        if (pWindow->GetState(WindowState::Alive)) {
+            CoreLayer->Prepare();
+            for (Layer *layer : Layers) layer->GuiUpdate();
+            CoreLayer->Finish();
         }
 		pContext->SwapBuffers();
 		pContext->Detach();

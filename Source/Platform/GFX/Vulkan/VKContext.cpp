@@ -50,16 +50,17 @@ void VKContext::Detach() {}
 
 void *VKContext::GetNativeContext() {
     static VkContextData *data = new VkContextData();
+
+    data->iDevice = mDevice;
+    data->iSwapChain = mSwapChain;
+
+    data->Allocator = nullptr;
     data->Intance = mInstance->Call();
-    data->PhysicalDevice = mPhysicalDevice->GePhysicalDevice();
-    data->Device = mDevice->GetDevice();
     data->QueueIndex = mPhysicalDevice->mQueueFamilyIndices.Graphics;
+    data->Surface = mSwapChain->mSurface;
     data->Queue = mDevice->GetQueue();
-    data->RenderPass = mSwapChain->RenderPass;
-    data->Surface = Surface;
-    data->Swapchain = mSwapChain->mSwapchain;
-    data->CommandPool = mDevice->mCommandPool;
-    data->Semaphore = mSwapChain->RenderCompleteSemaphore;
+    data->RenderPass = data->iSwapChain->RenderPass;
+    data->Swapchain = data->iSwapChain->mSwapchain;
     return (void*)data;
 }
 

@@ -26,21 +26,16 @@ class VKTest;
 namespace Omnia {
 
 struct VkContextData {
-    vk::Instance Intance;
-    vk::PhysicalDevice PhysicalDevice;
-    vk::Device Device;
-    uint32_t QueueIndex;
-    vk::Queue Queue;
-    vk::PipelineCache PipelineCache;
-    vk::DescriptorPool DescriptorPool;
+    Reference<VKDevice> iDevice;
+    Reference<VKSwapChain> iSwapChain;
+
     vk::AllocationCallbacks Allocator = nullptr;
-    uint32_t MinImageCount = 2;
-    uint32_t ImageCount = 16;
-    vk::RenderPass RenderPass;
+    vk::Instance Intance;
+    vk::Queue Queue;
+    uint32_t QueueIndex;
     vk::SurfaceKHR Surface;
+    vk::RenderPass RenderPass;
     vk::SwapchainKHR Swapchain;
-    vk::CommandPool CommandPool;
-    vk::Semaphore Semaphore;
 };
 
 

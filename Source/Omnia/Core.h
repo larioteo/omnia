@@ -1,4 +1,6 @@
-#pragma once
+﻿#pragma once
+
+#include "Omnia/Omnia.pch"
 
 #include "Omnia.settings"
 #include "Platform.h"

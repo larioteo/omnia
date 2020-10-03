@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "Omnia/Omnia.pch"
 #include "Omnia/Core.h"
 
 #include "Vulkan.h"
@@ -9,16 +8,25 @@ namespace Omnia {
 
 class VKInstance {
 public:
+    // Default
     VKInstance();
-    ~VKInstance() = default;
+    ~VKInstance();
 
-    vk::Instance Call();
+    // Accessors
+    const vk::Instance &Call() const;
 
-    operator vk::Instance();
+    // Conversions
+    operator const vk::Instance &() const;
 
 private:
+    // Internal
+    static vector<const char *> GetLayers(const vector<vk::LayerProperties> &available, const vector<const char*> &needed);
+    static vector<const char *> GetExtensions(const vector<vk::ExtensionProperties> &available, const vector<const char*> &needed);
+
+private:
+    // Properties
     vk::Instance mInstance = nullptr;
-    static inline vk::InstanceCreateInfo mProperties = {};
+    VkDebugUtilsMessengerEXT mDebugUtilsMessanger;
 };
 
 }

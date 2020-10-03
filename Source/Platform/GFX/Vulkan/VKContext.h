@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "Omnia/GFX/Context.h"
-#include "Omnia/Utility/Timer.h"
 
 #if defined(APP_PLATFORM_WINDOWS)
     #define VC_EXTRALEAN
@@ -9,39 +8,19 @@
     #define NOMINMAX
     #undef APIENTRY
     #include <Windows.h>
-
-    #define VK_USE_PLATFORM_WIN32_KHR
 #endif
 
-#include <vulkan/vulkan.hpp>
-
+#include "Vulkan.h"
+#include "VKAllocator.h"
 #include "VKInstance.h"
 #include "VKDevice.h"
 #include "VKSwapChain.h"
 
-namespace Ultra {
-class VKTest;
-}
-
 namespace Omnia {
 
-struct VkContextData {
-    Reference<VKDevice> iDevice;
-    Reference<VKSwapChain> iSwapChain;
-
-    vk::AllocationCallbacks Allocator = nullptr;
-    vk::Instance Intance;
-    vk::Queue Queue;
-    uint32_t QueueIndex;
-    vk::SurfaceKHR Surface;
-    vk::RenderPass RenderPass;
-    vk::SwapchainKHR Swapchain;
-};
-
+struct VkContextData {};
 
 class VKContext: public Context {
-    friend Ultra::VKTest;
-
 public:
     VKContext(void *window);	// previous CreateContext
     virtual ~VKContext();		// previous DestroyContext
@@ -52,6 +31,7 @@ public:
     virtual void Detach() override;
 
     // Accessors
+    Reference<VKDevice> GetDevice() { return mDevice; }
     virtual void *GetNativeContext() override;
     virtual bool const IsCurrentContext() override;
 
@@ -62,17 +42,25 @@ public:
     // Settings
     virtual void SetVSync(bool activate) override;
 
+    // Native (needs a rework)
+    const Reference<VKInstance> &GetInstance() const { return mInstance; }
+    const Reference<VKDevice> &GetDevice() const { return mDevice; }
+    const Reference<VKPhysicalDevice> &GetPhyiscalDevice() const { return mPhysicalDevice; }
+    const vk::PipelineCache &GetPipelineCache() const { return mPipelineCache; }
+    const Reference<VKSwapChain> &GetSwapChain() const { return mSwapChain; }
+    const vk::SurfaceKHR &GetSurface() const { return mSurface; }
+    const vk::RenderPass &GetRenderPass() const { return mSwapChain->GetRenderPass(); }
 
 private:
-    HWND WindowHandle;
+    HWND mWindowHandle;
 
     Reference<VKInstance> mInstance;
     Reference<VKPhysicalDevice> mPhysicalDevice;
     Reference<VKDevice> mDevice;
-    vk::SurfaceKHR Surface;
-    vk::SurfaceCapabilitiesKHR mCapabilities;
-    vk::SurfaceFormatKHR mFormat;
     Reference<VKSwapChain> mSwapChain;
+
+    vk::PipelineCache mPipelineCache;
+    vk::SurfaceKHR mSurface;
 };
 
 }

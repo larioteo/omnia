@@ -4,10 +4,7 @@
 #include "Omnia/Core.h"
 
 #include "Vulkan.h"
-
-namespace Ultra {
-class VKTest;
-}
+#include "VKInstance.h"
 
 namespace Omnia {
 
@@ -20,17 +17,15 @@ struct VKQueueFamilyIndices {
 };
 
 class VKPhysicalDevice {
-    friend Ultra::VKTest;
-    friend class VKContext; // ToDo: Only needed while porting code
     friend class VKDevice;
-    friend class VKSwapChain; // ToDo: Only needed while porting code
 
 public:
-    explicit VKPhysicalDevice(const vk::Instance &instance);
+    // Default
+    explicit VKPhysicalDevice(const Reference<VKInstance> &instance);
     ~VKPhysicalDevice() = default;
 
     // Accessors
-    const vk::PhysicalDevice &GePhysicalDevice() const;
+    const vk::PhysicalDevice &Call() const;
     const vk::PhysicalDeviceFeatures &GetFeatures() const;
     const vk::PhysicalDeviceProperties &GetProperties() const;
     const vk::PhysicalDeviceMemoryProperties &GetMemoryProperties() const;
@@ -42,16 +37,23 @@ public:
     // Queries
     bool IsExtensionSupport(const string &name) const;
 
-private:
-    // Internal
-    vk::PhysicalDevice ChoosePhysicalDevice(const vector<vk::PhysicalDevice> &devices);
-    uint32_t GetPhysicalDeviceRanking(const vk::PhysicalDevice &device);
+    vk::Format GetDepthFormat() const;
     uint32_t GetMemoryTypeIndex(uint32_t bits, vk::MemoryPropertyFlags properties);
-    VKQueueFamilyIndices GetQueueFamilyIndices(vk::QueueFlags flags);
+    const int32_t GetQueueFamilyIndex(vk::QueueFlags flag) const;
+
+protected:
+    const vector<vk::DeviceQueueCreateInfo> &GetQueueCreateInfo() const;
 
 private:
-    const vk::Instance mInstance;
-    static inline const float DefaultPriority = 0.0f;
+    // Internal
+    vk::Format ChooseDepthFormat() const;
+    vk::PhysicalDevice ChoosePhysicalDevice(const vector<vk::PhysicalDevice> &devices);
+    VKQueueFamilyIndices GetQueueFamilyIndices(vk::QueueFlags flags);
+    uint32_t RankPhysicalDevice(const vk::PhysicalDevice &device);
+
+private:
+    Reference<VKInstance> mInstance = nullptr;
+    static inline const float mDefaultPriority = 0.0f;
 
     vector<vk::PhysicalDevice> mPhysicalDevices = {};
     std::unordered_set<string> mSupportedExtensions = {};
@@ -67,33 +69,34 @@ private:
 };
 
 class VKDevice {
-    friend Ultra::VKTest;
-    friend class VKContext; // ToDo: Only needed while porting code
-    friend class VKSwapChain; // ToDo: Only needed while porting code
-
 public:
+    // Default
     VKDevice(const Reference<VKPhysicalDevice> &physicalDevice);
     ~VKDevice() = default;
     void Destroy();
 
     // Accessors
-    const vk::Device &GetDevice() const;
-    const vk::CommandBuffer &GetCommandBuffer(bool start = false) const;
+    const vk::Device &Call() const;
     const vk::Queue &GetQueue() const;
+    const vk::CommandPool &GetCommandPool() const;
     const Reference<VKPhysicalDevice> &GetPhysicalDevice() const;
 
     // Conversions
     operator const vk::Device &() const;
 
     // Commands
+    const vk::CommandBuffer &GetCommandBuffer(bool start = false) const;
+    vk::CommandBuffer CreateSecondaryCommandBuffer();
     void FlushCommandBuffer(vk::CommandBuffer &buffer);
+    void FlushCommandBuffer(vk::CommandBuffer &buffer, vk::SubmitInfo &submit);
 
 private:
-    Reference<VKPhysicalDevice> mPhysicalDevice;
+    Reference<VKPhysicalDevice> mPhysicalDevice = nullptr;
 
     vk::Device mDevice = nullptr;
-    vk::CommandPool mCommandPool;
-    vk::Queue mQueue;
+    vk::Queue mQueue = {};
+    vk::CommandPool mCommandPool = {};
+    vector<vk::CommandBuffer> mCommandBuffer = {};
 };
 
 }

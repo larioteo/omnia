@@ -22,8 +22,8 @@ struct SwapChainBuffer {
 };
 
 struct VKSemaphores {
-    vk::Semaphore PresentComplete;
-    vk::Semaphore RenderComplete;
+    vector<vk::Semaphore> PresentComplete;
+    vector<vk::Semaphore> RenderComplete;
 };
 
 struct VKSwapChainBuffer {
@@ -63,7 +63,7 @@ public:
     const vk::Rect2D &GetRenderArea() { return mRenderArea; }
     
     // ToDo: Remove after testing
-    vector<SwapChainBuffer> &GetSwapchainBuffer() { return mSwapchainBuffers2; }
+    void Test();
     vk::CommandPool &GetCommandPool() { return mCommandPool; }
     vector<vk::CommandBuffer> &GetCommandBuffers() { return mDrawCommandBuffers; }
     // ~ToDo
@@ -74,16 +74,25 @@ public:
 private:
     void FindImageFormatAndColorSpace();
 
-    void CreateRenderPass();
-    void CreateSynchronization();
-    void CreateFrameBuffer();
-    void CreateDrawBuffers();
+    void CreateImageViews();
     void CreateDepthStencilBuffer();
+    void CreateRenderPass();
+    void CreatePipeline();
+    void CreateFrameBuffer();
+    void CreateCommandBuffers();
+    void CreateDrawBuffers();
+    void CreateSynchronization();
+
     void DestroyFrameBuffer();
+
+    void ChooseCapabilities(const vk::SurfaceCapabilitiesKHR &capabilities, uint32_t width, uint32_t height);
+    void ChooseSurfaceFormat(const vector<vk::SurfaceFormatKHR> &surfaceFormats);
+    void ChoosePresentModes(const vector<vk::PresentModeKHR> &presentModes, bool sync = false);
 
 private:
     VKAllocator mAllocator;
     Reference<VKDevice> mDevice = nullptr;
+    uint32_t CurrentFrame = 0;
     uint32_t CurrentBufferIndex = 0;
     uint32_t QueueFamilyIndex = 0; // ToDo:: Remove
 
@@ -97,6 +106,7 @@ private:
 
     // SwapChain
     vk::SwapchainKHR mSwapchain = nullptr;
+    vk::PresentModeKHR mPresentMode;
     uint32_t mImageCount = 0;
     vector<vk::Image> mImages;
     vector<VKSwapChainBuffer> mSwapchainBuffers;
@@ -106,10 +116,15 @@ private:
     vk::CommandPool mCommandPool;
     vk::RenderPass RenderPass;
 
+    // Pipeline
+    vk::Pipeline mPipeline;
+    vk::PipelineLayout mPipelineLayout;
+
     // Surface
     vk::SurfaceKHR mSurface = nullptr;
     vk::Rect2D mRenderArea;
     vk::Extent2D mSurfaceSize;
+    vk::Extent2D mSurfaceScissor;
     vk::Viewport mViewport;
 
     // Synchronisation

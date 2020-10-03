@@ -1,105 +1,34 @@
 ﻿#include "VKInstance.h"
 
+#include "Omnia/Core.h"
 #include "Omnia/Log.h"
 
 PFN_vkCreateDebugUtilsMessengerEXT CreateDebugUtilsMessengerEXT;
 PFN_vkDestroyDebugUtilsMessengerEXT DestroyDebugUtilsMessengerEXT;
-VkDebugUtilsMessengerEXT dbg_messenger;
 
 // Define a callback to capture the messages
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessagerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* callbackData, void* userData) {
+    std::string type;
 
-    char prefix[64];
-    char *message = (char *)malloc(strlen(callbackData->pMessage) + 500);
-    assert(message);
+    using Omnia::applog;
+    using Omnia::Log;
 
-    //    if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
-    //        strcpy(prefix, "VERBOSE : ");
-    //    } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-    //        strcpy(prefix, "INFO : ");
-    //    } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-    //        strcpy(prefix, "WARNING : ");
-    //    } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-    //        strcpy(prefix, "ERROR : ");
-    //    }
     switch ((vk::DebugUtilsMessageSeverityFlagBitsEXT)messageSeverity) {
-        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError: {
-            Omnia::AppLogError("[GFX::Vulkan] ", callbackData->pMessageIdName, ": ", callbackData->pMessage);
-            break;
-        }
-        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo: {
-            Omnia::AppLogInfo("[GFX::Vulkan] ", callbackData->pMessageIdName, ": ", callbackData->pMessage);
-            break;
-        }
-        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose: {
-            Omnia::AppLogTrace("[GFX::Vulkan] ", callbackData->pMessageIdName, ": ", callbackData->pMessage);
-            break;
-        }
-        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning: {
-            Omnia::AppLogWarning("[GFX::Vulkan] ", callbackData->pMessageIdName, ": ", callbackData->pMessage);
-            break;
-        }
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:      { applog << Log::Error;     break; }
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:       { applog << Log::Info;      break; }
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:    { applog << Log::Trace;     break; }
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:    { applog << Log::Warning;   break; }
     }
-    
-//    if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) {
-//        strcat(prefix, "GENERAL");
-//    } else {
-//        if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_SPECIFICATION_BIT_EXT) {
-//            strcat(prefix, "SPEC");
-//            validation_error = 1;
-//        }
-//        if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) {
-//            if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_SPECIFICATION_BIT_EXT) {
-//                strcat(prefix, "|");
-//            }
-//            strcat(prefix, "PERF");
-//        }
-//
-//    }
-//sprintf(message,
-//        "%s - Message ID Number %d, Message ID String :\n%s",
-//        prefix,
-//        callbackData->messageIdNumber,
-//        callbackData->pMessageIdName,
-//        callbackData->pMessage);
-//if (callbackData->objectCount > 0) {
-//    char tmp_message[500];
-//    sprintf(tmp_message, "\n Objects - %d\n", callbackData->objectCount);
-//    strcat(message, tmp_message);
-//    for (uint32_t object = 0; object < callbackData->objectCount; ++object) {
-//        sprintf(tmp_message,
-//                " Object[%d] - Type %s, Value %p, Name \"%s\"\n",
-//                Object,
-//                DebugAnnotObjectToString(
-//                    callbackData->pObjects[object].objectType),
-//                (void*)(callbackData->pObjects[object].objectHandle),
-//                callbackData->pObjects[object].pObjectName);
-//        strcat(message, tmp_message);
-//    }
-//}
-//if (callbackData->cmdBufLabelCount > 0) {
-//    char tmp_message[500];
-//    sprintf(tmp_message,
-//            "\n Command Buffer Labels - %d\n",
-//            callbackData->cmdBufLabelCount);
-//    strcat(message, tmp_message);
-//    for (uint32_t label = 0; label < callbackData->cmdBufLabelCount; ++label) {
-//        sprintf(tmp_message,
-//                " Label[%d] - %s { %f, %f, %f, %f}\n",
-//                Label,
-//                callbackData->pCmdBufLabels[label].pLabelName,
-//                callbackData->pCmdBufLabels[label].color[0],
-//                callbackData->pCmdBufLabels[label].color[1],
-//                callbackData->pCmdBufLabels[label].color[2],
-//                callbackData->pCmdBufLabels[label].color[3]);
-//        strcat(message, tmp_message);
-//    }
-//}
-//
-//printf("%s\n", message);
-//fflush(stdout);
-//free(message);
-//// Don't bail out, but keep going.
+
+    applog << "[GFX::Vulkan] ";
+
+    switch ((vk::DebugUtilsMessageTypeFlagBitsEXT)messageType) {
+        case vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral:        { applog << "General"; break; }
+        case vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance:    { applog << "Performance"; break; }
+        case vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation:     { applog << "Validation"; break; }
+    }
+
+    applog << " : " << Log::Default << callbackData->pMessage << "\n";
     return false;
 }
 
@@ -131,8 +60,10 @@ VKInstance::VKInstance() {
     // Layers
     vector<vk::LayerProperties> availableLayers = vk::enumerateInstanceLayerProperties();
     vector<const char *> neededLayers = {
-        "VK_LAYER_LUNARG_standard_validation",
-        "VK_LAYER_KHRONOS_validation"
+        #ifdef APP_DEBUG_MODE
+            "VK_LAYER_LUNARG_standard_validation",
+            "VK_LAYER_KHRONOS_validation",
+        #endif
     };
     vector<const char *> layers = GetLayers(availableLayers, neededLayers);
 
@@ -150,33 +81,37 @@ VKInstance::VKInstance() {
     }
 
     // Debug
+    #ifdef APP_DEBUG_MODE
     CreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkCreateDebugUtilsMessengerEXT");
-    DestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT");
-
-    //vk::DebugUtilsMessengerCreateInfoEXT debugUtilMessangerCreateInfo = {};
-    //debugUtilMessangerCreateInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning;
-    //debugUtilMessangerCreateInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation;
-    //debugUtilMessangerCreateInfo.pfnUserCallback = &VulkanDebugMessagerCallback;
-    //auto mDebugUtilsMessenger = mInstance.createDebugUtilsMessengerEXTUnique(debugUtilMessangerCreateInfo);
-    // Setup our pointers to the VK_EXT_debug_utils commands
-    
-    VkDebugUtilsMessengerCreateInfoEXT debugMessangerCreateInfo;
-    debugMessangerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    debugMessangerCreateInfo.pNext = NULL;
-    debugMessangerCreateInfo.flags = 0;
-    debugMessangerCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
-    debugMessangerCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
-    debugMessangerCreateInfo.pfnUserCallback = DebugMessagerCallback;
-    debugMessangerCreateInfo.pUserData = NULL;
-    VkResult result = CreateDebugUtilsMessengerEXT(mInstance, &debugMessangerCreateInfo, NULL, &mDebugUtilsMessanger);
+    vk::DebugUtilsMessengerCreateInfoEXT messengerCreateInfo = {
+        vk::DebugUtilsMessengerCreateFlagsEXT(),
+        ( // Severitiies
+            //vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo     | 
+            //vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose  |
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning  |
+            vk::DebugUtilsMessageSeverityFlagBitsEXT::eError 
+        ),
+        ( // Types
+            vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral      |
+            vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance  |
+            vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation
+        ),
+        DebugMessagerCallback,
+        nullptr,
+    };
+    VkResult result = CreateDebugUtilsMessengerEXT(mInstance, reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT *>(&messengerCreateInfo), NULL, &mDebugUtilsMessanger);
+    #endif
 }
 
 VKInstance::~VKInstance() {
+    #ifdef APP_DEBUG_MODE
+    if (mDebugUtilsMessanger) {
+        DestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT");
+        DestroyDebugUtilsMessengerEXT(mInstance, mDebugUtilsMessanger, NULL);
+    }
+    #endif
     if (mInstance) {
         mInstance.destroy();
-    }
-    if (mDebugUtilsMessanger) {
-        DestroyDebugUtilsMessengerEXT(mInstance, mDebugUtilsMessanger, NULL);
     }
 }
 

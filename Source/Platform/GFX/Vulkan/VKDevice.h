@@ -16,6 +16,11 @@ struct VKQueueFamilyIndices {
     int32_t Transfer = -1;
 };
 
+enum class VKQueueTypes {
+    Graphics,
+    Present
+};
+
 class VKPhysicalDevice {
     friend class VKDevice;
 
@@ -77,7 +82,7 @@ public:
 
     // Accessors
     const vk::Device &Call() const;
-    const vk::Queue &GetQueue() const;
+    const vk::Queue &GetQueue(VKQueueTypes type = VKQueueTypes::Graphics) const;
     const vk::CommandPool &GetCommandPool() const;
     const Reference<VKPhysicalDevice> &GetPhysicalDevice() const;
 
@@ -94,7 +99,8 @@ private:
     Reference<VKPhysicalDevice> mPhysicalDevice = nullptr;
 
     vk::Device mDevice = nullptr;
-    vk::Queue mQueue = {};
+    vk::Queue mGraphicsQueue = {};
+    vk::Queue mPresentQueue = {};
     vk::CommandPool mCommandPool = {};
     vector<vk::CommandBuffer> mCommandBuffer = {};
 };

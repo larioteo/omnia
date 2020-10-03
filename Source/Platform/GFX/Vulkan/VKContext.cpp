@@ -14,8 +14,7 @@ VKContext::VKContext(void *window) {
     mDevice = CreateReference<VKDevice>(mPhysicalDevice);
 
     // Surface
-    VkWin32SurfaceCreateInfoKHR surfaceCreateinfo = {};
-    surfaceCreateinfo.flags = 0;
+    vk::Win32SurfaceCreateInfoKHR surfaceCreateinfo = {};
     surfaceCreateinfo.hinstance = GetModuleHandle(NULL);
     surfaceCreateinfo.hwnd = mWindowHandle;
     mSurface = mInstance->Call().createWin32SurfaceKHR(surfaceCreateinfo);
@@ -37,8 +36,11 @@ void VKContext::Load() {
 
 }
 
-void VKContext::Attach() {}
-void VKContext::Detach() {}
+void VKContext::Attach() {
+}
+
+void VKContext::Detach() {
+}
 
 void *VKContext::GetNativeContext() {
     static VkContextData *data = new VkContextData();
@@ -54,8 +56,10 @@ void VKContext::SetViewport(uint32_t width, uint32_t height, int32_t x, int32_t 
 }
 
 void VKContext::SwapBuffers() {
+    mDevice->Call().waitIdle();
     //mSwapChain->Present();
-    mSwapChain->Prepare();
+    //mSwapChain->Prepare();
+    mDevice->Call().waitIdle();
 }
 
 void VKContext::SetVSync(bool activate) {

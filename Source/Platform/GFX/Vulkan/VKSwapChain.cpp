@@ -1,10 +1,13 @@
 ﻿#include "VKSwapChain.h"
 
 #include "Omnia/Log.h"
+#include "Omnia/System/FileSystem.h"
 
 namespace Omnia {
 
-VKSwapChain::VKSwapChain(const Reference<VKDevice> &device, const vk::SurfaceKHR &surface): mDevice(device), mSurface(surface) {}
+VKSwapChain::VKSwapChain(const Reference<VKDevice> &device, const vk::SurfaceKHR &surface): mDevice(device), mSurface(surface) {
+    QueueFamilyIndex = mDevice->GetPhysicalDevice()->GetQueueFamilyIndex(vk::QueueFlagBits::eGraphics);
+}
 
 VKSwapChain::~VKSwapChain() {
     Destroy();
@@ -14,74 +17,22 @@ void VKSwapChain::Load() {
 }
 
 void VKSwapChain::Create(uint32_t width, uint32_t height, bool vsync) {
-
-    QueueFamilyIndex = mDevice->GetPhysicalDevice()->GetQueueFamilyIndex(vk::QueueFlagBits::eGraphics);
-    vk::Extent2D swapchainSize = vk::Extent2D(width, height);
-
     // Surface Support
     bool supported = mDevice->GetPhysicalDevice()->Call().getSurfaceSupportKHR(QueueFamilyIndex, mSurface);
     
-
-    // Surface Formats
-    vector<vk::SurfaceFormatKHR> surfaceFormats = mDevice->GetPhysicalDevice()->Call().getSurfaceFormatsKHR(mSurface);
-    if (surfaceFormats.size() == 1 && surfaceFormats[0].format == vk::Format::eUndefined) {
-        SurfaceColorFormat = vk::Format::eB8G8R8A8Unorm;
-    } else {
-        SurfaceColorFormat = surfaceFormats[0].format;
-    }
-    SurfaceColorSpace = surfaceFormats[0].colorSpace;
-    vector<vk::Format> depthFormats = {
-        vk::Format::eD32SfloatS8Uint,
-        vk::Format::eD32Sfloat,
-        vk::Format::eD24UnormS8Uint,
-        vk::Format::eD16UnormS8Uint,
-        vk::Format::eD16Unorm
-    };
-    for (vk::Format &format : depthFormats) {
-        vk::FormatProperties depthFormatProperties = mDevice->GetPhysicalDevice()->Call().getFormatProperties(format);
-
-        // Format must support depth stencil attachment for optimal tiling
-        if (depthFormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment) {
-            SurfaceDepthFormat = format;
-            break;
-        }
-    }
-
-
-    // Get cababilities and present modes
+    // Check SwapChain support details (capabilities, formats, present modes)
     vk::SurfaceCapabilitiesKHR surfaceCapabilities = mDevice->GetPhysicalDevice()->Call().getSurfaceCapabilitiesKHR(mSurface);
+    ChooseCapabilities(surfaceCapabilities, width, height);
+    vector<vk::SurfaceFormatKHR> surfaceFormats = mDevice->GetPhysicalDevice()->Call().getSurfaceFormatsKHR(mSurface);
+    ChooseSurfaceFormat(surfaceFormats);
     vector<vk::PresentModeKHR> surfacePresentModes = mDevice->GetPhysicalDevice()->Call().getSurfacePresentModesKHR(mSurface);
-    if (!(surfaceCapabilities.currentExtent.width == -1 || surfaceCapabilities.currentExtent.height == -1)) {
-        swapchainSize = surfaceCapabilities.currentExtent;
-        mRenderArea = vk::Rect2D(vk::Offset2D(), swapchainSize);
-        mViewport = vk::Viewport(0.0f, 0.0f, static_cast<float>(swapchainSize.width), static_cast<float>(swapchainSize.height), 0, 1.0f);
-    } else {
-    }
-    vk::PresentModeKHR presentMode = vk::PresentModeKHR::eImmediate;
-    for (auto &mode : surfacePresentModes) {
-        if (vsync) {
-            if (mode == vk::PresentModeKHR::eFifo) {
-                presentMode = vk::PresentModeKHR::eFifo;
-                break;
-            }
-        } else {
-            if (mode == vk::PresentModeKHR::eMailbox) {
-                presentMode = vk::PresentModeKHR::eMailbox;
-                break;
-            }
-        }
-    }
+    ChoosePresentModes(surfacePresentModes, vsync);
 
-
-    // Create Swapchain
+    // Swapchain Properties
     mDevice->Call().waitIdle();
     vk::SwapchainKHR oldSwapchain = mSwapchain;
+    mImageCount = std::clamp(surfaceCapabilities.maxImageCount, 1U, 3U);
 
-    uint32_t imageCount = std::clamp(surfaceCapabilities.maxImageCount, 1U, 3U);
-    mRenderArea = vk::Rect2D(vk::Offset2D(), mSurfaceSize);
-    mSurfaceSize = vk::Extent2D(std::clamp(width, 1U, 8192U), std::clamp(height, 1U, 8192U));
-    mViewport = vk::Viewport(0.0f, 0.0f, static_cast<float>(mSurfaceSize.width), static_cast<float>(mSurfaceSize.height), 0, 1.0f);
-    
     // Get the transformation of the surface
     vk::SurfaceTransformFlagBitsKHR surfaceTransform;
     if (surfaceCapabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity) {
@@ -105,85 +56,80 @@ void VKSwapChain::Create(uint32_t width, uint32_t height, bool vsync) {
         }
     }
 
+    // Create SwapChain
     vk::SwapchainCreateInfoKHR createInfo = {};
     createInfo.flags = vk::SwapchainCreateFlagsKHR();
     createInfo.surface = mSurface;
-    createInfo.minImageCount = imageCount;
+    createInfo.minImageCount = mImageCount;
     createInfo.imageFormat = SurfaceColorFormat;
     createInfo.imageColorSpace = SurfaceColorSpace;
     createInfo.imageExtent = mSurfaceSize;
     createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
     createInfo.imageArrayLayers = 1;
     createInfo.imageSharingMode = vk::SharingMode::eExclusive;
-    createInfo.queueFamilyIndexCount = 0;
+    createInfo.queueFamilyIndexCount = 0; // ToDo: Look after presentFamily!
     createInfo.preTransform = surfaceTransform;
     createInfo.pQueueFamilyIndices = nullptr;
     createInfo.compositeAlpha = compositeAlpha;
-    createInfo.presentMode = presentMode;
+    createInfo.presentMode = mPresentMode;
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = oldSwapchain;
     if (surfaceCapabilities.supportedUsageFlags & vk::ImageUsageFlagBits::eTransferSrc) {
-        //createInfo.imageUsage = vk::ImageUsageFlagBits::eTransferSrc;
+        createInfo.imageUsage |= vk::ImageUsageFlagBits::eTransferSrc;
     }
     if (surfaceCapabilities.supportedUsageFlags & vk::ImageUsageFlagBits::eTransferDst) {
-        //createInfo.imageUsage = vk::ImageUsageFlagBits::eTransferDst;
+        createInfo.imageUsage |= vk::ImageUsageFlagBits::eTransferDst;
     }
-    mSwapchain = mDevice->Call().createSwapchainKHR(createInfo);
+    try {
+        mSwapchain = mDevice->Call().createSwapchainKHR(createInfo);
+    } catch (vk::SystemError exception) {
+        //AppLogCritical(exception);
+    }
 
+    // Destroy previous SwapChain and ImageViews
     if (oldSwapchain != vk::SwapchainKHR(nullptr)) {
-        for (uint32_t i = 0; i < imageCount; i++) {
-            //mDevice->Call().destroyImageView(mSwapchainBuffers[i].View, nullptr);
+        for (uint32_t i = 0; i < mImageCount; i++) {
+            mDevice->Call().destroyImageView(mSwapchainBuffers[i].View);
         }
         mDevice->Call().destroySwapchainKHR(oldSwapchain);
     }
+    
+    CreateImageViews();
+    CreateDepthStencilBuffer();
+    CreateRenderPass();
+    CreatePipeline();
+    CreateFrameBuffer();
+    CreateDrawBuffers();
+    CreateSynchronization();
+}
 
+void VKSwapChain::CreateImageViews() {
+    mDevice->Call().getSwapchainImagesKHR(mSwapchain, &mImageCount, nullptr);
     mImages.resize(mImageCount);
     mDevice->Call().getSwapchainImagesKHR(mSwapchain, &mImageCount, mImages.data());
 
-    mSwapchainBuffers2.resize(imageCount);
     mSwapchainBuffers.resize(mImageCount);
     for (size_t i = 0; i < mImageCount; i++) {
-        vk::ImageViewCreateInfo colorAttachmentView = {};
-        colorAttachmentView.format = SurfaceColorFormat;
-        colorAttachmentView.components = {
+        vk::ImageViewCreateInfo createInfo = {};
+        createInfo.format = SurfaceColorFormat;
+        createInfo.viewType = vk::ImageViewType::e2D;
+        createInfo.components = {  // eIdentity for all?
             vk::ComponentSwizzle::eR,
             vk::ComponentSwizzle::eG,
             vk::ComponentSwizzle::eB,
             vk::ComponentSwizzle::eA,
         };
-        colorAttachmentView.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-        colorAttachmentView.subresourceRange.baseMipLevel = 0;
-        colorAttachmentView.subresourceRange.levelCount = 1;
-        colorAttachmentView.subresourceRange.baseArrayLayer = 0;
-        colorAttachmentView.subresourceRange.layerCount = 1;
-        colorAttachmentView.viewType = vk::ImageViewType::e2D;
+        createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+        createInfo.subresourceRange.baseMipLevel = 0;
+        createInfo.subresourceRange.levelCount = 1;
+        createInfo.subresourceRange.baseArrayLayer = 0;
+        createInfo.subresourceRange.layerCount = 1;
 
-        //mSwapchainBuffers[i].Image = mImages[i];
-        //colorAttachmentView.image = mSwapchainBuffers[i].Image;
-        //mSwapchainBuffers[i].View = mDevice->Call().createImageView(colorAttachmentView, nullptr);
+        mSwapchainBuffers[i].Image = mImages[i];
+        createInfo.image = mSwapchainBuffers[i].Image;
+
+        mSwapchainBuffers[i].View = mDevice->Call().createImageView(createInfo);
     }
-
-    CreateDrawBuffers();
-    CreateDepthStencilBuffer();
-    CreateRenderPass();
-    CreateSynchronization();
-    CreateFrameBuffer();
-}
-
-void VKSwapChain::CreateDrawBuffers() {
-    mDrawCommandBuffers.resize(mImageCount);
-
-    vk::CommandPoolCreateInfo commandPoolCreateInfo = {};
-    commandPoolCreateInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
-    commandPoolCreateInfo.queueFamilyIndex = QueueFamilyIndex;
-    //mCommandPool = mDevice->Call().createCommandPool(commandPoolCreateInfo, nullptr);
-    mCommandPool = mDevice->GetCommandPool();
-
-    vk::CommandBufferAllocateInfo commandBufferAllocateInfo = {};
-    commandBufferAllocateInfo.commandPool = mCommandPool;
-    commandBufferAllocateInfo.level = vk::CommandBufferLevel::ePrimary;
-    commandBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(mDrawCommandBuffers.size());
-    mDrawCommandBuffers = mDevice->Call().allocateCommandBuffers(commandBufferAllocateInfo);
 }
 
 void VKSwapChain::CreateDepthStencilBuffer() {
@@ -273,7 +219,7 @@ void VKSwapChain::CreateRenderPass() {
     vk::AttachmentReference depthReferences = {
         vk::AttachmentReference(1, vk::ImageLayout::eDepthStencilAttachmentOptimal),
     };
-    
+
     // Subpasses
     vector<vk::SubpassDescription> subpasses = {
         vk::SubpassDescription(
@@ -320,96 +266,284 @@ void VKSwapChain::CreateRenderPass() {
     );
 }
 
+void VKSwapChain::CreatePipeline() {
+    auto vertexShaderCode = ReadFile("assets/shaders/Basic.vert.spv");
+    auto vertexShaderModule = mDevice->Call().createShaderModuleUnique(
+        vk::ShaderModuleCreateInfo(
+            vk::ShaderModuleCreateFlags(),
+            vertexShaderCode.size(),
+            reinterpret_cast<const uint32_t *>(vertexShaderCode.data())
+        )
+    );
+
+    auto fragmentShaderCode = ReadFile("assets/shaders/Basic.frag.spv");
+    auto fragmentShaderModule = mDevice->Call().createShaderModuleUnique(
+        vk::ShaderModuleCreateInfo(
+            vk::ShaderModuleCreateFlags(),
+            fragmentShaderCode.size(),
+            reinterpret_cast<const uint32_t *>(fragmentShaderCode.data())
+        )
+    );
+
+    vk::PipelineShaderStageCreateInfo shaderStages[] = { 
+        {
+            vk::PipelineShaderStageCreateFlags(),
+            vk::ShaderStageFlagBits::eVertex,
+            *vertexShaderModule,
+            "main"
+        }, 
+        {
+            vk::PipelineShaderStageCreateFlags(),
+            vk::ShaderStageFlagBits::eFragment,
+            *fragmentShaderModule,
+            "main"
+        } 
+    };
+
+    vk::PipelineVertexInputStateCreateInfo vertexInputInfo = {};
+    vertexInputInfo.vertexBindingDescriptionCount = 0;
+    vertexInputInfo.vertexAttributeDescriptionCount = 0;
+
+    vk::PipelineInputAssemblyStateCreateInfo inputAssembly = {};
+    inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
+    inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+    vk::PipelineViewportStateCreateInfo viewportState = {};
+    viewportState.viewportCount = 1;
+    viewportState.pViewports = &mViewport;
+    viewportState.scissorCount = 1;
+    viewportState.pScissors = &mRenderArea;
+
+    vk::PipelineDepthStencilStateCreateInfo depthStencilState = {};
+    depthStencilState.depthTestEnable = VK_TRUE;
+    depthStencilState.depthWriteEnable = VK_TRUE;
+    depthStencilState.depthCompareOp = vk::CompareOp::eLessOrEqual;
+    depthStencilState.depthBoundsTestEnable = VK_FALSE;
+    depthStencilState.back.failOp = vk::StencilOp::eKeep;
+    depthStencilState.back.passOp = vk::StencilOp::eKeep;
+    depthStencilState.back.compareOp = vk::CompareOp::eAlways;
+    depthStencilState.stencilTestEnable = VK_FALSE;
+    depthStencilState.front = depthStencilState.back;
+
+    vk::PipelineRasterizationStateCreateInfo rasterizer = {};
+    rasterizer.depthClampEnable = VK_FALSE;
+    rasterizer.rasterizerDiscardEnable = VK_FALSE;
+    rasterizer.polygonMode = vk::PolygonMode::eFill;
+    rasterizer.lineWidth = 1.0f;
+    rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+    rasterizer.frontFace = vk::FrontFace::eClockwise;
+    rasterizer.depthBiasEnable = VK_FALSE;
+
+    vk::PipelineMultisampleStateCreateInfo multisampling = {};
+    multisampling.sampleShadingEnable = VK_FALSE;
+    multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
+
+    vk::PipelineColorBlendAttachmentState colorBlendAttachment = {};
+    colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+    colorBlendAttachment.blendEnable = VK_FALSE;
+
+    vk::PipelineColorBlendStateCreateInfo colorBlending = {};
+    colorBlending.logicOpEnable = VK_FALSE;
+    colorBlending.logicOp = vk::LogicOp::eCopy;
+    colorBlending.attachmentCount = 1;
+    colorBlending.pAttachments = &colorBlendAttachment;
+    colorBlending.blendConstants[0] = 0.0f;
+    colorBlending.blendConstants[1] = 0.0f;
+    colorBlending.blendConstants[2] = 0.0f;
+    colorBlending.blendConstants[3] = 0.0f;
+
+    vk::PipelineLayoutCreateInfo pipelineLayoutInfo = {};
+    pipelineLayoutInfo.setLayoutCount = 0;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+
+    mPipelineLayout = mDevice->Call().createPipelineLayout(pipelineLayoutInfo);
+
+
+    vk::GraphicsPipelineCreateInfo pipelineInfo = {};
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDepthStencilState = &depthStencilState;
+    pipelineInfo.layout = mPipelineLayout;
+    pipelineInfo.renderPass = RenderPass;
+    pipelineInfo.subpass = 0;
+    pipelineInfo.basePipelineHandle = nullptr;
+
+    auto result = mDevice->Call().createGraphicsPipeline(nullptr, pipelineInfo);
+    mPipeline = result.value;
+}
+
+void VKSwapChain::CreateFrameBuffer() {
+    vector<vk::ImageView> attachments;
+    attachments.resize(2);
+    attachments[1] = mDepthStencil.View;
+
+    vk::FramebufferCreateInfo createInfo = {};
+    createInfo.renderPass = RenderPass;
+    createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    createInfo.pAttachments = attachments.data();
+    createInfo.width = mSurfaceSize.width;
+    createInfo.height = mSurfaceSize.height;
+    createInfo.layers = 1;
+
+    mFramebuffers.resize(mImageCount);
+    for (size_t i = 0; i < mFramebuffers.size(); i++) {
+        attachments[0] = mSwapchainBuffers[i].View;
+        mFramebuffers[i] = mDevice->Call().createFramebuffer(createInfo);
+    }
+}
+
+void VKSwapChain::CreateDrawBuffers() {
+    mDrawCommandBuffers.resize(mImageCount);
+
+    vk::CommandPoolCreateInfo commandPoolCreateInfo = {};
+    commandPoolCreateInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
+    commandPoolCreateInfo.queueFamilyIndex = QueueFamilyIndex;
+    //mCommandPool = mDevice->Call().createCommandPool(commandPoolCreateInfo, nullptr);
+    mCommandPool = mDevice->GetCommandPool();
+
+    vk::CommandBufferAllocateInfo commandBufferAllocateInfo = {};
+    commandBufferAllocateInfo.commandPool = mCommandPool;
+    commandBufferAllocateInfo.level = vk::CommandBufferLevel::ePrimary;
+    commandBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(mDrawCommandBuffers.size());
+    mDrawCommandBuffers = mDevice->Call().allocateCommandBuffers(commandBufferAllocateInfo);
+
+    for (size_t i = 0; i < mDrawCommandBuffers.size(); i++) {
+        vk::CommandBufferBeginInfo beginInfo = {};
+        beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+        mDrawCommandBuffers[i].begin(beginInfo);
+
+        vk::RenderPassBeginInfo renderPassInfo = {};
+        renderPassInfo.renderPass = RenderPass;
+        renderPassInfo.framebuffer = mFramebuffers[i];
+        renderPassInfo.renderArea.offset = { 0, 0 };
+        renderPassInfo.renderArea.extent = mSurfaceSize;
+
+        vk::ClearValue clearValues[2];
+        clearValues[0].color = array<float, 4> { 0.1f, 0.1f,0.1f, 1.0f};
+        clearValues[1].depthStencil = { 1.0f, 0 };
+
+        renderPassInfo.clearValueCount = 2;
+        renderPassInfo.pClearValues = clearValues;
+
+        mDrawCommandBuffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+        mDrawCommandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline);
+        mDrawCommandBuffers[i].draw(3, 1, 0, 0);
+        mDrawCommandBuffers[i].endRenderPass();
+
+        mDrawCommandBuffers[i].end();
+    }
+}
+
 void VKSwapChain::CreateSynchronization() {
-    // Semaphore used to ensures that image presentation is complete before starting to submit again
-    mSemaphores.PresentComplete = mDevice->Call().createSemaphore(vk::SemaphoreCreateInfo());
-
-    // Semaphore used to ensures that all commands submitted have been finished before submitting the image to the queue
-    mSemaphores.RenderComplete = mDevice->Call().createSemaphore(vk::SemaphoreCreateInfo());
-
-    // Fence for command buffer completion
+    mSemaphores.PresentComplete.resize(mSwapchainBuffers.size());
+    mSemaphores.RenderComplete.resize(mSwapchainBuffers.size());
     mWaitFences.resize(mSwapchainBuffers.size());
-    for (size_t i = 0; i < mWaitFences.size(); i++) {
+
+    for (size_t i = 0; i < mSwapchainBuffers.size(); i++) {
+        // Semaphore used to ensures that image presentation is complete before starting to submit again
+        mSemaphores.PresentComplete[i] = mDevice->Call().createSemaphore(vk::SemaphoreCreateInfo());
+
+        // Semaphore used to ensures that all commands submitted have been finished before submitting the image to the queue
+        mSemaphores.RenderComplete[i] = mDevice->Call().createSemaphore(vk::SemaphoreCreateInfo());
+
+        // Fence for command buffer completion
         mWaitFences[i] = mDevice->Call().createFence(vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
     }
 }
 
-void VKSwapChain::CreateFrameBuffer() {
-    //vector<vk::ImageView> attachments;
-    //attachments.resize(3);
-    //attachments[1] = mDepthStencil.View;
 
-    //mFramebuffers.resize(mImageCount);
-    //for (uint32_t i = 0; i < mFramebuffers.size(); i++) {
-    //    attachments[0] = mSwapchainBuffers[i].View;
-
-    //    mFramebuffers[i] = mDevice->Call().createFramebuffer(
-    //        vk::FramebufferCreateInfo(
-    //            vk::FramebufferCreateFlags(),
-    //            RenderPass,
-    //            attachments
-    //            //1280U,
-    //            //1024U,
-    //            //1
-    //        )
-    //    );
-    //}
-    // Should be enough
-
-    std::vector<vk::Image> swapchainImages = mDevice->Call().getSwapchainImagesKHR(mSwapchain);
-
-    for (size_t i = 0; i < swapchainImages.size(); i++) {
-        GetSwapchainBuffer()[i].image = swapchainImages[i];
-
-        // Color
-        GetSwapchainBuffer()[i].views[0] = mDevice->Call().createImageView(
-            vk::ImageViewCreateInfo(
-                vk::ImageViewCreateFlags(),
-                swapchainImages[i],
-                vk::ImageViewType::e2D,
-                SurfaceColorFormat,
-                vk::ComponentMapping(),
-                vk::ImageSubresourceRange(
-                    vk::ImageAspectFlagBits::eColor,
-                    0,
-                    1,
-                    0,
-                    1
-                )
-            )
+void VKSwapChain::ChooseCapabilities(const vk::SurfaceCapabilitiesKHR &capabilities, uint32_t width, uint32_t height) {
+    if (!(capabilities.currentExtent.width == -1 || capabilities.currentExtent.height == -1)) {
+        mSurfaceSize = capabilities.currentExtent;
+    } else {
+        mSurfaceSize = vk::Extent2D(
+            std::clamp(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
+            std::clamp(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)
         );
+    }
+    mRenderArea = vk::Rect2D(vk::Offset2D(), mSurfaceSize);
+    mViewport = vk::Viewport(0.0f, 0.0f, static_cast<float>(mSurfaceSize.width), static_cast<float>(mSurfaceSize.height), 0, 1.0f);
+}
 
-        // Depth
-        GetSwapchainBuffer()[i].views[1] = mDepthStencil.View;
+void VKSwapChain::ChooseSurfaceFormat(const vector<vk::SurfaceFormatKHR> &surfaceFormats) {
+    // Color Buffer
+    if (surfaceFormats.size() == 1 && surfaceFormats[0].format == vk::Format::eUndefined) {
+        SurfaceColorFormat = vk::Format::eB8G8R8A8Unorm;
+        SurfaceColorSpace = vk::ColorSpaceKHR::eSrgbNonlinear;
+    } else {
+        SurfaceColorFormat = surfaceFormats[0].format;
+        SurfaceColorSpace = surfaceFormats[0].colorSpace;
+    }
 
-        // Framebuffer
-        GetSwapchainBuffer()[i].frameBuffer = mDevice->Call().createFramebuffer(
-            vk::FramebufferCreateInfo(
-                vk::FramebufferCreateFlags(),
-                RenderPass,
-                static_cast<uint32_t>(GetSwapchainBuffer()[i].views.size()),
-                GetSwapchainBuffer()[i].views.data(),
-                mSurfaceSize.width, mSurfaceSize.height,
-                1
-            )
-        );
+    // Depth Buffer
+    vector<vk::Format> depthFormats = {
+        vk::Format::eD32SfloatS8Uint,
+        vk::Format::eD32Sfloat,
+        vk::Format::eD24UnormS8Uint,
+        vk::Format::eD16UnormS8Uint,
+        vk::Format::eD16Unorm
+    };
+    for (vk::Format &format : depthFormats) {
+        vk::FormatProperties depthFormatProperties = mDevice->GetPhysicalDevice()->Call().getFormatProperties(format);
+
+        // Format must support depth stencil attachment for optimal tiling
+        if (depthFormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment) {
+            SurfaceDepthFormat = format;
+            break;
+        }
+    }
+}
+
+void VKSwapChain::ChoosePresentModes(const vector<vk::PresentModeKHR> &presentModes, bool sync) {
+    mPresentMode = vk::PresentModeKHR::eFifo;
+
+    if (!sync) {
+        for (auto &mode : presentModes) {
+            switch (mode) {
+                case vk::PresentModeKHR::eMailbox:      { mPresentMode = vk::PresentModeKHR::eMailbox;   break; }
+                case vk::PresentModeKHR::eImmediate:    { mPresentMode = vk::PresentModeKHR::eImmediate; break; }
+                default:                                { break;}
+            }
+        }
     }
 }
 
 void VKSwapChain::Destroy() {
     mDevice->Call().waitIdle();
-    mDevice->Call().freeCommandBuffers(mDevice->GetCommandPool(), mDrawCommandBuffers);
-    mDevice->Call().destroyRenderPass(RenderPass);
-    mDevice->Call().destroySwapchainKHR(mSwapchain);
-    mDevice->Call().destroySemaphore(mSemaphores.PresentComplete);
-    mDevice->Call().destroySemaphore(mSemaphores.RenderComplete);
+
+    for (vk::Semaphore &semaphore : mSemaphores.PresentComplete) {
+        mDevice->Call().destroySemaphore(semaphore);
+    }
+    for (vk::Semaphore &semaphore : mSemaphores.RenderComplete) {
+        mDevice->Call().destroySemaphore(semaphore);
+    }
     for (vk::Fence &fence : mWaitFences) {
         mDevice->Call().destroyFence(fence);
     }
-    mDevice->Call().waitIdle();
+
+    mDevice->Call().freeCommandBuffers(mDevice->GetCommandPool(), mDrawCommandBuffers);
+    mDevice->Call().destroyCommandPool(mCommandPool);
+
+    mDevice->Call().destroyPipeline(mPipeline);
+    mDevice->Call().destroyPipelineLayout(mPipelineLayout);
+    mDevice->Call().destroyRenderPass(RenderPass);
+
+    for (auto buffer : mSwapchainBuffers) {
+        mDevice->Call().destroyImageView(buffer.View);
+    }
+
+    mDevice->Call().destroySwapchainKHR(mSwapchain);
+
 }
 
 void VKSwapChain::Cleanup() {
+    Destroy();
     if (mSwapchain) {
         for (size_t i = 0; i < mImageCount; i++) {
             mDevice->Call().destroyImageView(mSwapchainBuffers[i].View);
@@ -420,6 +554,7 @@ void VKSwapChain::Cleanup() {
 }
 
 void VKSwapChain::Resize(uint32_t width, uint32_t height) {
+    return;
     mDevice->Call().waitIdle();
 
     Create(width, height);
@@ -442,7 +577,47 @@ void VKSwapChain::Resize(uint32_t width, uint32_t height) {
 }
 
 void VKSwapChain::Prepare() {
-    AquireNextImage(mSemaphores.PresentComplete, &CurrentBufferIndex);
+    AquireNextImage(mSemaphores.PresentComplete[CurrentBufferIndex], &CurrentBufferIndex);
+}
+
+void VKSwapChain::Test() {
+    mDevice->Call().waitForFences(1, &mWaitFences[CurrentFrame], VK_TRUE, 100);
+    mDevice->Call().resetFences(mWaitFences[CurrentFrame]);
+
+    CurrentBufferIndex = mDevice->Call().acquireNextImageKHR(mSwapchain, UINT64_MAX, mSemaphores.PresentComplete[CurrentFrame], nullptr).value;
+
+    vk::SubmitInfo submitInfo = {};
+    vk::Semaphore waitSemaphores[] = { mSemaphores.PresentComplete[CurrentFrame] };
+    vk::PipelineStageFlags waitStages[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &mDrawCommandBuffers[CurrentBufferIndex];
+
+    vk::Semaphore signalSemaphores[] = { mSemaphores.RenderComplete[CurrentBufferIndex] };
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    mDevice->GetQueue().submit(submitInfo, mWaitFences[CurrentFrame]);
+
+    mDevice->Call().waitForFences(1, &mWaitFences[CurrentFrame], VK_TRUE, UINT64_MAX);
+    mDevice->Call().resetFences(mWaitFences[CurrentFrame]);
+
+
+    vk::PresentInfoKHR presentInfo = {};
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+
+    vk::SwapchainKHR swapChains[] = { mSwapchain };
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &CurrentBufferIndex;
+    presentInfo.pResults = nullptr; // Optional
+
+    mDevice->GetQueue().presentKHR(presentInfo);
+
+    CurrentFrame = (CurrentFrame + 1) % mImageCount;
 }
 
 void VKSwapChain::Present() {
@@ -463,7 +638,7 @@ void VKSwapChain::Present() {
     //submitInfo.pWaitSemaphores = &mSemaphores.PresentComplete;
 
     mDevice->GetQueue().submit(submitInfo, mWaitFences[CurrentBufferIndex]);
-    vk::Result result = QueuePresent(mDevice->GetQueue(), CurrentBufferIndex, mSemaphores.RenderComplete);
+    vk::Result result = QueuePresent(mDevice->GetQueue(), CurrentBufferIndex, mSemaphores.RenderComplete[0]);
     if (result != vk::Result::eSuccess || result != vk::Result::eSuboptimalKHR) {
         // Swapchain lost, we'll try again next poll
         if (result != vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {

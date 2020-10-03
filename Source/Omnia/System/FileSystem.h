@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <filesystem>
 #include <fstream>
@@ -39,7 +39,8 @@ static const std::string GetFileRoot(const std::string &object) noexcept {
 /* Read data from file system object. */
 static std::string ReadFile(const std::string &file) {
 	std::string result;
-	std::ifstream stream(file, std::ios::in | std::ios::binary);
+	std::ifstream stream(file, std::ios::in | std::ios::binary); // ate?
+    // if is_open file in use
 	if (stream) {
 		stream.seekg(0, std::ios::end);
 		size_t size = stream.tellg();

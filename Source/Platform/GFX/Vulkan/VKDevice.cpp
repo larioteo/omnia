@@ -9,6 +9,16 @@ namespace Omnia {
 namespace {
 
 // ToDo: Not needed anymore but maybe usefull
+//bool CheckDeviceExtensionSupport(const vk::PhysicalDevice& device) {
+//    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+//
+//    for (const auto& extension : device.enumerateDeviceExtensionProperties()) {
+//        requiredExtensions.erase(extension.extensionName);
+//    }
+//
+//    return requiredExtensions.empty();
+//}
+
 uint32_t GetQueueIndex(vk::PhysicalDevice& physicalDevice, vk::QueueFlagBits flags) {
     vector<vk::QueueFamilyProperties> queueProps = physicalDevice.getQueueFamilyProperties();
     for (size_t i = 0; i < queueProps.size(); ++i) {
@@ -50,7 +60,6 @@ VKPhysicalDevice::VKPhysicalDevice(const Reference<VKInstance> &instance): mInst
     mQueueFamilyProperties = mPhysicalDevice.getQueueFamilyProperties();
     for (auto &extension : mPhysicalDevice.enumerateDeviceExtensionProperties()) {
         mSupportedExtensions.emplace(extension.extensionName.data());
-        //AppLogTrace(extension.extensionName); // ToDo: Better Output...
     }
 
     // Get Queues
@@ -92,6 +101,7 @@ VKPhysicalDevice::VKPhysicalDevice(const Reference<VKInstance> &instance): mInst
         mQueueCreateInformation.push_back(info);
     }
     AppLogTrace("[GFX:PhysicalDevice] ", (string)*this);
+    //AppLogTrace(extension.extensionName); // ToDo: Better Output...
 }
 
 // Accessors
@@ -248,17 +258,22 @@ uint32_t VKPhysicalDevice::GetMemoryTypeIndex(uint32_t bits, vk::MemoryPropertyF
 */
 
 VKDevice::VKDevice(const Reference<VKPhysicalDevice> &physicalDevice): mPhysicalDevice { physicalDevice } {
+    vector<vk::LayerProperties> layers = mPhysicalDevice->Call().enumerateDeviceLayerProperties();
     vector<vk::ExtensionProperties> availableDeviceExtensions = mPhysicalDevice->Call().enumerateDeviceExtensionProperties();
+    vector<vk::PhysicalDeviceFeatures> features;
+     
     vector<const char*> neededDeviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
     std::vector<const char*> deviceExtensions = GetExtensions(availableDeviceExtensions, neededDeviceExtensions);
-
-    vk::DeviceCreateInfo deviceCreateInfo;
-    deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(mPhysicalDevice->GetQueueCreateInfo().size());
-    deviceCreateInfo.pQueueCreateInfos = mPhysicalDevice->GetQueueCreateInfo().data();
-    deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-    deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+    
+    vk::DeviceCreateInfo deviceCreateInfo = {
+        vk::DeviceCreateFlagBits(),
+        mPhysicalDevice->GetQueueCreateInfo(),
+        nullptr,
+        deviceExtensions,
+        nullptr
+    };
     mDevice = mPhysicalDevice->Call().createDevice(deviceCreateInfo);
 
     vk::CommandPoolCreateInfo commandPoolCreateInfo = {};
@@ -266,7 +281,8 @@ VKDevice::VKDevice(const Reference<VKPhysicalDevice> &physicalDevice): mPhysical
     commandPoolCreateInfo.queueFamilyIndex = mPhysicalDevice->mQueueFamilyIndices.Graphics;
     mCommandPool = mDevice.createCommandPool(commandPoolCreateInfo);
 
-    mQueue = mDevice.getQueue(mPhysicalDevice->mQueueFamilyIndices.Graphics, 0);
+    mGraphicsQueue = mDevice.getQueue(mPhysicalDevice->mQueueFamilyIndices.Graphics, 0);
+    mPresentQueue = mDevice.getQueue(mPhysicalDevice->mQueueFamilyIndices.Graphics, 0); // ToDo:: Should be present somehow
 }
 
 void VKDevice::Destroy() {
@@ -279,8 +295,13 @@ const vk::Device &VKDevice::Call() const {
     return mDevice;
 }
 
-const vk::Queue &VKDevice::GetQueue() const {
-    return mQueue;
+const vk::Queue &VKDevice::GetQueue(VKQueueTypes type) const {
+    switch (type) {
+        case VKQueueTypes::Graphics:    { return mGraphicsQueue; }
+        case VKQueueTypes::Present:     { return mGraphicsQueue; }
+        default:                        { break; }
+    }
+    return mGraphicsQueue;
 }
 
 const vk::CommandPool &VKDevice::GetCommandPool() const {
@@ -335,7 +356,7 @@ void VKDevice::FlushCommandBuffer(vk::CommandBuffer &buffer) {
     submitInfo.pWaitDstStageMask = &waitDstStageMask;
 
     vk::Fence fence = mDevice.createFence(vk::FenceCreateInfo());
-    mQueue.submit(submitInfo, fence);
+    mGraphicsQueue.submit(submitInfo, fence);
     mDevice.waitForFences(1, &fence, VK_TRUE, DefaultFenceTimeout);
 
     mDevice.destroyFence(fence);
@@ -366,7 +387,7 @@ void VKDevice::FlushCommandBuffer(vk::CommandBuffer &buffer, vk::SubmitInfo &sub
     submitInfo.pWaitDstStageMask = &waitDstStageMask;
 
     mDevice.resetFences(1, &fence);
-    mQueue.submit(submit, fence);
+    mGraphicsQueue.submit(submit, fence);
     mDevice.waitForFences(1, &fence, VK_TRUE, DefaultFenceTimeout);
     mDevice.destroyFence(fence, nullptr); // Reset instead of destroy
 

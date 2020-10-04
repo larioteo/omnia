@@ -277,7 +277,7 @@ VKDevice::VKDevice(const Reference<VKPhysicalDevice> &physicalDevice): mPhysical
     mDevice = mPhysicalDevice->Call().createDevice(deviceCreateInfo);
 
     vk::CommandPoolCreateInfo commandPoolCreateInfo = {};
-    commandPoolCreateInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
+    commandPoolCreateInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
     commandPoolCreateInfo.queueFamilyIndex = mPhysicalDevice->mQueueFamilyIndices.Graphics;
     mCommandPool = mDevice.createCommandPool(commandPoolCreateInfo);
 

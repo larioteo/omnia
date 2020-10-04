@@ -8,128 +8,115 @@
 #include "VKAllocator.h"
 #include "VKDevice.h"
 
-namespace Ultra {
-class VKTest;
-}
-
-
 namespace Omnia {
 
-struct SwapChainBuffer {
-    vk::Framebuffer frameBuffer;
-    vk::Image image;
-    std::array<vk::ImageView, 2> views;
-};
-
-struct VKSemaphores {
-    vector<vk::Semaphore> PresentComplete;
-    vector<vk::Semaphore> RenderComplete;
-};
-
 struct VKSwapChainBuffer {
+    vk::Framebuffer FrameBuffer;
     vk::Image Image;
     vk::ImageView View;
+    array<vk::ImageView, 2> Views;
 };
 
-struct VKDepthStencil {
+struct VKDepthStencilBuffer {
     vk::DeviceMemory Memory;
     vk::Image Image;
     vk::ImageView View;
 };
 
-class VKSwapChain {
-    friend Ultra::VKTest;
+struct VKSurfaceProperties {
+    vk::ClearValue ClearValues[2];
+    bool SynchronizedDraw = false;
 
+    vk::Extent2D Size;
+
+    vk::Viewport Viewport;
+    vk::Rect2D RenderArea;
+
+    vk::Format ColorFormat;
+    vk::ColorSpaceKHR ColorSpace;
+    vk::Format DepthFormat;
+};
+
+struct VKSynchronization {
+    const uint64_t DefaultTimeout = 5000000;
+    size_t Timeout = 5000000;
+
+    vector<vk::Semaphore> PresentComplete;
+    vector<vk::Semaphore> RenderComplete;
+
+    vector<vk::Fence> WaitFences;
+};
+
+class VKSwapChain {
 public:
+    // Default
     VKSwapChain(const Reference<VKDevice> &device, const vk::SurfaceKHR &surface);
     ~VKSwapChain();
 
-    void Load();
-    void Create(uint32_t width, uint32_t height, bool vsync = false);
+    void Create(uint32_t width, uint32_t height, bool synchronizedDraw = false);
     void Destroy();
-
-    void Cleanup();
     void Resize(uint32_t width, uint32_t height);
     void Prepare();
-    void Present();
+    void Finish();
 
+    // Accessors
+    const vk::CommandBuffer &GetCurrentDrawCommandBuffer() const;
+    const vk::Framebuffer &GetCurrentFramebuffer() const;
     const uint32_t GetImageCount() const;
-    const uint32_t GetCurrentBufferIndex() const;
-    const vk::CommandBuffer &GetCurrentDrawCommandFramebuffer();
-    const vk::Framebuffer &GetCurrentFramebuffer();
-    const vk::CommandBuffer &GetDrawCommandBuffer(size_t index);
-    const vk::Framebuffer &GetFramebuffer(size_t index);
-    const vk::RenderPass &GetRenderPass();
-    const vk::Rect2D &GetRenderArea() { return mRenderArea; }
-    
-    // ToDo: Remove after testing
-    void Test();
-    vk::CommandPool &GetCommandPool() { return mCommandPool; }
-    vector<vk::CommandBuffer> &GetCommandBuffers() { return mDrawCommandBuffers; }
-    // ~ToDo
+    const vk::Pipeline &GetPipeline() const;
+    const vk::Rect2D &GetRenderArea() const;
+    const vk::RenderPass &GetRenderPass() const;
 
-public:
-    vk::Result AquireNextImage(vk::Semaphore presentComplete, uint32_t *index);
-    vk::Result QueuePresent(vk::Queue queue, uint32_t imageIndex, vk::Semaphore wait = nullptr);
+    // Mutators
+    void SetSyncronizedDraw(bool enable);
+
+    // Extension RenderPass
+    vk::CommandBuffer PrepareRenderPass();
+    void FinishRenderPass();
+
 private:
-    void FindImageFormatAndColorSpace();
-
+    // Helpers
     void CreateImageViews();
-    void CreateDepthStencilBuffer();
+    void CreateDepthStencilImageViews();
     void CreateRenderPass();
     void CreatePipeline();
     void CreateFrameBuffer();
-    void CreateCommandBuffers();
-    void CreateDrawBuffers();
-    void CreateSynchronization();
+    void CreateDrawCommandBuffers();
 
-    void DestroyFrameBuffer();
-
+    // Internal
     void ChooseCapabilities(const vk::SurfaceCapabilitiesKHR &capabilities, uint32_t width, uint32_t height);
     void ChooseSurfaceFormat(const vector<vk::SurfaceFormatKHR> &surfaceFormats);
-    void ChoosePresentModes(const vector<vk::PresentModeKHR> &presentModes, bool sync = false);
+    void ChoosePresentModes(const vector<vk::PresentModeKHR> &presentModes, bool sync);
+    vk::Result QueuePresent(uint32_t imageIndex, vk::Semaphore renderComplete = nullptr);
 
 private:
     VKAllocator mAllocator;
     Reference<VKDevice> mDevice = nullptr;
+
     uint32_t CurrentFrame = 0;
     uint32_t CurrentBufferIndex = 0;
+    uint32_t mImageCount = 0;
     uint32_t QueueFamilyIndex = 0; // ToDo:: Remove
 
-    // Attachments
-    vk::Format SurfaceColorFormat;
-    vk::Format SurfaceDepthFormat;
-    vk::ColorSpaceKHR SurfaceColorSpace;
-    VKDepthStencil mDepthStencil;
-    vector<vk::CommandBuffer> mDrawCommandBuffers;
-    vector<vk::Framebuffer> mFramebuffers;
+    // Surface
+    vk::SurfaceKHR mSurface = nullptr;
+    VKSurfaceProperties mSurfaceProperties;
 
     // SwapChain
     vk::SwapchainKHR mSwapchain = nullptr;
     vk::PresentModeKHR mPresentMode;
-    uint32_t mImageCount = 0;
-    vector<vk::Image> mImages;
     vector<VKSwapChainBuffer> mSwapchainBuffers;
-    vector<SwapChainBuffer> mSwapchainBuffers2;
+    VKDepthStencilBuffer mColorAttachment;
+    VKDepthStencilBuffer mDepthStencil;
+    vector<vk::CommandBuffer> mDrawCommandBuffers;
+    VKSynchronization mSynchronization;
+    vk::DescriptorImageInfo mDescriptorImageInfo;
+    vk::Sampler mColorAttachmentSampler;
 
-    // RenderPass
-    vk::CommandPool mCommandPool;
-    vk::RenderPass RenderPass;
-
-    // Pipeline
+    // ToDo: Move RenderPass & Pipeline
+    vk::RenderPass mRenderPass;
     vk::Pipeline mPipeline;
     vk::PipelineLayout mPipelineLayout;
-
-    // Surface
-    vk::SurfaceKHR mSurface = nullptr;
-    vk::Rect2D mRenderArea;
-    vk::Extent2D mSurfaceSize;
-    vk::Extent2D mSurfaceScissor;
-    vk::Viewport mViewport;
-
-    // Synchronisation
-    VKSemaphores mSemaphores;
-    vector<vk::Fence> mWaitFences;
 };
 
 }

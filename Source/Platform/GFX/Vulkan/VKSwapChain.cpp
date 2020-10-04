@@ -5,33 +5,40 @@
 
 namespace Omnia {
 
+static vk::CommandBuffer gDrawCommandBuffer;
+static vk::CommandBuffer gUICommandBuffer;
+
+// Default
 VKSwapChain::VKSwapChain(const Reference<VKDevice> &device, const vk::SurfaceKHR &surface): mDevice(device), mSurface(surface) {
+    // Verify if the surface is supported by the selected physical device
+    if (!mDevice->GetPhysicalDevice()->Call().getSurfaceSupportKHR(QueueFamilyIndex, mSurface)) {
+        AppLogCritical("[GFX::Context::SwapChain] ", "The requested surface isn't supported on the selected physical device!");
+    }
+    
     QueueFamilyIndex = mDevice->GetPhysicalDevice()->GetQueueFamilyIndex(vk::QueueFlagBits::eGraphics);
+
+    mAllocator = { mDevice, "SwapChain" };
 }
 
 VKSwapChain::~VKSwapChain() {
     Destroy();
 }
 
-void VKSwapChain::Load() {
-}
-
-void VKSwapChain::Create(uint32_t width, uint32_t height, bool vsync) {
-    // Surface Support
-    bool supported = mDevice->GetPhysicalDevice()->Call().getSurfaceSupportKHR(QueueFamilyIndex, mSurface);
-    
+void VKSwapChain::Create(uint32_t width, uint32_t height, bool synchronizedDraw) {
     // Check SwapChain support details (capabilities, formats, present modes)
     vk::SurfaceCapabilitiesKHR surfaceCapabilities = mDevice->GetPhysicalDevice()->Call().getSurfaceCapabilitiesKHR(mSurface);
     ChooseCapabilities(surfaceCapabilities, width, height);
     vector<vk::SurfaceFormatKHR> surfaceFormats = mDevice->GetPhysicalDevice()->Call().getSurfaceFormatsKHR(mSurface);
     ChooseSurfaceFormat(surfaceFormats);
     vector<vk::PresentModeKHR> surfacePresentModes = mDevice->GetPhysicalDevice()->Call().getSurfacePresentModesKHR(mSurface);
-    ChoosePresentModes(surfacePresentModes, vsync);
+    ChoosePresentModes(surfacePresentModes, synchronizedDraw);
 
     // Swapchain Properties
     mDevice->Call().waitIdle();
     vk::SwapchainKHR oldSwapchain = mSwapchain;
     mImageCount = std::clamp(surfaceCapabilities.maxImageCount, 1U, 3U);
+    mSurfaceProperties.ClearValues[0].color = array<float, 4> { 0.0f, 0.0f, 0.0f, 0.72f};
+    mSurfaceProperties.ClearValues[1].depthStencil = { 1.0f, 0 };
 
     // Get the transformation of the surface
     vk::SurfaceTransformFlagBitsKHR surfaceTransform;
@@ -61,9 +68,9 @@ void VKSwapChain::Create(uint32_t width, uint32_t height, bool vsync) {
     createInfo.flags = vk::SwapchainCreateFlagsKHR();
     createInfo.surface = mSurface;
     createInfo.minImageCount = mImageCount;
-    createInfo.imageFormat = SurfaceColorFormat;
-    createInfo.imageColorSpace = SurfaceColorSpace;
-    createInfo.imageExtent = mSurfaceSize;
+    createInfo.imageFormat = mSurfaceProperties.ColorFormat;
+    createInfo.imageColorSpace = mSurfaceProperties.ColorSpace;
+    createInfo.imageExtent = mSurfaceProperties.Size;
     createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
     createInfo.imageArrayLayers = 1;
     createInfo.imageSharingMode = vk::SharingMode::eExclusive;
@@ -89,29 +96,166 @@ void VKSwapChain::Create(uint32_t width, uint32_t height, bool vsync) {
     // Destroy previous SwapChain and ImageViews
     if (oldSwapchain != vk::SwapchainKHR(nullptr)) {
         for (uint32_t i = 0; i < mImageCount; i++) {
-            mDevice->Call().destroyImageView(mSwapchainBuffers[i].View);
+            //mDevice->Call().destroyImageView(mSwapchainBuffers[i].View);
         }
         mDevice->Call().destroySwapchainKHR(oldSwapchain);
     }
     
     CreateImageViews();
-    CreateDepthStencilBuffer();
+    CreateDepthStencilImageViews();
     CreateRenderPass();
     CreatePipeline();
     CreateFrameBuffer();
-    CreateDrawBuffers();
-    CreateSynchronization();
+    CreateDrawCommandBuffers();
+
+    // Create Fences and Semaphores
+    mSynchronization.PresentComplete.resize(mSwapchainBuffers.size());
+    mSynchronization.RenderComplete.resize(mSwapchainBuffers.size());
+    mSynchronization.WaitFences.resize(mSwapchainBuffers.size());
+
+    for (size_t i = 0; i < mSwapchainBuffers.size(); i++) {
+        // Semaphore used to ensures that image presentation is complete before starting to submit again
+        mSynchronization.PresentComplete[i] = mDevice->Call().createSemaphore(vk::SemaphoreCreateInfo());
+
+        // Semaphore used to ensures that all commands submitted have been finished before submitting the image to the queue
+        mSynchronization.RenderComplete[i] = mDevice->Call().createSemaphore(vk::SemaphoreCreateInfo());
+
+        // Fence for command buffer completion
+        mSynchronization.WaitFences[i] = mDevice->Call().createFence(vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
+    }
 }
 
+void VKSwapChain::Destroy() {
+    mDevice->Call().waitIdle();
+
+    for (vk::Fence &fence : mSynchronization.WaitFences) {
+        mDevice->Call().destroyFence(fence);
+    }
+    for (vk::Semaphore &semaphore : mSynchronization.RenderComplete) {
+        mDevice->Call().destroySemaphore(semaphore);
+    }
+    for (vk::Semaphore &semaphore : mSynchronization.PresentComplete) {
+        mDevice->Call().destroySemaphore(semaphore);
+    }
+
+    mDevice->Call().freeCommandBuffers(mDevice->GetCommandPool(), mDrawCommandBuffers);
+
+    mDevice->Call().destroyPipeline(mPipeline);
+    mDevice->Call().destroyPipelineLayout(mPipelineLayout);
+    mDevice->Call().destroyRenderPass(mRenderPass);
+
+    if (mSwapchain) {
+        mDevice->Call().destroyImageView(mDepthStencil.View);
+        mDevice->Call().destroyImage(mDepthStencil.Image);
+        mDevice->Call().freeMemory(mDepthStencil.Memory);
+
+        for (auto &&buffer : mSwapchainBuffers) {
+            mDevice->Call().destroyImageView(buffer.View);
+            mDevice->Call().destroyFramebuffer(buffer.FrameBuffer, nullptr);
+        }
+
+        mDevice->Call().destroySwapchainKHR(mSwapchain);
+        mSwapchain = nullptr;
+    }
+}
+
+void VKSwapChain::Resize(uint32_t width, uint32_t height) {
+    if(!mSwapchain) return;
+    mDevice->Call().waitIdle();
+    for (vk::Fence &fence : mSynchronization.WaitFences) {
+        mDevice->Call().destroyFence(fence);
+    }
+    for (vk::Semaphore &semaphore : mSynchronization.RenderComplete) {
+        mDevice->Call().destroySemaphore(semaphore);
+    }
+    for (vk::Semaphore &semaphore : mSynchronization.PresentComplete) {
+        mDevice->Call().destroySemaphore(semaphore);
+    }
+
+    mDevice->Call().freeCommandBuffers(mDevice->GetCommandPool(), static_cast<uint32_t>(mDrawCommandBuffers.size()), mDrawCommandBuffers.data());
+    //CreateDrawCommandBuffers();
+
+    mDevice->Call().destroyImageView(mDepthStencil.View);
+    mDevice->Call().destroyImage(mDepthStencil.Image);
+    mDevice->Call().freeMemory(mDepthStencil.Memory);
+
+    for (auto &&buffer : mSwapchainBuffers) {
+        mDevice->Call().destroyImageView(buffer.View);
+        mDevice->Call().destroyFramebuffer(buffer.FrameBuffer);
+    }
+
+    Create(width, height, mSurfaceProperties.SynchronizedDraw); // ToDo:: Causes currently a VRAM memory leak!
+}
+
+void VKSwapChain::Prepare() {
+    CurrentBufferIndex = mDevice->Call().acquireNextImageKHR(mSwapchain, UINT64_MAX, mSynchronization.PresentComplete[CurrentFrame], nullptr).value;
+}
+
+void VKSwapChain::Finish() {
+    mDevice->Call().waitForFences(1, &mSynchronization.WaitFences[CurrentFrame], VK_TRUE, mSynchronization.Timeout);
+    mDevice->Call().resetFences(mSynchronization.WaitFences[CurrentFrame]);
+
+    vk::Semaphore signalSemaphores[] = { mSynchronization.RenderComplete[CurrentBufferIndex] };
+    vk::Semaphore waitSemaphores[] = { mSynchronization.PresentComplete[CurrentFrame] };
+    vk::PipelineStageFlags waitStages[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
+    vk::SubmitInfo submitInfo = {};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pCommandBuffers = &mDrawCommandBuffers[CurrentBufferIndex];
+    submitInfo.pSignalSemaphores = signalSemaphores;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+
+    mDevice->GetQueue().submit(submitInfo, mSynchronization.WaitFences[CurrentFrame]);
+
+    mDevice->Call().waitForFences(1, &mSynchronization.WaitFences[CurrentFrame], VK_TRUE, mSynchronization.Timeout);
+    mDevice->Call().resetFences(mSynchronization.WaitFences[CurrentFrame]);
+
+    vk::Result result = QueuePresent(CurrentBufferIndex, mSynchronization.RenderComplete[CurrentBufferIndex]);
+    // Swapchain lost, we'll try again next poll
+    if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {
+        Resize(mSurfaceProperties.Size.width, mSurfaceProperties.Size.height);
+        return;
+    } else if (result == vk::Result::eErrorDeviceLost) {
+        AppLogCritical("Device Lost");
+    }
+
+    CurrentFrame = (CurrentFrame + 1) % mImageCount;
+}
+
+// Helpers
 void VKSwapChain::CreateImageViews() {
+    // Color Image
+    vk::ImageCreateInfo imageCreateInfo = {};
+    imageCreateInfo.imageType = vk::ImageType::e2D;
+    imageCreateInfo.format = mSurfaceProperties.ColorFormat;
+    imageCreateInfo.extent = vk::Extent3D(mSurfaceProperties.Size, 1U);
+    imageCreateInfo.mipLevels = 1U;
+    imageCreateInfo.arrayLayers = 1U;
+    imageCreateInfo.samples = vk::SampleCountFlagBits::e1;
+    imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
+    imageCreateInfo.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled;
+    imageCreateInfo.sharingMode = vk::SharingMode::eExclusive;
+    imageCreateInfo.queueFamilyIndexCount = 1;
+    imageCreateInfo.pQueueFamilyIndices = &QueueFamilyIndex;
+    imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
+    mColorAttachment.Image = mDevice->Call().createImage(imageCreateInfo);
+
+    // Search through GPU memory properies to see if this can be device local
+    vk::MemoryRequirements memoryRequirements = mDevice->Call().getImageMemoryRequirements(mColorAttachment.Image);
+    mAllocator.Allocate(memoryRequirements, &mColorAttachment.Memory, vk::MemoryPropertyFlagBits::eDeviceLocal);
+    mDevice->Call().bindImageMemory(mColorAttachment.Image, mColorAttachment.Memory, 0);
+
+    vector<vk::Image> images;
     mDevice->Call().getSwapchainImagesKHR(mSwapchain, &mImageCount, nullptr);
-    mImages.resize(mImageCount);
-    mDevice->Call().getSwapchainImagesKHR(mSwapchain, &mImageCount, mImages.data());
+    images.resize(mImageCount);
+    mDevice->Call().getSwapchainImagesKHR(mSwapchain, &mImageCount, images.data());
 
     mSwapchainBuffers.resize(mImageCount);
     for (size_t i = 0; i < mImageCount; i++) {
         vk::ImageViewCreateInfo createInfo = {};
-        createInfo.format = SurfaceColorFormat;
+        createInfo.format = mSurfaceProperties.ColorFormat;
         createInfo.viewType = vk::ImageViewType::e2D;
         createInfo.components = {  // eIdentity for all?
             vk::ComponentSwizzle::eR,
@@ -125,64 +269,68 @@ void VKSwapChain::CreateImageViews() {
         createInfo.subresourceRange.baseArrayLayer = 0;
         createInfo.subresourceRange.layerCount = 1;
 
-        mSwapchainBuffers[i].Image = mImages[i];
+        mSwapchainBuffers[i].Image = images[i]; // mColorAttachment.Image
         createInfo.image = mSwapchainBuffers[i].Image;
 
         mSwapchainBuffers[i].View = mDevice->Call().createImageView(createInfo);
     }
+
+    vk::SamplerCreateInfo samplerCreateInfo = {};
+    samplerCreateInfo.maxAnisotropy = 1.0f;
+    samplerCreateInfo.magFilter = vk::Filter::eLinear;
+    samplerCreateInfo.minFilter = vk::Filter::eLinear;
+    samplerCreateInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+    samplerCreateInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
+    samplerCreateInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
+    samplerCreateInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
+    samplerCreateInfo.mipLodBias = 0.0f;
+    samplerCreateInfo.maxAnisotropy = 1.0f;
+    samplerCreateInfo.minLod = 0.0f;
+    samplerCreateInfo.maxLod = 1.0f;
+    samplerCreateInfo.borderColor = vk::BorderColor::eFloatOpaqueWhite;
+    mColorAttachmentSampler = mDevice->Call().createSampler(samplerCreateInfo);
+
+    mDescriptorImageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+    mDescriptorImageInfo.imageView = mColorAttachment.View;
+    mDescriptorImageInfo.sampler = mColorAttachmentSampler;
 }
 
-void VKSwapChain::CreateDepthStencilBuffer() {
-    // Create Depth Image
-    mDepthStencil.Image = mDevice->Call().createImage(
-        vk::ImageCreateInfo(
-            vk::ImageCreateFlags(),
-            vk::ImageType::e2D,
-            SurfaceDepthFormat,
-            vk::Extent3D(mSurfaceSize.width, mSurfaceSize.height, 1),
-            1U,
-            1U,
-            vk::SampleCountFlagBits::e1,
-            vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferSrc,
-            vk::SharingMode::eExclusive,
-            1,
-            &QueueFamilyIndex,
-            vk::ImageLayout::eUndefined
-        )
-    );
+void VKSwapChain::CreateDepthStencilImageViews() {
+    // Depth\Stencil Image
+    vk::ImageCreateInfo imageCreateInfo = {};
+    imageCreateInfo.imageType = vk::ImageType::e2D;
+    imageCreateInfo.format = mSurfaceProperties.DepthFormat;
+    imageCreateInfo.extent = vk::Extent3D(mSurfaceProperties.Size, 1U);
+    imageCreateInfo.mipLevels = 1U;
+    imageCreateInfo.arrayLayers = 1U;
+    imageCreateInfo.samples = vk::SampleCountFlagBits::e1;
+    imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
+    imageCreateInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferSrc;
+    imageCreateInfo.sharingMode = vk::SharingMode::eExclusive;
+    imageCreateInfo.queueFamilyIndexCount = 1;
+    imageCreateInfo.pQueueFamilyIndices = &QueueFamilyIndex;
+    imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
+    mDepthStencil.Image = mDevice->Call().createImage(imageCreateInfo);
 
+    // Search through GPU memory properies to see if this can be device local
     vk::MemoryRequirements memoryRequirements = mDevice->Call().getImageMemoryRequirements(mDepthStencil.Image);
-
-    // Search through GPU memory properies to see if this can be device local.
-    //mAllocator.Allocate(memoryRequirements, &mDepthStencil.Memory, vk::MemoryPropertyFlagBits::eDeviceLocal);
-    mDepthStencil.Memory = mDevice->Call().allocateMemory(
-        vk::MemoryAllocateInfo(
-            memoryRequirements.size,
-            mDevice->GetPhysicalDevice()->GetMemoryTypeIndex(memoryRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal)
-        )
-    );
+    mAllocator.Allocate(memoryRequirements, &mDepthStencil.Memory, vk::MemoryPropertyFlagBits::eDeviceLocal);
     mDevice->Call().bindImageMemory(mDepthStencil.Image, mDepthStencil.Memory, 0);
 
-    // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
-    //if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) createImageViewInfo.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-    mDepthStencil.View = mDevice->Call().createImageView(
-        vk::ImageViewCreateInfo(
-            vk::ImageViewCreateFlags(),
-            mDepthStencil.Image,
-            vk::ImageViewType::e2D,
-            SurfaceDepthFormat,
-            vk::ComponentMapping(),
-            vk::ImageSubresourceRange(
-                vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
-                0,
-                1,
-                0,
-                1
-            )
-        )
-    );
-
+    // Depth\Stencil ImageView
+    vk::ImageViewCreateInfo viewCreateInfo = {};
+    viewCreateInfo.image =  mDepthStencil.Image;
+    viewCreateInfo.viewType = vk::ImageViewType::e2D;
+    viewCreateInfo.format = mSurfaceProperties.DepthFormat;
+    viewCreateInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+    if (mSurfaceProperties.DepthFormat >= vk::Format::eD16UnormS8Uint) {
+        viewCreateInfo.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil;
+    }
+    viewCreateInfo.subresourceRange.baseMipLevel = 0;
+    viewCreateInfo.subresourceRange.levelCount = 1;
+    viewCreateInfo.subresourceRange.baseArrayLayer = 0;
+    viewCreateInfo.subresourceRange.layerCount = 1;
+    mDepthStencil.View = mDevice->Call().createImageView(viewCreateInfo);
 }
 
 void VKSwapChain::CreateRenderPass() {
@@ -191,7 +339,7 @@ void VKSwapChain::CreateRenderPass() {
         // Color Attachment
         vk::AttachmentDescription(
             vk::AttachmentDescriptionFlags(),
-            SurfaceColorFormat,
+            mSurfaceProperties.ColorFormat,
             vk::SampleCountFlagBits::e1,
             vk::AttachmentLoadOp::eClear,
             vk::AttachmentStoreOp::eStore,
@@ -203,7 +351,7 @@ void VKSwapChain::CreateRenderPass() {
         // Depth\Stencil Attachment
         vk::AttachmentDescription(
             vk::AttachmentDescriptionFlags(),
-            SurfaceDepthFormat,
+            mSurfaceProperties.DepthFormat,
             vk::SampleCountFlagBits::e1,
             vk::AttachmentLoadOp::eClear,
             vk::AttachmentStoreOp::eStore,
@@ -238,7 +386,7 @@ void VKSwapChain::CreateRenderPass() {
         vk::SubpassDependency(
             VK_SUBPASS_EXTERNAL,
             0,
-            vk::PipelineStageFlagBits::eBottomOfPipe,
+            vk::PipelineStageFlagBits::eFragmentShader, // eBottomOfPipe
             vk::PipelineStageFlagBits::eColorAttachmentOutput,
             vk::AccessFlagBits::eMemoryRead,
             vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite,
@@ -246,9 +394,9 @@ void VKSwapChain::CreateRenderPass() {
         ),
         vk::SubpassDependency(
             0,
-            ~0U,
+            VK_SUBPASS_EXTERNAL,
             vk::PipelineStageFlagBits::eColorAttachmentOutput,
-            vk::PipelineStageFlagBits::eBottomOfPipe,
+            vk::PipelineStageFlagBits::eFragmentShader, // eBottomOfPipe
             vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite,
             vk::AccessFlagBits::eMemoryRead,
             vk::DependencyFlagBits::eByRegion
@@ -256,7 +404,7 @@ void VKSwapChain::CreateRenderPass() {
     };
 
     // Finally
-    RenderPass = mDevice->Call().createRenderPass(
+    mRenderPass = mDevice->Call().createRenderPass(
         vk::RenderPassCreateInfo(
             vk::RenderPassCreateFlags(),
             attachments,
@@ -310,9 +458,9 @@ void VKSwapChain::CreatePipeline() {
 
     vk::PipelineViewportStateCreateInfo viewportState = {};
     viewportState.viewportCount = 1;
-    viewportState.pViewports = &mViewport;
+    viewportState.pViewports = &mSurfaceProperties.Viewport;
     viewportState.scissorCount = 1;
-    viewportState.pScissors = &mRenderArea;
+    viewportState.pScissors = &mSurfaceProperties.RenderArea;
 
     vk::PipelineDepthStencilStateCreateInfo depthStencilState = {};
     depthStencilState.depthTestEnable = VK_TRUE;
@@ -370,7 +518,7 @@ void VKSwapChain::CreatePipeline() {
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDepthStencilState = &depthStencilState;
     pipelineInfo.layout = mPipelineLayout;
-    pipelineInfo.renderPass = RenderPass;
+    pipelineInfo.renderPass = mRenderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = nullptr;
 
@@ -381,34 +529,28 @@ void VKSwapChain::CreatePipeline() {
 void VKSwapChain::CreateFrameBuffer() {
     vector<vk::ImageView> attachments;
     attachments.resize(2);
+    //attachments[1] = mColorAttachment.View;
     attachments[1] = mDepthStencil.View;
 
     vk::FramebufferCreateInfo createInfo = {};
-    createInfo.renderPass = RenderPass;
+    createInfo.renderPass = mRenderPass;
     createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
     createInfo.pAttachments = attachments.data();
-    createInfo.width = mSurfaceSize.width;
-    createInfo.height = mSurfaceSize.height;
+    createInfo.width = mSurfaceProperties.Size.width;
+    createInfo.height = mSurfaceProperties.Size.height;
     createInfo.layers = 1;
 
-    mFramebuffers.resize(mImageCount);
-    for (size_t i = 0; i < mFramebuffers.size(); i++) {
+    for (size_t i = 0; i < mSwapchainBuffers.size(); i++) {
         attachments[0] = mSwapchainBuffers[i].View;
-        mFramebuffers[i] = mDevice->Call().createFramebuffer(createInfo);
+        mSwapchainBuffers[i] .FrameBuffer= mDevice->Call().createFramebuffer(createInfo);
     }
 }
 
-void VKSwapChain::CreateDrawBuffers() {
+void VKSwapChain::CreateDrawCommandBuffers() {
     mDrawCommandBuffers.resize(mImageCount);
 
-    vk::CommandPoolCreateInfo commandPoolCreateInfo = {};
-    commandPoolCreateInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
-    commandPoolCreateInfo.queueFamilyIndex = QueueFamilyIndex;
-    //mCommandPool = mDevice->Call().createCommandPool(commandPoolCreateInfo, nullptr);
-    mCommandPool = mDevice->GetCommandPool();
-
     vk::CommandBufferAllocateInfo commandBufferAllocateInfo = {};
-    commandBufferAllocateInfo.commandPool = mCommandPool;
+    commandBufferAllocateInfo.commandPool = mDevice->GetCommandPool();
     commandBufferAllocateInfo.level = vk::CommandBufferLevel::ePrimary;
     commandBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(mDrawCommandBuffers.size());
     mDrawCommandBuffers = mDevice->Call().allocateCommandBuffers(commandBufferAllocateInfo);
@@ -419,17 +561,12 @@ void VKSwapChain::CreateDrawBuffers() {
         mDrawCommandBuffers[i].begin(beginInfo);
 
         vk::RenderPassBeginInfo renderPassInfo = {};
-        renderPassInfo.renderPass = RenderPass;
-        renderPassInfo.framebuffer = mFramebuffers[i];
+        renderPassInfo.renderPass = mRenderPass;
+        renderPassInfo.framebuffer = mSwapchainBuffers[i].FrameBuffer;
         renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = mSurfaceSize;
-
-        vk::ClearValue clearValues[2];
-        clearValues[0].color = array<float, 4> { 0.1f, 0.1f,0.1f, 1.0f};
-        clearValues[1].depthStencil = { 1.0f, 0 };
-
+        renderPassInfo.renderArea.extent = mSurfaceProperties.Size;
         renderPassInfo.clearValueCount = 2;
-        renderPassInfo.pClearValues = clearValues;
+        renderPassInfo.pClearValues = mSurfaceProperties.ClearValues;
 
         mDrawCommandBuffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
         mDrawCommandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, mPipeline);
@@ -440,45 +577,133 @@ void VKSwapChain::CreateDrawBuffers() {
     }
 }
 
-void VKSwapChain::CreateSynchronization() {
-    mSemaphores.PresentComplete.resize(mSwapchainBuffers.size());
-    mSemaphores.RenderComplete.resize(mSwapchainBuffers.size());
-    mWaitFences.resize(mSwapchainBuffers.size());
+// Accessors
+const vk::CommandBuffer &VKSwapChain::GetCurrentDrawCommandBuffer() const {
+    return mDrawCommandBuffers[CurrentBufferIndex];
+}
 
-    for (size_t i = 0; i < mSwapchainBuffers.size(); i++) {
-        // Semaphore used to ensures that image presentation is complete before starting to submit again
-        mSemaphores.PresentComplete[i] = mDevice->Call().createSemaphore(vk::SemaphoreCreateInfo());
+const vk::Framebuffer &VKSwapChain::GetCurrentFramebuffer() const {
+    return mSwapchainBuffers[CurrentBufferIndex].FrameBuffer;
+}
 
-        // Semaphore used to ensures that all commands submitted have been finished before submitting the image to the queue
-        mSemaphores.RenderComplete[i] = mDevice->Call().createSemaphore(vk::SemaphoreCreateInfo());
+const uint32_t VKSwapChain::GetImageCount() const {
+    return mImageCount;
+}
 
-        // Fence for command buffer completion
-        mWaitFences[i] = mDevice->Call().createFence(vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
+const vk::Pipeline & VKSwapChain::GetPipeline() const {
+    return mPipeline;
+}
+
+const vk::Rect2D & VKSwapChain::GetRenderArea() const {
+    return mSurfaceProperties.RenderArea;
+}
+
+const vk::RenderPass &VKSwapChain::GetRenderPass() const {
+    return mRenderPass;
+}
+
+vk::CommandBuffer VKSwapChain::PrepareRenderPass() {
+    gDrawCommandBuffer = GetCurrentDrawCommandBuffer();
+
+    vk::RenderPassBeginInfo renderPassInfo = {};
+    renderPassInfo.renderPass = mRenderPass;
+    renderPassInfo.renderArea.offset.x = 0;
+    renderPassInfo.renderArea.offset.y = 0;
+    renderPassInfo.framebuffer = GetCurrentFramebuffer();
+    renderPassInfo.renderArea.extent = mSurfaceProperties.Size;
+    renderPassInfo.clearValueCount = 2;
+    renderPassInfo.pClearValues = mSurfaceProperties.ClearValues;
+
+    gDrawCommandBuffer.begin(vk::CommandBufferBeginInfo());
+
+    // Primary CommandBuffer
+    {
+        gDrawCommandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline); 
+
+        gDrawCommandBuffer.setViewport(0, mSurfaceProperties.Viewport);
+        gDrawCommandBuffer.setScissor(0, mSurfaceProperties.RenderArea);
+
+        // ToDo: Here can something placed for rendering later
+
+        gDrawCommandBuffer.endRenderPass();
+    }
+
+    gUICommandBuffer = mDevice->CreateSecondaryCommandBuffer();
+    // Secondary CommandBuffers
+    {
+        gDrawCommandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eSecondaryCommandBuffers);
+
+        vk::CommandBufferInheritanceInfo inheritanceInfo = {};
+        inheritanceInfo.renderPass = mRenderPass;
+        inheritanceInfo.framebuffer = GetCurrentFramebuffer();
+
+        vk::CommandBufferBeginInfo bufferInfo = {};
+        bufferInfo.flags = vk::CommandBufferUsageFlagBits::eRenderPassContinue;
+        bufferInfo.pInheritanceInfo = &inheritanceInfo;
+
+        gUICommandBuffer.begin(bufferInfo);
+
+        gUICommandBuffer.setViewport(0, mSurfaceProperties.Viewport);
+        gUICommandBuffer.setScissor(0, mSurfaceProperties.RenderArea);
+
+        // The Commands here are currently external
+    }
+
+    return gUICommandBuffer;
+}
+
+void VKSwapChain::FinishRenderPass() {
+    gUICommandBuffer.end();
+
+    gDrawCommandBuffer.executeCommands(1, &gUICommandBuffer);
+    gDrawCommandBuffer.endRenderPass();
+    gDrawCommandBuffer.end();
+}
+
+// Mutators
+void VKSwapChain::SetSyncronizedDraw(bool enable) {
+    if (mSurfaceProperties.SynchronizedDraw != enable) {
+        mSurfaceProperties.SynchronizedDraw = enable;
+        Resize(mSurfaceProperties.Size.width, mSurfaceProperties.Size.height);
     }
 }
 
-
+// Internal
 void VKSwapChain::ChooseCapabilities(const vk::SurfaceCapabilitiesKHR &capabilities, uint32_t width, uint32_t height) {
     if (!(capabilities.currentExtent.width == -1 || capabilities.currentExtent.height == -1)) {
-        mSurfaceSize = capabilities.currentExtent;
+        mSurfaceProperties.Size = capabilities.currentExtent;
     } else {
-        mSurfaceSize = vk::Extent2D(
+        mSurfaceProperties.Size = vk::Extent2D(
             std::clamp(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
             std::clamp(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)
         );
     }
-    mRenderArea = vk::Rect2D(vk::Offset2D(), mSurfaceSize);
-    mViewport = vk::Viewport(0.0f, 0.0f, static_cast<float>(mSurfaceSize.width), static_cast<float>(mSurfaceSize.height), 0, 1.0f);
+    mSurfaceProperties.RenderArea = vk::Rect2D(vk::Offset2D(), mSurfaceProperties.Size);
+    mSurfaceProperties.Viewport = vk::Viewport(
+        0.0f,
+        0.0f,
+        static_cast<float>(mSurfaceProperties.Size.width),
+        static_cast<float>(mSurfaceProperties.Size.height),
+        0.0f,
+        1.0f
+    );
 }
 
 void VKSwapChain::ChooseSurfaceFormat(const vector<vk::SurfaceFormatKHR> &surfaceFormats) {
     // Color Buffer
     if (surfaceFormats.size() == 1 && surfaceFormats[0].format == vk::Format::eUndefined) {
-        SurfaceColorFormat = vk::Format::eB8G8R8A8Unorm;
-        SurfaceColorSpace = vk::ColorSpaceKHR::eSrgbNonlinear;
+        mSurfaceProperties.ColorFormat = vk::Format::eB8G8R8A8Unorm;
+        mSurfaceProperties.ColorSpace = vk::ColorSpaceKHR::eSrgbNonlinear;
     } else {
-        SurfaceColorFormat = surfaceFormats[0].format;
-        SurfaceColorSpace = surfaceFormats[0].colorSpace;
+        mSurfaceProperties.ColorFormat = surfaceFormats[0].format;
+        mSurfaceProperties.ColorSpace = surfaceFormats[0].colorSpace;
+
+        for (auto &&format : surfaceFormats) {
+            if (format.format == vk::Format::eB8G8R8A8Unorm) {
+                mSurfaceProperties.ColorFormat = format.format;
+                mSurfaceProperties.ColorSpace = format.colorSpace;
+            }
+        }
     }
 
     // Depth Buffer
@@ -494,7 +719,7 @@ void VKSwapChain::ChooseSurfaceFormat(const vector<vk::SurfaceFormatKHR> &surfac
 
         // Format must support depth stencil attachment for optimal tiling
         if (depthFormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment) {
-            SurfaceDepthFormat = format;
+            mSurfaceProperties.DepthFormat = format;
             break;
         }
     }
@@ -503,228 +728,34 @@ void VKSwapChain::ChooseSurfaceFormat(const vector<vk::SurfaceFormatKHR> &surfac
 void VKSwapChain::ChoosePresentModes(const vector<vk::PresentModeKHR> &presentModes, bool sync) {
     mPresentMode = vk::PresentModeKHR::eFifo;
 
-    if (!sync) {
+    if (!mSurfaceProperties.SynchronizedDraw) {
         for (auto &mode : presentModes) {
             switch (mode) {
                 case vk::PresentModeKHR::eMailbox:      { mPresentMode = vk::PresentModeKHR::eMailbox;   break; }
                 case vk::PresentModeKHR::eImmediate:    { mPresentMode = vk::PresentModeKHR::eImmediate; break; }
                 default:                                { break;}
             }
+            if (mPresentMode != vk::PresentModeKHR::eFifo) break;
         }
     }
 }
 
-void VKSwapChain::Destroy() {
-    mDevice->Call().waitIdle();
-
-    for (vk::Semaphore &semaphore : mSemaphores.PresentComplete) {
-        mDevice->Call().destroySemaphore(semaphore);
-    }
-    for (vk::Semaphore &semaphore : mSemaphores.RenderComplete) {
-        mDevice->Call().destroySemaphore(semaphore);
-    }
-    for (vk::Fence &fence : mWaitFences) {
-        mDevice->Call().destroyFence(fence);
-    }
-
-    mDevice->Call().freeCommandBuffers(mDevice->GetCommandPool(), mDrawCommandBuffers);
-    mDevice->Call().destroyCommandPool(mCommandPool);
-
-    mDevice->Call().destroyPipeline(mPipeline);
-    mDevice->Call().destroyPipelineLayout(mPipelineLayout);
-    mDevice->Call().destroyRenderPass(RenderPass);
-
-    for (auto buffer : mSwapchainBuffers) {
-        mDevice->Call().destroyImageView(buffer.View);
-    }
-
-    mDevice->Call().destroySwapchainKHR(mSwapchain);
-
-}
-
-void VKSwapChain::Cleanup() {
-    Destroy();
-    if (mSwapchain) {
-        for (size_t i = 0; i < mImageCount; i++) {
-            mDevice->Call().destroyImageView(mSwapchainBuffers[i].View);
-        }
-        mDevice->Call().destroySwapchainKHR(mSwapchain);
-        mSwapchain = nullptr;
-    }
-}
-
-void VKSwapChain::Resize(uint32_t width, uint32_t height) {
-    return;
-    mDevice->Call().waitIdle();
-
-    Create(width, height);
-    if (!mSwapchainBuffers.empty()) {
-        mDevice->Call().destroyImageView(mDepthStencil.View);
-    }
-    mDevice->Call().destroyImage(mDepthStencil.Image);
-    mDevice->Call().freeMemory(mDepthStencil.Memory);
-    CreateDepthStencilBuffer();
-
-    for (auto &framebuffer : mFramebuffers) {
-        mDevice->Call().destroyFramebuffer(framebuffer, nullptr);
-    }
-    CreateFrameBuffer();
-
-    mDevice->Call().freeCommandBuffers(mCommandPool, static_cast<uint32_t>(mDrawCommandBuffers.size()), mDrawCommandBuffers.data());
-    CreateDrawBuffers();
-
-    mDevice->Call().waitIdle();
-}
-
-void VKSwapChain::Prepare() {
-    AquireNextImage(mSemaphores.PresentComplete[CurrentBufferIndex], &CurrentBufferIndex);
-}
-
-void VKSwapChain::Test() {
-    mDevice->Call().waitForFences(1, &mWaitFences[CurrentFrame], VK_TRUE, 100);
-    mDevice->Call().resetFences(mWaitFences[CurrentFrame]);
-
-    CurrentBufferIndex = mDevice->Call().acquireNextImageKHR(mSwapchain, UINT64_MAX, mSemaphores.PresentComplete[CurrentFrame], nullptr).value;
-
-    vk::SubmitInfo submitInfo = {};
-    vk::Semaphore waitSemaphores[] = { mSemaphores.PresentComplete[CurrentFrame] };
-    vk::PipelineStageFlags waitStages[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &mDrawCommandBuffers[CurrentBufferIndex];
-
-    vk::Semaphore signalSemaphores[] = { mSemaphores.RenderComplete[CurrentBufferIndex] };
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
-
-    mDevice->GetQueue().submit(submitInfo, mWaitFences[CurrentFrame]);
-
-    mDevice->Call().waitForFences(1, &mWaitFences[CurrentFrame], VK_TRUE, UINT64_MAX);
-    mDevice->Call().resetFences(mWaitFences[CurrentFrame]);
-
+vk::Result VKSwapChain::QueuePresent(uint32_t imageIndex, vk::Semaphore renderComplete) {
+    vk::SwapchainKHR swapChains[] = { mSwapchain };
+    vk::Semaphore signalSemaphores[] = { renderComplete };
 
     vk::PresentInfoKHR presentInfo = {};
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
-
-    vk::SwapchainKHR swapChains[] = { mSwapchain };
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &CurrentBufferIndex;
+    presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr; // Optional
 
-    mDevice->GetQueue().presentKHR(presentInfo);
-
-    CurrentFrame = (CurrentFrame + 1) % mImageCount;
-}
-
-void VKSwapChain::Present() {
-    const uint64_t DefaultFenceTimeout = UINT64_MAX;
-    int test = GetCurrentBufferIndex();
-
-    mDevice->Call().waitForFences(1, &mWaitFences[CurrentBufferIndex], VK_TRUE, DefaultFenceTimeout);
-    mDevice->Call().resetFences(mWaitFences[CurrentBufferIndex]);
-
-    vk::PipelineStageFlags waitStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    vk::SubmitInfo submitInfo = {};
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &mDrawCommandBuffers[CurrentBufferIndex];
-    //submitInfo.signalSemaphoreCount = 1;
-    //submitInfo.waitSemaphoreCount = 1;
-    //submitInfo.pSignalSemaphores = &mSemaphores.RenderComplete;
-    submitInfo.pWaitDstStageMask = &waitStageMask;
-    //submitInfo.pWaitSemaphores = &mSemaphores.PresentComplete;
-
-    mDevice->GetQueue().submit(submitInfo, mWaitFences[CurrentBufferIndex]);
-    vk::Result result = QueuePresent(mDevice->GetQueue(), CurrentBufferIndex, mSemaphores.RenderComplete[0]);
-    if (result != vk::Result::eSuccess || result != vk::Result::eSuboptimalKHR) {
-        // Swapchain lost, we'll try again next poll
-        if (result != vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {
-            Resize(mSurfaceSize.width, mSurfaceSize.height);
-            return;
-        } else {
-            AppLog(result);
-        }
-    }
-    if (result == vk::Result::eErrorDeviceLost) exit(1); // driver lost, we'll crash in this case:
-
-    mDevice->Call().waitForFences(1, &mWaitFences[CurrentBufferIndex], VK_TRUE, DefaultFenceTimeout);
-    mDevice->Call().resetFences(mWaitFences[CurrentBufferIndex]);
-}
-
-
-const uint32_t VKSwapChain::GetImageCount() const {
-    return mImageCount;
-}
-
-const uint32_t VKSwapChain::GetCurrentBufferIndex() const {
-    return CurrentBufferIndex;
-}
-
-const vk::CommandBuffer &VKSwapChain::GetCurrentDrawCommandFramebuffer() {
-    return GetDrawCommandBuffer(CurrentBufferIndex);
-}
-
-const vk::Framebuffer &VKSwapChain::GetCurrentFramebuffer() {
-    return GetFramebuffer(CurrentBufferIndex);
-}
-
-const vk::CommandBuffer &VKSwapChain::GetDrawCommandBuffer(size_t index) {
-    return mDrawCommandBuffers[index];
-}
-
-const vk::Framebuffer &VKSwapChain::GetFramebuffer(size_t index) {
-    return mFramebuffers[index];
-}
-
-const vk::RenderPass &VKSwapChain::GetRenderPass() {
-    return RenderPass;
-}
-
-
-vk::Result VKSwapChain::AquireNextImage(vk::Semaphore presentComplete, uint32_t *index) {
-    vk::Result result;
-    *index = mDevice->Call().acquireNextImageKHR(mSwapchain, UINT64_MAX, presentComplete, (vk::Fence)nullptr);
-    return vk::Result::eSuccess;
-}
-
-vk::Result VKSwapChain::QueuePresent(vk::Queue queue, uint32_t imageIndex, vk::Semaphore wait) {
-    vk::PresentInfoKHR presentInfo = {};
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &mSwapchain;
-    presentInfo.pImageIndices = &imageIndex;
-    if (wait) {
+    if (renderComplete) {
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &wait;
+        presentInfo.pWaitSemaphores = signalSemaphores;
     }
-    mDevice->GetQueue().presentKHR(presentInfo);
-    return vk::Result::eSuccess;
-}
 
-void VKSwapChain::FindImageFormatAndColorSpace() {
-    auto formats = mDevice->GetPhysicalDevice()->Call().getSurfaceFormatsKHR(mSurface);
-
-    if ((formats.size() == 1) && formats[0].format == vk::Format::eUndefined) {
-        SurfaceColorFormat = vk::Format::eB8G8R8A8Unorm;
-        SurfaceColorSpace = formats[0].colorSpace;
-    } else {
-        bool result = false;
-        for (auto &&format : formats) {
-            if (format.format == vk::Format::eB8G8R8A8Unorm) {
-                SurfaceColorFormat = format.format;
-                SurfaceColorSpace = formats[0].colorSpace;
-                result = true;
-                break;
-            }
-        }
-
-        if (!result) {
-            SurfaceColorFormat = formats[0].format;
-            SurfaceColorSpace = formats[0].colorSpace;
-        }
-    }
+    return mDevice->GetQueue().presentKHR(presentInfo);
 }
 
 }

@@ -18,6 +18,12 @@ VKContext::VKContext(void *window) {
     surfaceCreateinfo.hinstance = GetModuleHandle(NULL);
     surfaceCreateinfo.hwnd = mWindowHandle;
     mSurface = mInstance->Call().createWin32SurfaceKHR(surfaceCreateinfo);
+    // Swapchain
+    mSwapChain = CreateReference<VKSwapChain>(mDevice, mSurface);
+    mSwapChain->Create(1281, 1025); // Resize triggered after start, so this should not be needed
+
+    // PipelineCache
+    mPipelineCache = mDevice->Call().createPipelineCache(vk::PipelineCacheCreateInfo());
 }
 
 VKContext::~VKContext() {
@@ -27,19 +33,19 @@ VKContext::~VKContext() {
 }
 
 void VKContext::Load() {
-    // Swapchain
-    mSwapChain = CreateReference<VKSwapChain>(mDevice, mSurface);
-    mSwapChain->Create(1281, 1025); // Resize triggered after start, so this should not be needed
-
-    // PipelineCache
-    mPipelineCache = mDevice->Call().createPipelineCache(vk::PipelineCacheCreateInfo());
-
 }
 
 void VKContext::Attach() {
 }
 
+void VKContext::SwapBuffers() {
+    mDevice->Call().waitIdle();
+    mSwapChain->Prepare();
+}
+
 void VKContext::Detach() {
+    mDevice->Call().waitIdle();
+    mSwapChain->Finish();
 }
 
 void *VKContext::GetNativeContext() {
@@ -55,14 +61,8 @@ void VKContext::SetViewport(uint32_t width, uint32_t height, int32_t x, int32_t 
     mSwapChain->Resize(width, height);
 }
 
-void VKContext::SwapBuffers() {
-    mDevice->Call().waitIdle();
-    //mSwapChain->Present();
-    //mSwapChain->Prepare();
-    mDevice->Call().waitIdle();
-}
-
 void VKContext::SetVSync(bool activate) {
+    mSwapChain->SetSyncronizedDraw(activate);
 }
 
 }

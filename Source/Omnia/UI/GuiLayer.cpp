@@ -12,109 +12,6 @@ namespace Omnia {
 
 static bool ShowDemoWindow = false;
 
-static void check_vk_result(VkResult err) {
-    if (err == 0) return;
-    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
-    if (err < 0) abort();
-}
-
-static void FrameRender(ImDrawData* draw_data)
-{
-    VkResult err;
-    VKContext *context = &reinterpret_cast<VKContext &>(Application::Get().GetContext());
-
-
-
-    /// @brief 
-    /// @param draw_data 
-    std::array<VkClearValue, 2> clearValues = {};
-    clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
-    clearValues[1].depthStencil = { 1.0f, 0 };
-
-    //VkBuffer vertexBuffers[] = { vertexBuffer };
-    //VkDeviceSize offsets[] = { 0 };
-
-    //uint32_t imageIndex;
-    //VkSemaphore image_acquired_semaphore  = wd->FrameSemaphores[wd->SemaphoreIndex].ImageAcquiredSemaphore;
-    //VkSemaphore render_complete_semaphore = wd->FrameSemaphores[wd->SemaphoreIndex].RenderCompleteSemaphore;
-
-    //err = vkAcquireNextImageKHR(data->iDevice->GetDevice(), wd->Swapchain, UINT64_MAX, image_acquired_semaphore, VK_NULL_HANDLE, &wd->FrameIndex);
-    //if (err == VK_ERROR_OUT_OF_DATE_KHR)
-    //{
-    //    g_SwapChainRebuild = true;
-    //    return;
-    //}
-    //check_vk_result(err);
-
-    //ImGui_ImplVulkanH_Frame* fd = &wd->Frames[wd->FrameIndex];
-    //{
-    //    err = vkWaitForFences(data->iDevice->GetDevice(), 1, &fd->Fence, VK_TRUE, UINT64_MAX);    // wait indefinitely instead of periodically checking
-    //    check_vk_result(err);
-
-    //    err = vkResetFences(data->iDevice->GetDevice(), 1, &fd->Fence);
-    //    check_vk_result(err);
-    //}
-    //{
-    //    err = vkResetCommandPool(data->iDevice->GetDevice(), fd->CommandPool, 0);
-    //    check_vk_result(err);
-    //    VkCommandBufferBeginInfo info = {};
-    //    info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    //    info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    //    err = vkBeginCommandBuffer(fd->CommandBuffer, &info);
-    //    check_vk_result(err);
-    //}
-
-    // Record dear imgui primitives into command buffer
-    //context->GetSwapChain()->Prepare();
-    //auto buffer = context->GetDevice()->GetCommandBuffer(true);
-    //ImGui_ImplVulkan_RenderDrawData(draw_data, buffer);
-    //context->GetDevice()->FlushCommandBuffer(buffer);
-    //context->GetSwapChain()->QueuePresent(context->GetDevice()->GetQueue(), context->GetSwapChain()->GetCurrentBufferIndex(), nullptr);
-
-    // Submit command buffer
-    //vkCmdEndRenderPass(fd->CommandBuffer);
-    //{
-    //    VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    //    VkSubmitInfo info = {};
-    //    info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    //    info.waitSemaphoreCount = 1;
-    //    info.pWaitSemaphores = &image_acquired_semaphore;
-    //    info.pWaitDstStageMask = &wait_stage;
-    //    info.commandBufferCount = 1;
-    //    info.pCommandBuffers = &fd->CommandBuffer;
-    //    info.signalSemaphoreCount = 1;
-    //    info.pSignalSemaphores = &render_complete_semaphore;
-
-    //    err = vkEndCommandBuffer(fd->CommandBuffer);
-    //    check_vk_result(err);
-    //    err = vkQueueSubmit(data->Queue, 1, &info, fd->Fence);
-    //    check_vk_result(err);
-    //}
-}
-
-static void FramePresent()
-{
-    Application &app = Application::Get();
-    //if (g_SwapChainRebuild) return;
-    //VkSemaphore render_complete_semaphore = wd->FrameSemaphores[wd->SemaphoreIndex].RenderCompleteSemaphore;
-    //VkPresentInfoKHR info = {};
-    //info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    //info.waitSemaphoreCount = 1;
-    //info.pWaitSemaphores = &render_complete_semaphore;
-    //info.swapchainCount = 1;
-    //info.pSwapchains = &wd->Swapchain;
-    //info.pImageIndices = &wd->FrameIndex;
-    //VkResult err = vkQueuePresentKHR(data->Queue, &info);
-    //if (err == VK_ERROR_OUT_OF_DATE_KHR)
-    //{
-    //    g_SwapChainRebuild = true;
-    //    return;
-    //}
-    //check_vk_result(err);
-    //wd->SemaphoreIndex = (wd->SemaphoreIndex + 1) % wd->ImageCount; // Now we can use the next set of semaphores
-
-}
-
 GuiLayer::GuiLayer(): Layer("GuiLayer") {}
 GuiLayer::~GuiLayer() {}
 
@@ -132,7 +29,7 @@ void GuiLayer::Attach() {
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
     if (Context::API != GraphicsAPI::Vulkan) {
-    	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
     }
     //io.ConfigViewportsNoAutoMerge = true;
     //io.ConfigViewportsNoTaskBarIcon = true;
@@ -197,20 +94,21 @@ void GuiLayer::Attach() {
         pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
         pool_info.pPoolSizes = pool_sizes;
         VkResult err = vkCreateDescriptorPool(context->GetDevice()->Call(), &pool_info, nullptr, &descriptorPool);
-        check_vk_result(err);
 
         // UI Command Buffer/Pool, Framebuffers, RenderPass
         ImGui_ImplVulkan_InitInfo vkInfo = {};
-        vkInfo.CheckVkResultFn = check_vk_result;
+        vkInfo.CheckVkResultFn = nullptr;
         vkInfo.Instance = context->GetInstance()->Call();
         vkInfo.PhysicalDevice = context->GetPhyiscalDevice()->Call();
         vkInfo.Device = context->GetDevice()->Call();
         vkInfo.QueueFamily = context->GetPhyiscalDevice()->GetQueueFamilyIndex(vk::QueueFlagBits::eGraphics);
         vkInfo.Queue = context->GetDevice()->GetQueue();
+        vkInfo.PipelineCache = context->GetPipelineCache();
         vkInfo.DescriptorPool = descriptorPool;
-        vkInfo.MinImageCount = context->GetSwapChain()->GetImageCount();
+        vkInfo.Allocator = nullptr;
+        vkInfo.MinImageCount = 2;
         vkInfo.ImageCount = context->GetSwapChain()->GetImageCount();
-        ImGui_ImplVulkan_Init(&vkInfo, context->GetRenderPass());
+        ImGui_ImplVulkan_Init(&vkInfo, context->GetSwapChain()->GetRenderPass());
         // Upload Fonts
         {
             // Use any command queue
@@ -296,12 +194,17 @@ void GuiLayer::Finish() {
 	ImGuiIO& io = ImGui::GetIO();
 	
 	// Rendering
-	ImGui::Render();
+    ImGui::Render();
 	io.DisplaySize = ImVec2((float)app.GetWindow().GetContexttSize().Width, (float)app.GetWindow().GetContexttSize().Height);
-    if (Context::API == GraphicsAPI::OpenGL) ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    if (Context::API == GraphicsAPI::OpenGL) {
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
     if (Context::API == GraphicsAPI::Vulkan) {
-        FramePresent();
-        FrameRender(ImGui::GetDrawData());
+        VKContext *context = &reinterpret_cast<VKContext &>(Application::Get().GetContext());
+
+        auto buffer = context->GetSwapChain()->PrepareRenderPass();
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), (VkCommandBuffer)buffer);
+        context->GetSwapChain()->FinishRenderPass();
     }
 
 	// Update and Render additional Platform Windows

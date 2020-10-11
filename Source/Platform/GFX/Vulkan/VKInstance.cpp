@@ -47,7 +47,7 @@ VKInstance::VKInstance() {
     vector<vk::ExtensionProperties> availableExtensions = vk::enumerateInstanceExtensionProperties();
     vector<const char *> neededExtensions = {
         VK_KHR_SURFACE_EXTENSION_NAME,
-        #ifdef APP_PLATFORM_WINDOWS
+        #if defined APP_PLATFORM_WINDOWS
             VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
         #endif
         #ifdef APP_DEBUG_MODE

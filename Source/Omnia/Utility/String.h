@@ -1,9 +1,18 @@
 ﻿#pragma once
 
-#include "Omnia/Omnia.pch"
+#include "Omnia/Types.h"
+
+#include <codecvt>
+#include <locale>
 
 // String Extensions
 namespace Omnia {
+
+template<typename T>
+concept hashable = requires(T a) {
+    { std::hash<T>{}(a) } -> std::convertible_to<std::size_t>;
+};
+
 
 constexpr inline size_t operator"" _hash(const char *value, size_t count) {
     return value == "" ? 0 : std::hash<string>{}(value);

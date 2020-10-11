@@ -15,7 +15,9 @@ using std::uint64_t;
 
 using std::array;
 using std::function;
+using std::future;
 using std::map;
+using std::optional;
 using std::shared_ptr;
 using std::string;
 using std::string_view;

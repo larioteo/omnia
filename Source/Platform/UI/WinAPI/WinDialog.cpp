@@ -11,41 +11,47 @@
 namespace Omnia {
 
 string WinDialog::OpenFile(const string &filter) const {
-    OPENFILENAMEA ofn;       // common dialog box structure
-    CHAR szFile[260] = { 0 };       // if using TCHAR macros
+    OPENFILENAMEA dialog;       // common dialog box structure
+    CHAR szFile[260] = { 0 };   // if using TCHAR macros
 
-                                    // Initialize OPENFILENAME
-    ZeroMemory(&ofn, sizeof(OPENFILENAME));
-    ofn.lStructSize = sizeof(OPENFILENAME);
-    ofn.hwndOwner = (HWND)Application::GetWindow().GetNativeWindow();
-    ofn.lpstrFile = szFile;
-    ofn.nMaxFile = sizeof(szFile);
-    ofn.lpstrFilter = filter.c_str();
-    ofn.nFilterIndex = 1;
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+    // Initialize OPENFILENAME
+    ZeroMemory(&dialog, sizeof(dialog));
+    dialog.lStructSize = sizeof(dialog);
+    dialog.hwndOwner = (HWND)Application::GetWindow().GetNativeWindow();
+    dialog.lpstrFile = szFile;
+    dialog.nMaxFile = sizeof(szFile);
+    dialog.lpstrFilter = "All\0*.*";
+    dialog.nFilterIndex = 1;
+    dialog.lpstrFileTitle = NULL;
+    dialog.nMaxFileTitle = 0;
+    dialog.lpstrInitialDir = NULL;
+    dialog.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-    if (GetOpenFileNameA(&ofn) == TRUE) {
-        return ofn.lpstrFile;
+    if (GetOpenFileName(&dialog) == TRUE) {
+        return dialog.lpstrFile;
     }
     return std::string();
 }
 
 string WinDialog::SaveFile(const string &filter) const {
-    OPENFILENAMEA ofn;       // common dialog box structure
-    CHAR szFile[260] = { 0 };       // if using TCHAR macros
+    OPENFILENAMEA dialog;       // common dialog box structure
+    CHAR szFile[260] = { 0 };   // if using TCHAR macros
 
-                                    // Initialize OPENFILENAME
-    ZeroMemory(&ofn, sizeof(OPENFILENAME));
-    ofn.lStructSize = sizeof(OPENFILENAME);
-    ofn.hwndOwner = (HWND)Application::GetWindow().GetNativeWindow();
-    ofn.lpstrFile = szFile;
-    ofn.nMaxFile = sizeof(szFile);
-    ofn.lpstrFilter = filter.c_str();
-    ofn.nFilterIndex = 1;
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+     // Initialize OPENFILENAME
+    ZeroMemory(&dialog, sizeof(dialog));
+    dialog.lStructSize = sizeof(dialog);
+    dialog.hwndOwner = (HWND)Application::GetWindow().GetNativeWindow();
+    dialog.lpstrFile = szFile;
+    dialog.nMaxFile = sizeof(szFile);
+    dialog.lpstrFilter = "All\0*.*";
+    dialog.nFilterIndex = 1;
+    dialog.lpstrFileTitle = NULL;
+    dialog.nMaxFileTitle = 0;
+    dialog.lpstrInitialDir = NULL;
+    dialog.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
-    if (GetSaveFileNameA(&ofn) == TRUE) {
-        return ofn.lpstrFile;
+    if (GetSaveFileName(&dialog) == TRUE) {
+        return dialog.lpstrFile;
     }
     return std::string();
 }

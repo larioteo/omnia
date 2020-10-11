@@ -130,9 +130,11 @@ list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_UI_SOURCES})
 set(OMNIA_LIBRARY_UTILITY_HEADERS
 	"Source/Omnia/Utility/DateTime.h"
 	"Source/Omnia/Utility/Enum.h"
+	"Source/Omnia/Utility/Future.h"
 	"Source/Omnia/Utility/Message.h"
 	"Source/Omnia/Utility/Property.h"
 	"Source/Omnia/Utility/String.h"
+	"Source/Omnia/Utility/ThreadPool.h"
 	"Source/Omnia/Utility/Timer.h"
 	"Source/Omnia/Utility/UUID.h"
 )

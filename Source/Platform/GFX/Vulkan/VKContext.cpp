@@ -32,6 +32,15 @@ VKContext::~VKContext() {
     mInstance->Call().destroySurfaceKHR(mSurface);
 }
 
+int VKContext::CreateSurface(VkInstance instance, VkSurfaceKHR *surface) {
+    VkWin32SurfaceCreateInfoKHR createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    createInfo.hinstance = GetModuleHandle(NULL);
+    createInfo.hwnd = mWindowHandle;
+    VkResult result = vkCreateWin32SurfaceKHR(instance, &createInfo, VK_NULL_HANDLE, surface);
+    return (int)result;
+}
+
 void VKContext::Load() {
 }
 

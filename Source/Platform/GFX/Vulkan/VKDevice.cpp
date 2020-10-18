@@ -286,6 +286,7 @@ VKDevice::VKDevice(const Reference<VKPhysicalDevice> &physicalDevice): mPhysical
 }
 
 void VKDevice::Destroy() {
+    mDevice.freeCommandBuffers(mCommandPool, mCommandBuffer);
     mDevice.destroyCommandPool(mCommandPool);
     mDevice.destroy();
 }
@@ -319,16 +320,16 @@ VKDevice::operator const vk::Device &() const {
 
 // Commands
 const vk::CommandBuffer &VKDevice::GetCommandBuffer(bool start) const  {
-    vk::CommandBuffer buffer = nullptr;
+    vk::CommandBuffer buffer = {};
     vk::CommandBufferAllocateInfo bufferAllcoateInfo = {};
     bufferAllcoateInfo.commandPool = mCommandPool;
     bufferAllcoateInfo.level = vk::CommandBufferLevel::ePrimary;
     bufferAllcoateInfo.commandBufferCount = 1; // mSwapChain->GetSwapchainBuffer().size()
-
     buffer = (mDevice.allocateCommandBuffers(bufferAllcoateInfo))[0];
 
     if (start) {
         vk::CommandBufferBeginInfo bufferBeginInfo = {};
+        bufferBeginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
         buffer.begin(bufferBeginInfo);
     }
 
@@ -336,7 +337,7 @@ const vk::CommandBuffer &VKDevice::GetCommandBuffer(bool start) const  {
 }
 
 vk::CommandBuffer VKDevice::CreateSecondaryCommandBuffer() {
-    vk::CommandBuffer buffer;
+    vk::CommandBuffer buffer = {};
     vk::CommandBufferAllocateInfo bufferAllcoateInfo = {};
     bufferAllcoateInfo.commandPool = mCommandPool;
     bufferAllcoateInfo.level = vk::CommandBufferLevel::eSecondary;

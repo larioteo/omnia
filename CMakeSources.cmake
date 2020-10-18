@@ -46,6 +46,7 @@ list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_CORE_SOURCES})
 set(OMNIA_LIBRARY_DEBUG_HEADERS
 	"Source/Omnia/Debug/Instrumentor.h"
 	"Source/Omnia/Debug/Memory.h"
+	"Source/Omnia/Debug/Profiler.h"
 )
 set(OMNIA_LIBRARY_DEBUG_SOURCES
 	""
@@ -56,9 +57,11 @@ list(APPEND OMNIA_SOURCES ${OMNIA_LIBRARY_DEBUG_SOURCES})
 # GFX Extensions
 set(OMNIA_LIBRARY_GFX_HEADERS
 	"Source/Omnia/GFX/Context.h"
-
+    
+	"Source/Platform/GFX/OpenGL/OpenGL.h"
 	"Source/Platform/GFX/OpenGL/GLContext.h"
 	
+	"Source/Platform/GFX/Vulkan/Vulkan.h"
 	"Source/Platform/GFX/Vulkan/VKAllocator.h"
 	"Source/Platform/GFX/Vulkan/VKContext.h"
 	"Source/Platform/GFX/Vulkan/VKInstance.h"
@@ -107,6 +110,7 @@ set(OMNIA_LIBRARY_UI_HEADERS
 	"Source/Omnia/UI/Event.h"
 	"Source/Omnia/UI/WindowData.h"
 	"Source/Omnia/UI/Window.h"
+
 	"Source/Platform/UI/WinAPI/WinDialog.h"
 	"Source/Platform/UI/WinAPI/WinEvent.h"
 	"Source/Platform/UI/WinAPI/WinWindow.h"
@@ -118,6 +122,7 @@ set(OMNIA_LIBRARY_UI_SOURCES
 	"Source/Omnia/UI/Dialog.cpp"
 	"Source/Omnia/UI/Event.cpp"
 	"Source/Omnia/UI/Window.cpp"
+
 	"Source/Platform/UI/WinAPI/WinDialog.cpp"
 	"Source/Platform/UI/WinAPI/WinEvent.cpp"
 	"Source/Platform/UI/WinAPI/WinWindow.cpp"

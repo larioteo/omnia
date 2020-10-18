@@ -44,20 +44,22 @@
 
 // UI Extensions
 #if defined(APP_LIBRARY_UI_EXTENSIONS)
-	#include "Omnia/UI/GuiLayer.h"
-	#include "Omnia/UI/Event.h"
+    #include "Omnia/UI/Dialog.h"
+    #include "Omnia/UI/Event.h"
+    #include "Omnia/UI/GuiLayer.h"
 	#include "Omnia/UI/Window.h"
 #endif
 
 // Utility Extensions
 #if defined(APP_LIBRARY_UTILITIES_EXTENSIONS)
-	#include "Omnia/Utility/Buffer.h"
 	#include "Omnia/Utility/DateTime.h"
 	#include "Omnia/Utility/Enum.h"
+    #include "Omnia/Utility/Future.h"
 	#include "Omnia/Utility/Message.h"
 	#include "Omnia/Utility/Property.h"
+    #include "Omnia/Utility/Random.h"
     #include "Omnia/Utility/String.h"
+    #include "Omnia/Utility/ThreadPool.h"
 	#include "Omnia/Utility/Timer.h"
     #include "Omnia/Utility/UUID.h"
 #endif
-

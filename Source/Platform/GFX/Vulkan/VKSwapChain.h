@@ -14,12 +14,11 @@ struct VKSwapChainBuffer {
     vk::Framebuffer FrameBuffer;
     vk::Image Image;
     vk::ImageView View;
-    array<vk::ImageView, 2> Views;
 };
 
 struct VKDepthStencilBuffer {
-    vk::DeviceMemory Memory;
     vk::Image Image;
+    vk::DeviceMemory Memory;
     vk::ImageView View;
 };
 
@@ -47,6 +46,7 @@ struct VKSynchronization {
     vector<vk::Fence> WaitFences;
 };
 
+
 class VKSwapChain {
 public:
     // Default
@@ -57,13 +57,14 @@ public:
     void Destroy();
     void Resize(uint32_t width, uint32_t height);
     void Prepare();
+    vk::CommandBuffer PrepareUI();
     void Finish();
+    void FinishUI();
 
     // Accessors
     const vk::CommandBuffer &GetCurrentDrawCommandBuffer() const;
     const vk::Framebuffer &GetCurrentFramebuffer() const;
     const uint32_t GetImageCount() const;
-    const vk::Pipeline &GetPipeline() const;
     const vk::Rect2D &GetRenderArea() const;
     const vk::RenderPass &GetRenderPass() const;
 
@@ -71,17 +72,14 @@ public:
     void SetSyncronizedDraw(bool enable);
 
     // Extension RenderPass
-    vk::CommandBuffer PrepareRenderPass();
-    void FinishRenderPass();
+    intptr_t *GetAttachmentID();
 
 private:
     // Helpers
     void CreateImageViews();
-    void CreateDepthStencilImageViews();
     void CreateRenderPass();
-    void CreatePipeline();
     void CreateFrameBuffer();
-    void CreateDrawCommandBuffers();
+    void CreateCommandBuffers();
 
     // Internal
     void ChooseCapabilities(const vk::SurfaceCapabilitiesKHR &capabilities, uint32_t width, uint32_t height);
@@ -90,13 +88,16 @@ private:
     vk::Result QueuePresent(uint32_t imageIndex, vk::Semaphore renderComplete = nullptr);
 
 private:
+    // Properties
     VKAllocator mAllocator;
     Reference<VKDevice> mDevice = nullptr;
 
     uint32_t CurrentFrame = 0;
     uint32_t CurrentBufferIndex = 0;
     uint32_t mImageCount = 0;
-    uint32_t QueueFamilyIndex = 0; // ToDo:: Remove
+    uint32_t mMaxImageCount = 3;
+    uint32_t ComputeQueueIndex = 0;
+    uint32_t GraphicsQueueIndex = 0; // ToDo:: Remove
 
     // Surface
     vk::SurfaceKHR mSurface = nullptr;
@@ -104,19 +105,16 @@ private:
 
     // SwapChain
     vk::SwapchainKHR mSwapchain = nullptr;
+    vk::RenderPass mRenderPass;
     vk::PresentModeKHR mPresentMode;
     vector<VKSwapChainBuffer> mSwapchainBuffers;
-    VKDepthStencilBuffer mColorAttachment;
     VKDepthStencilBuffer mDepthStencil;
-    vector<vk::CommandBuffer> mDrawCommandBuffers;
     VKSynchronization mSynchronization;
-    vk::DescriptorImageInfo mDescriptorImageInfo;
-    vk::Sampler mColorAttachmentSampler;
 
-    // ToDo: Move RenderPass & Pipeline
-    vk::RenderPass mRenderPass;
-    vk::Pipeline mPipeline;
-    vk::PipelineLayout mPipelineLayout;
+    // CommandPool\Buffers 
+    vk::CommandPool mCommandPool;
+    vector<vk::CommandBuffer> mDrawCommandBuffers;
+    vector<vk::CommandBuffer> mUICommandBuffers;
 };
 
 }

@@ -6,7 +6,7 @@
 
 | Project | License | Release | Version |
 | :------ | :-----: | :-----: | :------ |
-| [Dear ImGui](https://github.com/ocornut/imgui.git "imgui")                                    | MIT           | 2020-08-20 | commit\{9d20a5f0a515dba3ade46cfcf90953133e34dcbc} |
+| [Dear ImGui](https://github.com/ocornut/imgui.git "imgui")                                    | MIT           | 2020-10-16 | commit\{c9fafd5ea4e316996f20067882600676decc97e6} |
 | [Vulkan/GL/GLES/EGL/GLX/WGL Loader](https://github.com/Dav1dde/glad "glad")                   | MIT           | 2020-09-05 | commit\{4b97c39fe8c1e103f869b50acea7d59032f68b12} |
 | [OpenGL-Registry](https://github.com/KhronosGroup/OpenGL-Registry.git "OpenGL-Registry")      | MIT?          | 2020-05-22 | commit\{8261133c2645aaeef880c5f5a6e327f399bc9d04} |
 | [yaml-cpp](https://github.com/jbeder/yaml-cpp.git "yaml-cpp")                                 | MIT           | 2020-06-29 | commit\{3f381f13a07f007941b250e1563f67ded4dc8b1a} |

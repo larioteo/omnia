@@ -106,7 +106,6 @@ public:
 	virtual void TouchEvent(TouchEventData &data);
 	/** This method delivers you window events. */
 	virtual void WindowEvent(WindowEventData &data);
-
 private:
 	/**
 	* @brief	These methods are used internally to handle critical events or pass them to the provided layers.

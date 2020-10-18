@@ -25,6 +25,8 @@ public:
     VKContext(void *window);	// previous CreateContext
     virtual ~VKContext();		// previous DestroyContext
 
+    int CreateSurface(VkInstance instance, VkSurfaceKHR *surface);
+
     virtual void Load() override;		// previous LoadGL
 
     virtual void Attach() override;

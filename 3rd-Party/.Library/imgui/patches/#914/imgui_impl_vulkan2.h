@@ -1,11 +1,16 @@
-﻿// dear imgui: Renderer for Vulkan
+// dear imgui: Renderer for Vulkan
 // This needs to be used along with a Platform Binding (e.g. GLFW, SDL, Win32, custom..)
 
 // Implemented features:
 //  [X] Renderer: Support for large meshes (64k+ vertices) with 16-bit indices.
-// Missing features:
-//  [ ] Platform: Multi-viewport / platform windows.
-//  [ ] Renderer: User texture binding. Changes of ImTextureID aren't supported by this binding! See https://github.com/ocornut/imgui/pull/914
+//  [X] Renderer: User texture binding. See https://github.com/ocornut/imgui/pull/914
+
+// Modified (by naivisoftware) to support custom texture binding, based on: https://github.com/ocornut/imgui/pull/914
+// Also added support for multiple ImGUI contexts, where every context has it's own set of buffers.
+// Buffers are created lazily on draw, but can be destroyed explicitly by calling: ImGui_ImplVulkan_RemoveContext().
+// Instead of 1 fixed pipeline, pipelines are created based on the number of MSAA samples.
+// These changes allow for rendering a context to a different viewport, with different MSAA settings,
+// Together with the display of custom textures in ImGUI
 
 // You can copy and use unmodified imgui_impl_* files in your project. See main.cpp for an example of using this.
 // If you are new to dear imgui, read examples/README.txt and read the documentation at the top of imgui.cpp.
@@ -44,30 +49,30 @@ struct ImGui_ImplVulkan_InitInfo
 };
 
 // Called by user code
-IMGUI_IMPL_API bool     ImGui_ImplVulkan_Init(ImGui_ImplVulkan_InitInfo* info, VkRenderPass render_pass);
-IMGUI_IMPL_API void     ImGui_ImplVulkan_Shutdown();
-IMGUI_IMPL_API void     ImGui_ImplVulkan_NewFrame();
-IMGUI_IMPL_API void     ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, VkCommandBuffer command_buffer);
-IMGUI_IMPL_API bool     ImGui_ImplVulkan_CreateFontsTexture(VkCommandBuffer command_buffer);
-IMGUI_IMPL_API void     ImGui_ImplVulkan_DestroyFontUploadObjects();
-IMGUI_IMPL_API void     ImGui_ImplVulkan_SetMinImageCount(uint32_t min_image_count); // To override MinImageCount after initialization (e.g. if swap chain is recreated)
+IMGUI_IMPL_API bool			ImGui_ImplVulkan_Init(ImGui_ImplVulkan_InitInfo* info, VkRenderPass render_pass);
+IMGUI_IMPL_API void			ImGui_ImplVulkan_Shutdown();
+IMGUI_IMPL_API void			ImGui_ImplVulkan_NewFrame();
+IMGUI_IMPL_API void			ImGui_ImplVulkan_RenderDrawData(ImDrawData* draw_data, ImGuiContext* context, VkCommandBuffer command_buffer, VkRenderPass render_pass, VkSampleCountFlagBits samples);
+IMGUI_IMPL_API bool			ImGui_ImplVulkan_CreateFontsTexture(VkCommandBuffer command_buffer);
+IMGUI_IMPL_API void			ImGui_ImplVulkan_DestroyFontUploadObjects();
+IMGUI_IMPL_API void			ImGui_ImplVulkan_RemoveContext(ImGuiContext* context);
+IMGUI_IMPL_API void			ImGui_ImplVulkan_SetMinImageCount(uint32_t min_image_count); // To override MinImageCount after initialization (e.g. if swap chain is recreated)
 
-
-                                                                                     //-------------------------------------------------------------------------
-                                                                                     // Internal / Miscellaneous Vulkan Helpers
-                                                                                     // (Used by example's main.cpp. Used by multi-viewport features. PROBABLY NOT used by your own engine/app.)
-                                                                                     //-------------------------------------------------------------------------
-                                                                                     // You probably do NOT need to use or care about those functions.
-                                                                                     // Those functions only exist because:
-                                                                                     //   1) they facilitate the readability and maintenance of the multiple main.cpp examples files.
-                                                                                     //   2) the multi-viewport / platform window implementation needs them internally.
-                                                                                     // Generally we avoid exposing any kind of superfluous high-level helpers in the bindings,
-                                                                                     // but it is too much code to duplicate everywhere so we exceptionally expose them.
-                                                                                     //
-                                                                                     // Your engine/app will likely _already_ have code to setup all that stuff (swap chain, render pass, frame buffers, etc.).
-                                                                                     // You may read this code to learn about Vulkan, but it is recommended you use you own custom tailored code to do equivalent work.
-                                                                                     // (The ImGui_ImplVulkanH_XXX functions do not interact with any of the state used by the regular ImGui_ImplVulkan_XXX functions)
-                                                                                     //-------------------------------------------------------------------------
+//-------------------------------------------------------------------------
+// Internal / Miscellaneous Vulkan Helpers
+// (Used by example's main.cpp. Used by multi-viewport features. PROBABLY NOT used by your own engine/app.)
+//-------------------------------------------------------------------------
+// You probably do NOT need to use or care about those functions.
+// Those functions only exist because:
+//   1) they facilitate the readability and maintenance of the multiple main.cpp examples files.
+//   2) the upcoming multi-viewport feature will need them internally.
+// Generally we avoid exposing any kind of superfluous high-level helpers in the bindings,
+// but it is too much code to duplicate everywhere so we exceptionally expose them.
+//
+// Your engine/app will likely _already_ have code to setup all that stuff (swap chain, render pass, frame buffers, etc.).
+// You may read this code to learn about Vulkan, but it is recommended you use you own custom tailored code to do equivalent work.
+// (The ImGui_ImplVulkanH_XXX functions do not interact with any of the state used by the regular ImGui_ImplVulkan_XXX functions)
+//-------------------------------------------------------------------------
 
 struct ImGui_ImplVulkanH_Frame;
 struct ImGui_ImplVulkanH_Window;
@@ -124,4 +129,3 @@ struct ImGui_ImplVulkanH_Window
         ClearEnable = true;
     }
 };
-

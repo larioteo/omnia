@@ -10,6 +10,14 @@
 
 namespace Omnia {
 
+static int ImGui_ImplWin32_CreateVkSurface(ImGuiViewport* viewport, ImU64 vk_instance, const void* vk_allocator, ImU64* out_vk_surface) {
+
+    VKContext *context = &reinterpret_cast<VKContext &>(Application::Get().GetContext());
+    auto result = context->CreateSurface((VkInstance)vk_instance, (VkSurfaceKHR *)out_vk_surface); //glfwCreateWindowSurface
+    return result;
+}
+
+
 static bool ShowDemoWindow = false;
 
 GuiLayer::GuiLayer(): Layer("GuiLayer") {}
@@ -28,7 +36,8 @@ void GuiLayer::Attach() {
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-    if (Context::API != GraphicsAPI::Vulkan) {
+    if (Context::API == GraphicsAPI::Vulkan) {
+        // ToDo:: Windows creation now workes, but the swapchain seems a little bit strange...
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
     }
     //io.ConfigViewportsNoAutoMerge = true;
@@ -67,6 +76,10 @@ void GuiLayer::Attach() {
     }
     
     if (Context::API == GraphicsAPI::Vulkan) {
+        // Extend API
+        ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+        platform_io.Platform_CreateVkSurface = ImGui_ImplWin32_CreateVkSurface;
+
         Application &app = Application::Get();
         VKContext *context = &reinterpret_cast<VKContext &>(Application::Get().GetContext());
         ImGui_ImplWin32_Init(app.GetWindow().GetNativeWindow(), nullptr);
@@ -97,21 +110,17 @@ void GuiLayer::Attach() {
 
         // UI Command Buffer/Pool, Framebuffers, RenderPass
         ImGui_ImplVulkan_InitInfo vkInfo = {};
-        vkInfo.CheckVkResultFn = nullptr;
         vkInfo.Instance = context->GetInstance()->Call();
         vkInfo.PhysicalDevice = context->GetPhyiscalDevice()->Call();
         vkInfo.Device = context->GetDevice()->Call();
-        vkInfo.QueueFamily = context->GetPhyiscalDevice()->GetQueueFamilyIndex(vk::QueueFlagBits::eGraphics);
         vkInfo.Queue = context->GetDevice()->GetQueue();
-        vkInfo.PipelineCache = context->GetPipelineCache();
         vkInfo.DescriptorPool = descriptorPool;
-        vkInfo.Allocator = nullptr;
         vkInfo.MinImageCount = 2;
         vkInfo.ImageCount = context->GetSwapChain()->GetImageCount();
         ImGui_ImplVulkan_Init(&vkInfo, context->GetSwapChain()->GetRenderPass());
+
         // Upload Fonts
         {
-            // Use any command queue
             vk::CommandBuffer commandBuffer =  context->GetDevice()->GetCommandBuffer(true);
             ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
             context->GetDevice()->FlushCommandBuffer(commandBuffer);
@@ -202,9 +211,9 @@ void GuiLayer::Finish() {
     if (Context::API == GraphicsAPI::Vulkan) {
         VKContext *context = &reinterpret_cast<VKContext &>(Application::Get().GetContext());
 
-        auto buffer = context->GetSwapChain()->PrepareRenderPass();
+        auto buffer = context->GetSwapChain()->PrepareUI();
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), (VkCommandBuffer)buffer);
-        context->GetSwapChain()->FinishRenderPass();
+        context->GetSwapChain()->FinishUI();
     }
 
 	// Update and Render additional Platform Windows

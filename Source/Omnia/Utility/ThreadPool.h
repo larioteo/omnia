@@ -33,7 +33,19 @@ public:
         for (auto &worker : mWorkers) worker.join();
     }
     template <typename F, typename ... Args>
-    auto Enqueue(F &&f, Args &&... args);
+    auto Enqueue(F &&f, Args &&... args) {
+        using return_type = typename std::invoke_result_t<F, Args ...>;
+
+        auto task = std::make_shared<std::packaged_task<return_type()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+        auto result = task->get_future();
+        {
+            std::unique_lock<std::mutex> lock(mQueueMutex);
+            if (mStop) throw std::runtime_error("Enqueue called on a stopped ThreadPool");
+            mTasks.emplace([task]() { (*task)(); });
+        }
+        mCondition.notify_one();
+        return result;
+    }
     void Wait() {
         std::unique_lock<std::mutex> lock(mQueueMutex);
         mCondition.wait(lock, [this]() {
@@ -53,20 +65,5 @@ private:
     std::mutex mQueueMutex;
     bool mStop = false;
 };
-
-template <typename F, typename ... Args>
-auto ThreadPool::Enqueue(F &&f, Args &&... args) {
-    using return_type = typename std::invoke_result_t<F, Args ...>;
-
-    auto task = std::make_shared<std::packaged_task<return_type()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
-    auto result = task->get_future();
-    {
-        std::unique_lock<std::mutex> lock(mQueueMutex);
-        if (mStop) throw std::runtime_error("Enqueue called on a stopped ThreadPool");
-        mTasks.emplace([task]() { (*task)(); });
-    }
-    mCondition.notify_one();
-    return result;
-}
 
 }

@@ -62,6 +62,7 @@ public:
     void FinishUI();
 
     // Accessors
+    const VKSurfaceProperties &GetSurfaceProperties() const { return mSurfaceProperties; }
     const vk::CommandBuffer &GetCurrentDrawCommandBuffer() const;
     const vk::Framebuffer &GetCurrentFramebuffer() const;
     const uint32_t GetImageCount() const;

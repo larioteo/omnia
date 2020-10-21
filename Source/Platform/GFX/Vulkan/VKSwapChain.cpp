@@ -187,10 +187,12 @@ void VKSwapChain::Prepare() {
     CurrentBufferIndex = mDevice->Call().acquireNextImageKHR(mSwapchain, UINT64_MAX, mSynchronization.PresentComplete[CurrentFrame], nullptr).value;
 }
 
+static vk::CommandBuffer uiCommandBuffer;
+
 vk::CommandBuffer VKSwapChain::PrepareUI() {
     vk::CommandBuffer drawCommandBuffer = GetCurrentDrawCommandBuffer();
     drawCommandBuffer.begin(vk::CommandBufferBeginInfo());
-    
+
     vk::ClearValue clearValues[2];
     clearValues[0].color = array<float, 4> { 0.0f, 0.0f, 0.0f, 0.0f};
     clearValues[1].depthStencil = { 1, 0 };
@@ -224,6 +226,7 @@ vk::CommandBuffer VKSwapChain::PrepareUI() {
 }
 
 void VKSwapChain::FinishUI() {
+
     vk::CommandBuffer drawCommandBuffer = GetCurrentDrawCommandBuffer();
     vk::CommandBuffer uiCommandBuffer = mUICommandBuffers[CurrentBufferIndex];
 

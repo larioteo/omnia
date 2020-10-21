@@ -4,9 +4,17 @@
 
 #include "MaterialDesign.h"
 
-static inline ColorThemes GColorTheme;
-static inline ImVec4 ImTextColorHighlight = {};
-static inline ImVec4 ImTextColorHighlightWarn = {};
+inline ColorThemes GColorTheme;
+inline ImVec4 ImTextColorHighlight = {};
+inline ImVec4 ImTextColorHighlightWarn = {};
+
+static ImVec4 GetTextColorHighlight() {
+    return ImTextColorHighlight;
+}
+
+static ImVec4 GetTextColorHighlightWarn() {
+    return ImTextColorHighlightWarn;
+}
 
 static void SetDefaultStyle() {
 	ImGuiStyle &style = ImGui::GetStyle();

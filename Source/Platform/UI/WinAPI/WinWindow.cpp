@@ -216,15 +216,18 @@ WinWindow::WinWindow(const WindowProperties &properties):
 	HMODULE hUser = GetModuleHandle("user32.dll");
 	pfnSetWindowCompositionAttribute SetWindowCompositionAttribute = (pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
 	if (SetWindowCompositionAttribute) {
-		// ACCENT_ENABLE_ACRYLICBLURBEHIND
 		// AGBR
-		ACCENT_POLICY accent = { ACCENT_ENABLE_BLURBEHIND, 0, (DWORD)0xEA000000, 0 };
+		ACCENT_POLICY accent = {
+            ACCENT_ENABLE_HOSTBACKDROP,
+            0,
+            0xEA000000,
+            0
+        };
 		WINDOWCOMPOSITIONATTRIBDATA data;
 		data.Attrib = WCA_ACCENT_POLICY;
 		data.pvData = &accent;
 		data.cbData = sizeof(accent);
 		SetWindowCompositionAttribute(WindowHandle, &data);
-		//DwmSetWindowAttribute(WindowHandle, NULL, &data, NULL);
 	}
 	// Simple Transperancy (Requires: WS_EX_LAYERED)
 	SetWindowLong(WindowHandle, GWL_EXSTYLE, GetWindowLong(WindowHandle, GWL_EXSTYLE) | WS_EX_LAYERED);

@@ -184,7 +184,9 @@ void VKSwapChain::Resize(uint32_t width, uint32_t height) {
 }
 
 void VKSwapChain::Prepare() {
+    mDevice->Call().waitForFences(1, &mSynchronization.WaitFences[CurrentFrame], VK_TRUE, mSynchronization.Timeout);
     CurrentBufferIndex = mDevice->Call().acquireNextImageKHR(mSwapchain, UINT64_MAX, mSynchronization.PresentComplete[CurrentFrame], nullptr).value;
+    mDevice->Call().resetFences(mSynchronization.WaitFences[CurrentFrame]);
 }
 
 static vk::CommandBuffer uiCommandBuffer;
@@ -238,11 +240,6 @@ void VKSwapChain::FinishUI() {
 }
 
 void VKSwapChain::Finish() {
-
-
-    mDevice->Call().waitForFences(1, &mSynchronization.WaitFences[CurrentFrame], VK_TRUE, mSynchronization.Timeout);
-    mDevice->Call().resetFences(mSynchronization.WaitFences[CurrentFrame]);
-
     vk::Semaphore signalSemaphores[] = { mSynchronization.RenderComplete[CurrentBufferIndex] };
     vk::Semaphore waitSemaphores[] = { mSynchronization.PresentComplete[CurrentFrame] };
     vk::PipelineStageFlags waitStages[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };

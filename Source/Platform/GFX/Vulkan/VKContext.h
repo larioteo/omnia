@@ -22,10 +22,10 @@ struct VkContextData {};
 
 class VKContext: public Context {
 public:
-    VKContext(void *window);	// previous CreateContext
-    virtual ~VKContext();		// previous DestroyContext
+    VKContext(void *window);
+    virtual ~VKContext();
 
-    int CreateSurface(VkInstance instance, VkSurfaceKHR *surface);
+    bool CreateSurface(const void *window, vk::SurfaceKHR *surface);
 
     virtual void Load() override;		// previous LoadGL
 

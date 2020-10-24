@@ -90,8 +90,7 @@ public:
     operator const vk::Device &() const;
 
     // Commands
-    const vk::CommandBuffer &GetCommandBuffer(bool start = false) const;
-    vk::CommandBuffer CreateSecondaryCommandBuffer();
+    const vk::CommandBuffer &GetCommandBuffer(bool start = false, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) const;
     void FlushCommandBuffer(vk::CommandBuffer &buffer);
     void FlushCommandBuffer(vk::CommandBuffer &buffer, vk::SubmitInfo &submit);
 

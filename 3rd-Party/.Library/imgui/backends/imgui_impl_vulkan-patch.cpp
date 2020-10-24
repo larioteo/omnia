@@ -1145,6 +1145,7 @@ int ImGui_ImplVulkanH_GetMinImageCountFromPresentMode(VkPresentModeKHR present_m
 void ImGui_ImplVulkanH_CreateWindowSwapChain(VkPhysicalDevice physical_device, VkDevice device, ImGui_ImplVulkanH_Window* wd, const VkAllocationCallbacks* allocator, int w, int h, uint32_t min_image_count)
 {
     VkResult err;
+
     VkSwapchainKHR old_swapchain = wd->Swapchain;
     wd->Swapchain = NULL;
     err = vkDeviceWaitIdle(device);

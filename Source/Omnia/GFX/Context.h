@@ -33,6 +33,12 @@ public:
 	// Accessors
 	virtual void *GetNativeContext() = 0;
 	virtual bool const IsCurrentContext() = 0;
+
+    // Conversion
+    template<typename T>
+    T *As() {
+        return reinterpret_cast<T *>(this);
+    }
 	
 	// Mutators
 	virtual void SetViewport(uint32_t width, uint32_t height, int32_t x = 0, int32_t y = 0) = 0;

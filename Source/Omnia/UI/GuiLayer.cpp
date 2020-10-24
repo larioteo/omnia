@@ -10,15 +10,14 @@
 
 namespace Omnia {
 
-static int ImGui_ImplWin32_CreateVkSurface(ImGuiViewport* viewport, ImU64 vk_instance, const void* vk_allocator, ImU64* out_vk_surface) {
+const float FontSize = 16.0f;
+static bool ShowDemoWindow = false;
 
-    VKContext *context = &reinterpret_cast<VKContext &>(Application::Get().GetContext());
-    auto result = context->CreateSurface((VkInstance)vk_instance, (VkSurfaceKHR *)out_vk_surface); //glfwCreateWindowSurface
+static int ImGui_ImplWin32_CreateVkSurface(ImGuiViewport *viewport, ImU64 instance, const void *allocator, ImU64 *surface) {
+    auto context = Application::GetContext().As<VKContext>();
+    auto result = (int)!context->CreateSurface(viewport->PlatformHandleRaw, (vk::SurfaceKHR *)surface);
     return result;
 }
-
-
-static bool ShowDemoWindow = false;
 
 GuiLayer::GuiLayer(): Layer("GuiLayer") {}
 GuiLayer::~GuiLayer() {}
@@ -36,10 +35,8 @@ void GuiLayer::Attach() {
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-    if (Context::API == GraphicsAPI::Vulkan) {
-        // ToDo:: Windows creation now workes, but the swapchain seems a little bit strange...
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
-    }
+    // ToDo: [Vulkan] Windows creation now workes, but the swapchains are flickering
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
     //io.ConfigViewportsNoAutoMerge = true;
     //io.ConfigViewportsNoTaskBarIcon = true;
     io.ConfigDockingWithShift = false;
@@ -64,9 +61,11 @@ void GuiLayer::Attach() {
 	}
 
     // Load Fonts
-    io.Fonts->AddFontFromFileTTF("./Assets/Fonts/Roboto/Roboto-Medium.ttf", 14.0f, NULL, io.Fonts->GetGlyphRangesDefault());
-    io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/consola.ttf", 14.0f, NULL, io.Fonts->GetGlyphRangesDefault());
-    io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/segoeui.ttf", 14.0f, NULL, io.Fonts->GetGlyphRangesDefault());
+    io.Fonts->AddFontFromFileTTF("./Assets/Fonts/Roboto/Roboto-Medium.ttf", FontSize, NULL, io.Fonts->GetGlyphRangesDefault());
+    io.Fonts->AddFontFromFileTTF("./Assets/Fonts/Roboto/Roboto-Light.ttf", FontSize, NULL, io.Fonts->GetGlyphRangesDefault());
+    io.Fonts->AddFontFromFileTTF("./Assets/Fonts/Roboto/Roboto-Bold.ttf", FontSize, NULL, io.Fonts->GetGlyphRangesDefault());
+    io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/consola.ttf", FontSize, NULL, io.Fonts->GetGlyphRangesDefault());
+    io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/segoeui.ttf", FontSize, NULL, io.Fonts->GetGlyphRangesDefault());
     io.Fonts->AddFontDefault();
 
     if (Context::API == GraphicsAPI::OpenGL) {
@@ -74,14 +73,13 @@ void GuiLayer::Attach() {
         ImGui_ImplWin32_Init(app.GetWindow().GetNativeWindow(), app.GetContext().GetNativeContext());
         ImGui_ImplOpenGL3_Init(glsl_version);
     }
-    
     if (Context::API == GraphicsAPI::Vulkan) {
-        // Extend API
+        // Extend Dear ImGui WinAPI
         ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
         platform_io.Platform_CreateVkSurface = ImGui_ImplWin32_CreateVkSurface;
 
         Application &app = Application::Get();
-        VKContext *context = &reinterpret_cast<VKContext &>(Application::Get().GetContext());
+        auto context = Application::GetContext().As<VKContext>();
         ImGui_ImplWin32_Init(app.GetWindow().GetNativeWindow(), nullptr);
 
         // Create Descriptor Pool
@@ -115,7 +113,7 @@ void GuiLayer::Attach() {
         vkInfo.Device = context->GetDevice()->Call();
         vkInfo.Queue = context->GetDevice()->GetQueue();
         vkInfo.DescriptorPool = descriptorPool;
-        vkInfo.MinImageCount = 2;
+        vkInfo.MinImageCount = context->GetSwapChain()->GetImageCount();
         vkInfo.ImageCount = context->GetSwapChain()->GetImageCount();
         ImGui_ImplVulkan_Init(&vkInfo, context->GetSwapChain()->GetRenderPass());
 
@@ -132,12 +130,9 @@ void GuiLayer::Attach() {
 }
 
 void GuiLayer::Detach() {
-    Application &app = Application::Get();
     if (Context::API == GraphicsAPI::OpenGL) ImGui_ImplOpenGL3_Shutdown();
-    if (Context::API == GraphicsAPI::Vulkan) {
-        //vkDeviceWaitIdle(context->GetDevice()->Call());
-        ImGui_ImplVulkan_Shutdown();
-    }
+    if (Context::API == GraphicsAPI::Vulkan) ImGui_ImplVulkan_Shutdown();
+
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 }
@@ -156,9 +151,7 @@ void GuiLayer::Update(Timestamp deltaTime) {
 void GuiLayer::Prepare() {
 	// Start new 'Dear ImGui' frame
     if (Context::API == GraphicsAPI::OpenGL) ImGui_ImplOpenGL3_NewFrame();
-    if (Context::API == GraphicsAPI::Vulkan) {
-        ImGui_ImplVulkan_NewFrame();
-    }
+    if (Context::API == GraphicsAPI::Vulkan) ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
@@ -184,14 +177,15 @@ void GuiLayer::Prepare() {
 
 	// DockSpace
 	ImGui::Begin("DockSpace", &DockSpace, windowFlags);
+    ImGuiStyle &style = ImGui::GetStyle();
+    // ToDo: Window minimum size while docked
+    //style.WindowMinSize.x = 256.0f;
 	ImGui::PopStyleVar(3);
 
 	if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
 		ImGuiID dockspaceId = ImGui::GetID("DockSpace");
 		ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), dockspaceFlags);
 	}
-
-
 }
 
 void GuiLayer::Finish() {
@@ -199,17 +193,18 @@ void GuiLayer::Finish() {
 	ImGui::End();
 
 	// Properties
-	Application &app = Application::Get();
-	ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
+	auto [width, height] = Application::GetWindow().GetContexttSize();
 	
 	// Rendering
     ImGui::Render();
-	io.DisplaySize = ImVec2((float)app.GetWindow().GetContexttSize().Width, (float)app.GetWindow().GetContexttSize().Height);
+    io.DisplaySize = ImVec2((float)width, (float)height);
+    
     if (Context::API == GraphicsAPI::OpenGL) {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
     if (Context::API == GraphicsAPI::Vulkan) {
-        VKContext *context = &reinterpret_cast<VKContext &>(Application::Get().GetContext());
+        auto context = Application::GetContext().As<VKContext>();
 
         auto buffer = context->GetSwapChain()->PrepareUI();
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), (VkCommandBuffer)buffer);
@@ -321,11 +316,6 @@ void GuiLayer::MouseEvent(MouseEventData data) {
 
 void GuiLayer::TouchEvent(TouchEventData data) {}
 void GuiLayer::WindowEvent(WindowEventData data) {}
-
-// Helpers
-namespace UI {
-
-}
 
 }
 

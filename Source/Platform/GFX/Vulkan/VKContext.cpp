@@ -49,16 +49,18 @@ void VKContext::Load() {
 }
 
 void VKContext::Attach() {
-}
-
-void VKContext::SwapBuffers() {
     mDevice->Call().waitIdle();
     mSwapChain->Prepare();
 }
 
-void VKContext::Detach() {
+void VKContext::SwapBuffers() {
     mDevice->Call().waitIdle();
     mSwapChain->Finish();
+}
+
+void VKContext::Detach() {
+    mDevice->Call().waitIdle();
+    mSwapChain->Present();
 }
 
 void *VKContext::GetNativeContext() {
@@ -75,6 +77,7 @@ void VKContext::SetViewport(uint32_t width, uint32_t height, int32_t x, int32_t 
 }
 
 void VKContext::SetVSync(bool activate) {
+    mDevice->Call().waitIdle();
     mSwapChain->SetSyncronizedDraw(activate);
 }
 

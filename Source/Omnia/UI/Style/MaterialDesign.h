@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // Material Design
 // Source: https://material.io/design/color/the-color-system.html#tools-for-picking-colors
@@ -541,7 +541,6 @@ static std::shared_ptr<ColorTheme> GetColorTheme(ColorThemes theme) {
 	return result;
 }
 
-
 static ColorRgba ConvertColorRgba(uint32_t value, float customAlpha = 1.0f) {
 	ColorRgba result;
 	result.r = static_cast<float>((value & 0xFF000000) >> 24) / 255.0f;
@@ -560,4 +559,13 @@ static ImVec4 ConvertColorRgbaVec(uint32_t value, float customAlpha = 1.0f) {
 	result.w = customAlpha == 1.0f ? static_cast<float>((value & 0x000000FF)) / 255.0f : customAlpha;
 
 	return result;
+}
+
+static ImVec4 operator*(ImVec4 lhs, ImVec4 rhs) {
+    ImVec4 result;
+    result.x = lhs.x * rhs.x;
+    result.y = lhs.y * rhs.y;
+    result.z = lhs.z * rhs.z;
+    result.w = lhs.w * rhs.w;
+    return result;
 }

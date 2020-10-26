@@ -54,8 +54,6 @@ void Application::Run() {
 	string statistics;
 	string title = pWindow->GetTitle();
 
-    
-
 	// Subscribe to all events (internal)
 	auto oDispatcher = pWindow->EventCallback.Subscribe([&](bool &result, void *event) { pListener->Callback(result, event); });
 

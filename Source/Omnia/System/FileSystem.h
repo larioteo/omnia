@@ -2,11 +2,17 @@
 
 #include <filesystem>
 #include <fstream>
+#include <mutex>
 #include <string>
 
 /**
 * @brief Helper: File System Object Information
 */
+
+/* Retrieve the extension of a given file system object. */
+static bool FileSystemObjectExists(const std::string &object) {
+    return std::filesystem::exists(object);
+}
 
 /* Retrieve the extension of a given file system object. */
 static const std::string GetFileExtension(const std::string &object) noexcept {
@@ -129,4 +135,14 @@ static void LoadFile(const std::string object) {
 	//	cout << "Could'nt open '" + object + "1" << endl;
 	//}
 
+}
+
+static bool WriteFile(const std::string &file, const std::string &data) {
+    auto Directory = std::filesystem::path(file).parent_path();
+    if (!Directory.empty()) std::filesystem::create_directories(Directory);
+
+    std::ofstream fileStream(file, std::ios::binary);
+    fileStream.write(data.data(), data.size());
+    fileStream.close();
+    return true;
 }

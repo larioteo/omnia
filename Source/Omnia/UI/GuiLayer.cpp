@@ -205,10 +205,8 @@ void GuiLayer::Finish() {
     }
     if (Context::API == GraphicsAPI::Vulkan) {
         auto context = Application::GetContext().As<VKContext>();
-
-        auto buffer = context->GetSwapChain()->PrepareUI();
+        auto buffer = context->GetSwapChain()->GetCurrentDrawCommandBuffer();
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), (VkCommandBuffer)buffer);
-        context->GetSwapChain()->FinishUI();
     }
 
 	// Update and Render additional Platform Windows

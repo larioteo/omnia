@@ -38,7 +38,7 @@ struct VKSurfaceProperties {
 
 struct VKSynchronization {
     const uint64_t DefaultTimeout = 5000000;
-    size_t Timeout = 5000000;
+    size_t Timeout = 5000;
 
     vector<vk::Semaphore> PresentComplete;
     vector<vk::Semaphore> RenderComplete;
@@ -52,14 +52,14 @@ public:
     // Default
     VKSwapChain(const Reference<VKDevice> &device, const vk::SurfaceKHR &surface);
     ~VKSwapChain();
-
     void Create(uint32_t width, uint32_t height, bool synchronizedDraw = false);
-    void Destroy();
     void Resize(uint32_t width, uint32_t height);
+    void Destroy();
+
     void Prepare();
-    vk::CommandBuffer PrepareUI();
+    void Submit(vk::CommandBuffer buffer);
     void Finish();
-    void FinishUI();
+    void Present();
 
     // Accessors
     const VKSurfaceProperties &GetSurfaceProperties() const { return mSurfaceProperties; }
@@ -71,10 +71,6 @@ public:
 
     // Mutators
     void SetSyncronizedDraw(bool enable);
-
-    // Extension RenderPass
-    intptr_t *GetAttachmentID();
-
 private:
     // Helpers
     void CreateImageViews();
@@ -92,6 +88,8 @@ private:
     // Properties
     VKAllocator mAllocator;
     Reference<VKDevice> mDevice = nullptr;
+    vk::SurfaceKHR mSurface = nullptr;
+    VKSurfaceProperties mSurfaceProperties;
 
     uint32_t CurrentFrame = 0;
     uint32_t CurrentBufferIndex = 0;
@@ -99,23 +97,19 @@ private:
     uint32_t mMaxImageCount = 3;
     uint32_t ComputeQueueIndex = 0;
     uint32_t GraphicsQueueIndex = 0; // ToDo:: Remove
-
-    // Surface
-    vk::SurfaceKHR mSurface = nullptr;
-    VKSurfaceProperties mSurfaceProperties;
+    bool mRebuildRequested = false;
 
     // SwapChain
     vk::SwapchainKHR mSwapchain = nullptr;
     vk::RenderPass mRenderPass;
     vk::PresentModeKHR mPresentMode;
     vector<VKSwapChainBuffer> mSwapchainBuffers;
-    VKDepthStencilBuffer mDepthStencil;
+    VKDepthStencilBuffer mDepthStencilBuffer;
     VKSynchronization mSynchronization;
 
     // CommandPool\Buffers 
-    vk::CommandPool mCommandPool;
+    vk::CommandPool mDrawCommandPool;
     vector<vk::CommandBuffer> mDrawCommandBuffers;
-    vector<vk::CommandBuffer> mUICommandBuffers;
 };
 
 }

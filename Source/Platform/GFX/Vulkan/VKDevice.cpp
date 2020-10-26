@@ -347,6 +347,7 @@ void VKDevice::FlushCommandBuffer(vk::CommandBuffer &buffer) {
     submitInfo.pWaitDstStageMask = &waitDstStageMask;
 
     vk::Fence fence = mDevice.createFence(vk::FenceCreateInfo());
+    mDevice.resetFences(fence);
     mGraphicsQueue.submit(submitInfo, fence);
     mDevice.waitForFences(1, &fence, VK_TRUE, DefaultFenceTimeout);
 

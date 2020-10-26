@@ -10,6 +10,7 @@
 include("Library#glad.cmake")
 include("Library#imgui.cmake")
 include("Library#OpenGL-Registry.cmake")
+include("Library#Vulkan-Headers.cmake")
 include("Library#yaml-cpp.cmake")
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 # These are leftovers which where used in the prototype, left them here, cause maybe they will be needed again.

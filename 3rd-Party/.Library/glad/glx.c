@@ -45,6 +45,7 @@ int GLAD_GLX_EXT_create_context_es2_profile = 0;
 int GLAD_GLX_EXT_create_context_es_profile = 0;
 int GLAD_GLX_EXT_fbconfig_packed_float = 0;
 int GLAD_GLX_EXT_framebuffer_sRGB = 0;
+int GLAD_GLX_EXT_get_drawable_type = 0;
 int GLAD_GLX_EXT_import_context = 0;
 int GLAD_GLX_EXT_libglvnd = 0;
 int GLAD_GLX_EXT_no_config_context = 0;
@@ -535,6 +536,7 @@ static int glad_glx_find_extensions(Display *display, int screen) {
     GLAD_GLX_EXT_create_context_es_profile = glad_glx_has_extension(display, screen, "GLX_EXT_create_context_es_profile");
     GLAD_GLX_EXT_fbconfig_packed_float = glad_glx_has_extension(display, screen, "GLX_EXT_fbconfig_packed_float");
     GLAD_GLX_EXT_framebuffer_sRGB = glad_glx_has_extension(display, screen, "GLX_EXT_framebuffer_sRGB");
+    GLAD_GLX_EXT_get_drawable_type = glad_glx_has_extension(display, screen, "GLX_EXT_get_drawable_type");
     GLAD_GLX_EXT_import_context = glad_glx_has_extension(display, screen, "GLX_EXT_import_context");
     GLAD_GLX_EXT_libglvnd = glad_glx_has_extension(display, screen, "GLX_EXT_libglvnd");
     GLAD_GLX_EXT_no_config_context = glad_glx_has_extension(display, screen, "GLX_EXT_no_config_context");

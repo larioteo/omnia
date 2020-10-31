@@ -38,7 +38,7 @@ void VKSwapChain::Create(uint32_t width, uint32_t height, bool synchronizedDraw)
     vk::SwapchainKHR oldSwapchain = mSwapchain;
     mImageCount = std::clamp(surfaceCapabilities.maxImageCount, surfaceCapabilities.minImageCount, mMaxImageCount);
     mSurfaceProperties.ClearValues[0].color = array<float, 4> { 0.0f, 0.0f, 0.0f, 0.72f};
-    mSurfaceProperties.ClearValues[1].depthStencil = { 1.0f, 0 };
+    mSurfaceProperties.ClearValues[1].depthStencil = vk::ClearDepthStencilValue { 1, 0 };
 
     // Get the transformation of the surface
     vk::SurfaceTransformFlagBitsKHR surfaceTransform;
@@ -95,7 +95,7 @@ void VKSwapChain::Create(uint32_t width, uint32_t height, bool synchronizedDraw)
 
     // Destroy previous SwapChain and ImageViews
     if (oldSwapchain != vk::SwapchainKHR(nullptr)) {
-        mDevice->Call().destroySwapchainKHR(oldSwapchain);
+        mDevice->Call().destroySwapchainKHR(oldSwapchain, nullptr);
     }
     
     CreateImageViews();
@@ -124,25 +124,25 @@ void VKSwapChain::Resize(uint32_t width, uint32_t height) {
     if(!mSwapchain) return;
     mDevice->Call().waitIdle();
     for (vk::Fence &fence : mSynchronization.WaitFences) {
-        mDevice->Call().destroyFence(fence);
+        mDevice->Call().destroyFence(fence, nullptr);
     }
     for (vk::Semaphore &semaphore : mSynchronization.RenderComplete) {
-        mDevice->Call().destroySemaphore(semaphore);
+        mDevice->Call().destroySemaphore(semaphore, nullptr);
     }
     for (vk::Semaphore &semaphore : mSynchronization.PresentComplete) {
-        mDevice->Call().destroySemaphore(semaphore);
+        mDevice->Call().destroySemaphore(semaphore, nullptr);
     }
 
     mDevice->Call().freeCommandBuffers(mDrawCommandPool, mDrawCommandBuffers);
     mDevice->Call().resetCommandPool(mDrawCommandPool, vk::CommandPoolResetFlagBits::eReleaseResources);
 
-    mDevice->Call().destroyImageView(mDepthStencilBuffer.View);
-    mDevice->Call().destroyImage(mDepthStencilBuffer.Image);
-    mDevice->Call().freeMemory(mDepthStencilBuffer.Memory);
+    mDevice->Call().destroyImageView(mDepthStencilBuffer.View, nullptr);
+    mDevice->Call().destroyImage(mDepthStencilBuffer.Image, nullptr);
+    mDevice->Call().freeMemory(mDepthStencilBuffer.Memory, nullptr);
 
     for (auto &&buffer : mSwapchainBuffers) {
-        mDevice->Call().destroyImageView(buffer.View);
-        mDevice->Call().destroyFramebuffer(buffer.FrameBuffer);
+        mDevice->Call().destroyImageView(buffer.View, nullptr);
+        mDevice->Call().destroyFramebuffer(buffer.FrameBuffer, nullptr);
     }
 
     Create(width, height, mSurfaceProperties.SynchronizedDraw); // ToDo:: Causes currently a VRAM memory leak!
@@ -152,31 +152,31 @@ void VKSwapChain::Destroy() {
     mDevice->Call().waitIdle();
 
     for (vk::Fence &fence : mSynchronization.WaitFences) {
-        mDevice->Call().destroyFence(fence);
+        mDevice->Call().destroyFence(fence, nullptr);
     }
     for (vk::Semaphore &semaphore : mSynchronization.RenderComplete) {
-        mDevice->Call().destroySemaphore(semaphore);
+        mDevice->Call().destroySemaphore(semaphore, nullptr);
     }
     for (vk::Semaphore &semaphore : mSynchronization.PresentComplete) {
-        mDevice->Call().destroySemaphore(semaphore);
+        mDevice->Call().destroySemaphore(semaphore, nullptr);
     }
 
     mDevice->Call().freeCommandBuffers(mDrawCommandPool, mDrawCommandBuffers);
-    mDevice->Call().destroyCommandPool(mDrawCommandPool);
+    mDevice->Call().destroyCommandPool(mDrawCommandPool, nullptr);
 
-    mDevice->Call().destroyRenderPass(mRenderPass);
+    mDevice->Call().destroyRenderPass(mRenderPass, nullptr);
 
     if (mSwapchain) {
-        mDevice->Call().destroyImageView(mDepthStencilBuffer.View);
-        mDevice->Call().destroyImage(mDepthStencilBuffer.Image);
-        mDevice->Call().freeMemory(mDepthStencilBuffer.Memory);
+        mDevice->Call().destroyImageView(mDepthStencilBuffer.View, nullptr);
+        mDevice->Call().destroyImage(mDepthStencilBuffer.Image, nullptr);
+        mDevice->Call().freeMemory(mDepthStencilBuffer.Memory, nullptr);
 
         for (auto &&buffer : mSwapchainBuffers) {
-            mDevice->Call().destroyImageView(buffer.View);
+            mDevice->Call().destroyImageView(buffer.View, nullptr);
             mDevice->Call().destroyFramebuffer(buffer.FrameBuffer, nullptr);
         }
 
-        mDevice->Call().destroySwapchainKHR(mSwapchain);
+        mDevice->Call().destroySwapchainKHR(mSwapchain, nullptr);
         mSwapchain = nullptr;
     }
 }
@@ -192,7 +192,7 @@ void VKSwapChain::Prepare() {
 
     vk::RenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.renderPass = mRenderPass;
-    renderPassInfo.renderArea.offset = { 0, 0 };
+    renderPassInfo.renderArea.offset = vk::Offset2D { 0, 0 };
     renderPassInfo.framebuffer = GetCurrentFramebuffer();
     renderPassInfo.renderArea.extent = mSurfaceProperties.Size;
     renderPassInfo.clearValueCount = 2u;

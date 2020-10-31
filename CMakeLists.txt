@@ -142,6 +142,7 @@ add_subdirectory(3rd-Party)
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 message("  ҉ Linking Libraries")
 find_library(Vulkan NAMES vulkan vulkan.1 vulkan-1 HINTS "$ENV{VULKAN_SDK}/Lib")
+#find_library(Vulkan NAMES vulkan vulkan.1 vulkan-1 HINTS "${VulkanLibrary}")
 set(OmniaLibraries glad imgui yaml-cpp ${Vulkan})
 foreach(Library ${OmniaLibraries})
 	message("    - ${Library}")

@@ -2126,6 +2126,7 @@ static int glad_gl_find_extensions_gles2(GladGLES2Context *context, int version)
     context->QCOM_shader_framebuffer_fetch_rate = glad_gl_has_extension(version, exts, num_exts_i, exts_i, "GL_QCOM_shader_framebuffer_fetch_rate");
     context->QCOM_shading_rate = glad_gl_has_extension(version, exts, num_exts_i, exts_i, "GL_QCOM_shading_rate");
     context->QCOM_texture_foveated = glad_gl_has_extension(version, exts, num_exts_i, exts_i, "GL_QCOM_texture_foveated");
+    context->QCOM_texture_foveated2 = glad_gl_has_extension(version, exts, num_exts_i, exts_i, "GL_QCOM_texture_foveated2");
     context->QCOM_texture_foveated_subsampled_layout = glad_gl_has_extension(version, exts, num_exts_i, exts_i, "GL_QCOM_texture_foveated_subsampled_layout");
     context->QCOM_tiled_rendering = glad_gl_has_extension(version, exts, num_exts_i, exts_i, "GL_QCOM_tiled_rendering");
     context->QCOM_writeonly_rendering = glad_gl_has_extension(version, exts, num_exts_i, exts_i, "GL_QCOM_writeonly_rendering");

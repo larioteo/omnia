@@ -6,11 +6,11 @@
 
 | Project | License | Release | Version |
 | :------ | :-----: | :-----: | :------ |
-| [Dear ImGui](https://github.com/ocornut/imgui.git "imgui")                                    | MIT           | 2020-10-16 | commit\{c9fafd5ea4e316996f20067882600676decc97e6} |
-| [Vulkan/GL/GLES/EGL/GLX/WGL Loader](https://github.com/Dav1dde/glad "glad")                   | MIT           | 2020-09-05 | commit\{4b97c39fe8c1e103f869b50acea7d59032f68b12} |
-| [OpenGL-Registry](https://github.com/KhronosGroup/OpenGL-Registry.git "OpenGL-Registry")      | MIT?          | 2020-05-22 | commit\{8261133c2645aaeef880c5f5a6e327f399bc9d04} |
-| [yaml-cpp](https://github.com/jbeder/yaml-cpp.git "yaml-cpp")                                 | MIT           | 2020-06-29 | commit\{3f381f13a07f007941b250e1563f67ded4dc8b1a} |
-| [Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers.git "Vulkan-Headers")         | Apache-2.0    | 2020-08-27 | commit\{ced848d699b5673a7df900bcfe0b1a6ba9e989ce} |
+| [Dear ImGui](https://github.com/ocornut/imgui.git "imgui")                                    | MIT           | 2020-10-31 | commit\{0bdd426b89feb030a4ed0cbe3e2ef1cd75a099ea} |
+| [Vulkan/GL/GLES/EGL/GLX/WGL Loader](https://github.com/Dav1dde/glad "glad")                   | MIT           | 2020-10-18 | commit\{b5d260b65b3edbbd9e75f5a6c9924fe0ff4f04dd} |
+| [OpenGL-Registry](https://github.com/KhronosGroup/OpenGL-Registry.git "OpenGL-Registry")      | MIT?          | 2020-10-28 | commit\{69ceb7f70d4147367ea85f85406d05c1b028c328} |
+| [yaml-cpp](https://github.com/jbeder/yaml-cpp.git "yaml-cpp")                                 | MIT           | 2020-07-27 | commit\{98acc5a8874faab28b82c28936f4b400b389f5d6} |
+| [Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers.git "Vulkan-Headers")         | Apache-2.0    | 2020-10-19 | commit\{320af06cbdd29848e1d7100d9b8e4e517db1dfd5} |
 
 > **Info**: Glad must be generated here: <https://glad.dav1d.de/>, the version is the latest commit on the github page.
 

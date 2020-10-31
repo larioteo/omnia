@@ -111,7 +111,7 @@ VKInstance::~VKInstance() {
     }
     #endif
     if (mInstance) {
-        mInstance.destroy();
+        mInstance.destroy(nullptr);
     }
 }
 

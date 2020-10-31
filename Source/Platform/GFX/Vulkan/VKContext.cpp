@@ -28,8 +28,8 @@ VKContext::VKContext(void *window) {
 
 VKContext::~VKContext() {
     mDevice->Call().waitIdle();
-    mDevice->Call().destroyPipelineCache(mPipelineCache);
-    mInstance->Call().destroySurfaceKHR(mSurface);
+    mDevice->Call().destroyPipelineCache(mPipelineCache, nullptr);
+    mInstance->Call().destroySurfaceKHR(mSurface, nullptr);
 }
 
 bool VKContext::CreateSurface(const void *window, vk::SurfaceKHR *surface) {

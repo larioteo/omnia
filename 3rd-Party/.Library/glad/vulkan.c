@@ -1020,10 +1020,10 @@ static int glad_vk_get_extensions(GladVulkanContext *context, VkPhysicalDevice p
     uint32_t i;
     uint32_t instance_extension_count = 0;
     uint32_t device_extension_count = 0;
-    uint32_t max_extension_count;
-    uint32_t total_extension_count;
-    char **extensions;
-    VkExtensionProperties *ext_properties;
+    uint32_t max_extension_count = 0;
+    uint32_t total_extension_count = 0;
+    char **extensions = NULL;
+    VkExtensionProperties *ext_properties = NULL;
     VkResult result;
 
     if (context->EnumerateInstanceExtensionProperties == NULL || (physical_device != NULL && context->EnumerateDeviceExtensionProperties == NULL)) {
@@ -1043,24 +1043,26 @@ static int glad_vk_get_extensions(GladVulkanContext *context, VkPhysicalDevice p
     }
 
     total_extension_count = instance_extension_count + device_extension_count;
+    if (total_extension_count <= 0) {
+        return 0;
+    }
+
     max_extension_count = instance_extension_count > device_extension_count
         ? instance_extension_count : device_extension_count;
 
     ext_properties = (VkExtensionProperties*) malloc(max_extension_count * sizeof(VkExtensionProperties));
     if (ext_properties == NULL) {
-        return 0;
+        goto glad_vk_get_extensions_error;
     }
 
     result = context->EnumerateInstanceExtensionProperties(NULL, &instance_extension_count, ext_properties);
     if (result != VK_SUCCESS) {
-        free((void*) ext_properties);
-        return 0;
+        goto glad_vk_get_extensions_error;
     }
 
     extensions = (char**) calloc(total_extension_count, sizeof(char*));
     if (extensions == NULL) {
-        free((void*) ext_properties);
-        return 0;
+        goto glad_vk_get_extensions_error;
     }
 
     for (i = 0; i < instance_extension_count; ++i) {
@@ -1068,17 +1070,16 @@ static int glad_vk_get_extensions(GladVulkanContext *context, VkPhysicalDevice p
 
         size_t extension_name_length = strlen(ext.extensionName) + 1;
         extensions[i] = (char*) malloc(extension_name_length * sizeof(char));
+        if (extensions[i] == NULL) {
+            goto glad_vk_get_extensions_error;
+        }
         memcpy(extensions[i], ext.extensionName, extension_name_length * sizeof(char));
     }
 
     if (physical_device != NULL) {
         result = context->EnumerateDeviceExtensionProperties(physical_device, NULL, &device_extension_count, ext_properties);
         if (result != VK_SUCCESS) {
-            for (i = 0; i < instance_extension_count; ++i) {
-                free((void*) extensions[i]);
-            }
-            free(extensions);
-            return 0;
+            goto glad_vk_get_extensions_error;
         }
 
         for (i = 0; i < device_extension_count; ++i) {
@@ -1086,6 +1087,9 @@ static int glad_vk_get_extensions(GladVulkanContext *context, VkPhysicalDevice p
 
             size_t extension_name_length = strlen(ext.extensionName) + 1;
             extensions[instance_extension_count + i] = (char*) malloc(extension_name_length * sizeof(char));
+            if (extensions[instance_extension_count + i] == NULL) {
+                goto glad_vk_get_extensions_error;
+            }
             memcpy(extensions[instance_extension_count + i], ext.extensionName, extension_name_length * sizeof(char));
         }
     }
@@ -1096,6 +1100,16 @@ static int glad_vk_get_extensions(GladVulkanContext *context, VkPhysicalDevice p
     *out_extensions = extensions;
 
     return 1;
+
+glad_vk_get_extensions_error:
+    free((void*) ext_properties);
+    if (extensions != NULL) {
+        for (i = 0; i < total_extension_count; ++i) {
+            free((void*) extensions[i]);
+        }
+        free(extensions);
+    }
+    return 0;
 }
 
 static void glad_vk_free_extensions(uint32_t extension_count, char **extensions) {
@@ -1112,7 +1126,7 @@ static int glad_vk_has_extension(const char *name, uint32_t extension_count, cha
     uint32_t i;
 
     for (i = 0; i < extension_count; ++i) {
-        if(strcmp(name, extensions[i]) == 0) {
+        if(extensions[i] != NULL && strcmp(name, extensions[i]) == 0) {
             return 1;
         }
     }

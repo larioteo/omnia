@@ -287,8 +287,8 @@ VKDevice::VKDevice(const Reference<VKPhysicalDevice> &physicalDevice): mPhysical
 
 void VKDevice::Destroy() {
     mDevice.freeCommandBuffers(mCommandPool, mCommandBuffer);
-    mDevice.destroyCommandPool(mCommandPool);
-    mDevice.destroy();
+    mDevice.destroyCommandPool(mCommandPool, nullptr);
+    mDevice.destroy(nullptr);
 }
 
 // Accessors
@@ -351,7 +351,7 @@ void VKDevice::FlushCommandBuffer(vk::CommandBuffer &buffer) {
     mGraphicsQueue.submit(submitInfo, fence);
     mDevice.waitForFences(1, &fence, VK_TRUE, DefaultFenceTimeout);
 
-    mDevice.destroyFence(fence);
+    mDevice.destroyFence(fence, nullptr);
     mDevice.freeCommandBuffers(mCommandPool, buffer);
 }
 
@@ -385,8 +385,8 @@ void VKDevice::FlushCommandBuffer(vk::CommandBuffer &buffer, vk::SubmitInfo &sub
 
     mDevice.freeCommandBuffers(mCommandPool, buffer);
 
-    mDevice.destroySemaphore(renderComplete);
-    mDevice.destroySemaphore(presentationComplete);
+    mDevice.destroySemaphore(renderComplete, nullptr);
+    mDevice.destroySemaphore(presentationComplete, nullptr);
 }
 
 }

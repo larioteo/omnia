@@ -17,12 +17,14 @@ set(GLAD_HEADERS
 	".Library/KHR/khrplatform.h"
 
 	".Library/glad/gl.h"
-	".Library/glad/vulkan.h"
-	".Library/vk_platform.h"
+#	".Library/glad/gles.h"
+#	".Library/glad/vulkan.h"
+#	".Library/glad/vk_platform.h"
 )
 set(GLAD_SOURCES
 	".Library/glad/gl.c"
-	".Library/glad/vulkan.c"
+#	".Library/glad/gles.c"
+#	".Library/glad/vulkan.c"
 )
 add_library(glad ${GLAD_HEADERS} ${GLAD_SOURCES})
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐

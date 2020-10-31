@@ -10,7 +10,7 @@
 
 namespace Omnia {
 
-string WinDialog::OpenFile(const string &filter) const {
+string WinDialog::OpenFile(const char *filter) const {
     OPENFILENAMEA dialog;       // common dialog box structure
     CHAR szFile[260] = { 0 };   // if using TCHAR macros
 
@@ -20,12 +20,12 @@ string WinDialog::OpenFile(const string &filter) const {
     dialog.hwndOwner = (HWND)Application::GetWindow().GetNativeWindow();
     dialog.lpstrFile = szFile;
     dialog.nMaxFile = sizeof(szFile);
-    dialog.lpstrFilter = "All\0*.*";
+    dialog.lpstrFilter = filter;
     dialog.nFilterIndex = 1;
     dialog.lpstrFileTitle = NULL;
     dialog.nMaxFileTitle = 0;
     dialog.lpstrInitialDir = NULL;
-    dialog.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+    dialog.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
     if (GetOpenFileName(&dialog) == TRUE) {
         return dialog.lpstrFile;
@@ -33,7 +33,7 @@ string WinDialog::OpenFile(const string &filter) const {
     return std::string();
 }
 
-string WinDialog::SaveFile(const string &filter) const {
+string WinDialog::SaveFile(const char *filter) const {
     OPENFILENAMEA dialog;       // common dialog box structure
     CHAR szFile[260] = { 0 };   // if using TCHAR macros
 
@@ -43,12 +43,12 @@ string WinDialog::SaveFile(const string &filter) const {
     dialog.hwndOwner = (HWND)Application::GetWindow().GetNativeWindow();
     dialog.lpstrFile = szFile;
     dialog.nMaxFile = sizeof(szFile);
-    dialog.lpstrFilter = "All\0*.*";
+    dialog.lpstrFilter = filter;
     dialog.nFilterIndex = 1;
     dialog.lpstrFileTitle = NULL;
     dialog.nMaxFileTitle = 0;
     dialog.lpstrInitialDir = NULL;
-    dialog.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+    dialog.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
     if (GetSaveFileName(&dialog) == TRUE) {
         return dialog.lpstrFile;

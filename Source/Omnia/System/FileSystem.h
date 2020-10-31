@@ -5,6 +5,8 @@
 #include <mutex>
 #include <string>
 
+#include "Omnia/Utility/String.h"
+
 /**
 * @brief Helper: File System Object Information
 */
@@ -145,4 +147,21 @@ static bool WriteFile(const std::string &file, const std::string &data) {
     fileStream.write(data.data(), data.size());
     fileStream.close();
     return true;
+}
+
+
+static std::vector<std::string> SearchFiles(const std::string &object, const std::string &token) {
+    using namespace std::filesystem;
+
+    std::vector<std::string> result;
+    auto directory = path(object).parent_path();
+
+    if (exists(directory) && is_directory(directory)) {
+        for(auto &object: recursive_directory_iterator(directory, directory_options::skip_permission_denied)) {
+            if (object.is_regular_file() && Omnia::String::Contains(object.path().filename().string(), token)) {
+                result.push_back(object.path().filename().string());
+            }
+        }
+    }
+    return result;
 }

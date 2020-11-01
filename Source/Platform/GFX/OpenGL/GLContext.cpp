@@ -43,7 +43,7 @@
 
 namespace Omnia {
 
-static void APIENTRY GLMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
+static void GLAPIENTRY GLMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
 	switch (type) {
 		case GL_DEBUG_TYPE_ERROR:					{ applog << Log::Error;		break; }
 		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:		{ applog << Log::Warning;	break; }
@@ -53,7 +53,7 @@ static void APIENTRY GLMessageCallback(GLenum source, GLenum type, GLuint id, GL
 		case GL_DEBUG_TYPE_OTHER:					{ applog << Log::Trace;		break; }
 		default:									{ applog << Log::Critical;	break; }
 	}
-	applog << "[Ultra::GLRendererAPI::Message]" << message << "{" <<
+	applog << "[Application::Context::GL]" << message << "{" <<
 		"ID:"		<< id		<< " | " <<
 		"Source:"	<< source	<< " | " <<
 		"Severity:" << severity	<<
@@ -134,19 +134,20 @@ GLContext::GLContext(void *window) {
 		default:
 			properties.VersionMajor = 4;
 			properties.VersionMinor = 6;
-			applog << Log::Error << "App::UI::GFX::GL: Unknown version specified, using default version!" << "\n";
+			applog << Log::Error << "[Application::Context::GL]: Unknown version specified, using default version!" << "\n";
 			break;
 	}
 
 	// Platform specific stuff
 	#if defined(APP_PLATFORM_WINDOWS)
+        // This should be only triggered once during application lifecycle
         static bool once = true;
-		if(!GetExtensions() && once) { AppLogCritical("[Context::GL]: Could not load OpenGL extensions!"); return; }
+		if(!GetExtensions() && once) { AppLogCritical("[Application::Context::GL]: Could not load OpenGL extensions!"); return; }
         once = false;
 
 		// Get Device Context
 		Data->hDeviceContext = GetDC(Data->hWindow);
-		if (!Data->hDeviceContext) { AppLogCritical("[Context::GL]: Error occured while acquiring device context!"); return; }
+		if (!Data->hDeviceContext) { AppLogCritical("[Application::Context::GL]: Error occured while acquiring device context!"); return; }
 		
 		/* Legacy Code (it took a lot of effort to get used to it, so I will leave it here forever) */
 		// Drawing Surface Pixel Format: https://docs.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-pixelformatdescriptor
@@ -204,19 +205,24 @@ GLContext::GLContext(void *window) {
 			0,
 		};
 		wglChoosePixelFormatARB(Data->hDeviceContext, pixelAttribIList, NULL, formatsMax, &pixelFormats, &formatsCount);
-		if (!formatsCount) { AppLogCritical("[Context::GL]: Error no suiteable pixel format found!"); return; }
+		if (!formatsCount) { AppLogCritical("[Application::Context::GL]: Error no suiteable pixel format found!"); return; }
 		DescribePixelFormat(Data->hDeviceContext, pixelFormats, sizeof(pfDescription), &pfDescription);
 		if (!SetPixelFormat(Data->hDeviceContext, pixelFormats, &pfDescription)) { AppLogCritical("[Context::GL]: Error setting pixel format failed!"); return; }
 
 		// Create GL-Context
+        int flags = WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
+        #ifdef APP_DEBUG_MODE
+            flags |= WGL_CONTEXT_DEBUG_BIT_ARB;
+        #endif
 		int glContextAttributes[] = {
 			WGL_CONTEXT_MAJOR_VERSION_ARB,	properties.VersionMajor,
 			WGL_CONTEXT_MINOR_VERSION_ARB,	properties.VersionMinor,
-			WGL_CONTEXT_FLAGS_ARB,			WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB, WGL_CONTEXT_PROFILE_MASK_ARB, compatibility,
-			0
+            WGL_CONTEXT_PROFILE_MASK_ARB,   compatibility,
+			WGL_CONTEXT_FLAGS_ARB,			flags,
+            0            
 		};
 		Data->hRenderingContext = wglCreateContextAttribsARB(Data->hDeviceContext, NULL, glContextAttributes);
-		if (!Data->hRenderingContext) { AppLogCritical("[Context::GL]: Error occured while creating GL-Context!"); return; }
+		if (!Data->hRenderingContext) { AppLogCritical("[Application::Context::GL]: Error occured while creating GL-Context!"); return; }
 	#endif
 }
 
@@ -247,12 +253,11 @@ void GLContext::Load() {
 		AppLogCritical("[Context: Failed to load OpenGL!");
 		return;
 	}
-    #define APP_MODE_DEBUG
-    #ifdef APP_MODE_DEBUG
+    #ifdef APP_DEBUG_MODE
     if (glDebugMessageCallback) {
         glEnable(GL_DEBUG_OUTPUT);
-        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        glDebugMessageCallback(GLMessageCallback, nullptr);
+        //glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(GLMessageCallback, 0);
         //glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
     } else {
         AppLogWarning("[Ultra::RendererAPI::GL]: ", "The feature 'DebugMessageCallback' isn't available!");

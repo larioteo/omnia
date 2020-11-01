@@ -21,6 +21,7 @@ struct ApplicationProperties {
     ApplicationProperties(): Title { "Omnia" }, Resolution { "800x600" } { CalculateResolution(); }
     ApplicationProperties(string title, string resolution): Title(title), Resolution(resolution) { CalculateResolution(); }
 
+    GraphicsAPI GfxApi = GraphicsAPI::OpenGL;
     uint32_t Width;
     uint32_t Height;
 
@@ -63,6 +64,7 @@ public:
 	static Config &GetConfig() { return *Get().pConfig; }
 	static Context &GetContext() { return *Get().pContext; }
     static Dialog &GetDialog() { return *Get().pDialog; }
+    static ApplicationProperties &GetProperties() { return Get().mProperties; }
 	static Window &GetWindow() { return *Get().pWindow; }
 	static Statistics GetStatistics() { return Get().statistics; };
 
@@ -79,6 +81,8 @@ public:
 	virtual void Create();
 	/** This method executes your termination code. */
 	virtual void Destroy();
+    /** This method executes the internal GraphicsAPI switch. */
+    static void Reload();
 	/** This method executes your main logic code. */
 	virtual void Update(Timestamp deltaTime);
 
@@ -140,8 +144,10 @@ private:
 public:
     Reference<Context> pContext;
 private:
+    ApplicationProperties mProperties;
     Reference<EventListener> pListener;
 
+    bool Reloaded;
     bool Paused;
     bool Running;
     Statistics statistics;

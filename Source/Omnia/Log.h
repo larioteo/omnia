@@ -65,9 +65,9 @@ public:
 		Delimiter	= 0x02,	// Structure the log with a delimiter
 
 		// Message Types
-		Critical	= 0x10,	// Message (Level 6): Critical messages which will break runtime execution.
-		Error		= 0x11, // Message (Level 5): Error messages that have no impact on runtime execution.
-		Warn		= 0x12,	// Message (Level 4): Has no impact on the application itself but should get sometime fixed.
+		Critical	= 0x10,	// Message (Level 5): Critical messages which will break runtime execution.
+		Error		= 0x11, // Message (Level 4): Error messages that have no impact on runtime execution.
+		Warn		= 0x12,	// Message (Level 3): Has no impact on the application itself but should get sometime fixed.
 		Info		= 0x13,	// Message (Level 2): Information that is maybe usefull for gattering basic system data.
 		Debug		= 0x14,	// Message (Level 1): Debugging messages, which can help at parts, where we are unsure if the code will ever fail.
 		Trace		= 0x15,	// Message (Level 0): Everything that could be interesting in the future.

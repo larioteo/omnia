@@ -10,6 +10,7 @@ namespace Omnia {
 Application *Application::AppInstance = nullptr;
 
 Application::Application(const ApplicationProperties &properties):
+    Reloaded(false),
 	Running(true),
 	Paused(false) {
 	// Preparation
@@ -17,6 +18,7 @@ Application::Application(const ApplicationProperties &properties):
 	applog << "... on: " << apptime.GetIsoDate() << "\n";
 	applog << "... at: " << apptime.GetIsoTime() << "\n";
 	AppInstance = this;
+    mProperties = properties;
 
 	// Initialization
 	applog << Log::Caption << "Initialization" << "\n";
@@ -26,13 +28,14 @@ Application::Application(const ApplicationProperties &properties):
 
 	// Load Window, Context and Events
 	pWindow = Window::Create(WindowProperties(properties.Title, properties.Width, properties.Height));
+    pListener = EventListener::Create();
     pDialog = Dialog::Create();
 	AppLogDebug("[Application] ", "Created window '", properties.Title, "' with size '", properties.Width, "x", properties.Height, "'");
-	pContext = Context::Create(pWindow->GetNativeWindow());
+	Context::API = properties.GfxApi;
+    pContext = Context::Create(pWindow->GetNativeWindow());
 	pContext->Attach();
-	pContext->Load();
+    pContext->Load();
 	pContext->SetViewport(pWindow->GetContexttSize().Width, pWindow->GetContexttSize().Height);
-	pListener = EventListener::Create();
 
 	// Load Core Layer
 	CoreLayer = new GuiLayer();
@@ -84,6 +87,10 @@ void Application::Run() {
 		// Update events and check if application is paused
 		pListener->Update();
 		if (Paused) continue;
+        if (Reloaded) {
+            Reloaded = false;
+            continue;
+        }
 
 		// Calcualte 
 		Timestamp deltaTime = timer.GetDeltaTime();
@@ -122,12 +129,28 @@ void Application::Run() {
 	APP_PROFILE_END_SESSION();
 }
 
-
 // Workflow
 void Application::Create() {}
 void Application::Destroy() {}
-void Application::Update(Timestamp deltaTime) {}
+void Application::Reload() {
+    auto &context = Get().pContext;
+    auto &layers = Get().Layers;
+    auto &reloaded = Get().Reloaded;
 
+    reloaded = true;
+    Get().mProperties.GfxApi = Context::API;
+
+    context = Context::Create(GetWindow().GetNativeWindow());
+    context->Attach();
+    context->Load();
+
+    auto &[width, height] = GetWindow().GetContexttSize();
+    context->SetViewport(width, height);
+
+    for (auto *layer : layers) layer->Detach();
+    for (auto *layer : layers) layer->Attach();
+}
+void Application::Update(Timestamp deltaTime) {}
 void Application::Exit() {
 	Running = false;
 }

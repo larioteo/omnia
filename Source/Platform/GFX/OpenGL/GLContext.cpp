@@ -140,8 +140,9 @@ GLContext::GLContext(void *window) {
 
 	// Platform specific stuff
 	#if defined(APP_PLATFORM_WINDOWS)
-		// Prepare
-		if(!GetExtensions()) { AppLogCritical("[Context::GL]: Could not load OpenGL extensions!"); return; }
+        static bool once = true;
+		if(!GetExtensions() && once) { AppLogCritical("[Context::GL]: Could not load OpenGL extensions!"); return; }
+        once = false;
 
 		// Get Device Context
 		Data->hDeviceContext = GetDC(Data->hWindow);
@@ -225,6 +226,7 @@ GLContext::~GLContext() {
 		wglDeleteContext(Data->hRenderingContext);
 	#endif
 	delete Data;
+    gladLoaderUnloadGL();
 }
 
 

@@ -42,8 +42,8 @@ void GuiLayer::Attach() {
     io.ConfigDockingWithShift = false;
 
 	// ToDo: Works only as an memory leak, the question is why (otherwise ImGui uses old pointer where the data is gone) ...
-	string *dataTarget = new string("./Data/"s + Application::GetWindow().GetProperties().Title + ".ini"s);
-	string *logTarget = new string("./Log/"s + Application::GetWindow().GetProperties().Title + ".log"s);
+	string *dataTarget = new string("./Data/"s + Application::GetProperties().Title + ".ini"s);
+	string *logTarget = new string("./Log/"s + Application::GetProperties().Title + ".log"s);
 	io.IniFilename = dataTarget->c_str();
 	io.LogFilename = logTarget->c_str();
 	//io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;

@@ -7,7 +7,7 @@
 
 namespace Omnia {
 
-Application *Application::AppInstance = nullptr;
+Application *Application::pAppInstance = nullptr;
 
 Application::Application(const ApplicationProperties &properties):
     Reloaded(false),
@@ -17,29 +17,30 @@ Application::Application(const ApplicationProperties &properties):
 	applog << "Application started..."s << "\n";
 	applog << "... on: " << apptime.GetIsoDate() << "\n";
 	applog << "... at: " << apptime.GetIsoTime() << "\n";
-	AppInstance = this;
+	pAppInstance = this;
     mProperties = properties;
 
 	// Initialization
 	applog << Log::Caption << "Initialization" << "\n";
 
 	// Load Configuration
-	pConfig = CreateReference<Config>();
+	mConfig = CreateReference<Config>();
 
 	// Load Window, Context and Events
-	pWindow = Window::Create(WindowProperties(properties.Title, properties.Width, properties.Height));
+	mWindow = Window::Create(WindowProperties(properties.Title, properties.Width, properties.Height));
     pListener = EventListener::Create();
-    pDialog = Dialog::Create();
+    mDialog = Dialog::Create();
 	AppLogDebug("[Application] ", "Created window '", properties.Title, "' with size '", properties.Width, "x", properties.Height, "'");
+
 	Context::API = properties.GfxApi;
-    pContext = Context::Create(pWindow->GetNativeWindow());
-	pContext->Attach();
-    pContext->Load();
-	pContext->SetViewport(pWindow->GetContexttSize().Width, pWindow->GetContexttSize().Height);
+    mContext = Context::Create(mWindow->GetNativeWindow());
+	mContext->Attach();
+    mContext->Load();
+	mContext->SetViewport(mWindow->GetContexttSize().Width, mWindow->GetContexttSize().Height);
 
 	// Load Core Layer
-	CoreLayer = new GuiLayer();
-	PushOverlay(CoreLayer);
+	pCoreLayer = new GuiLayer();
+	PushOverlay(pCoreLayer);
 }
 
 Application::~Application() {
@@ -55,10 +56,10 @@ void Application::Run() {
 	double delay = {};
 	size_t frames = {};
 	string statistics;
-	string title = pWindow->GetTitle();
+	string title = mWindow->GetTitle();
 
 	// Subscribe to all events (internal)
-	auto oDispatcher = pWindow->EventCallback.Subscribe([&](bool &result, void *event) { pListener->Callback(result, event); });
+	auto oDispatcher = mWindow->EventCallback.Subscribe([&](bool &result, void *event) { pListener->Callback(result, event); });
 
 	auto oAutoDeviceEvent = pListener->DeviceEvent.Subscribe([&](DeviceEventData data) { this->AutoDeviceEvent(data); });
 	auto oAutoPowerEvent = pListener->PowerEvent.Subscribe([&](PowerEventData data) { this->AutoPowerEvent(data); });
@@ -80,7 +81,7 @@ void Application::Run() {
 
 	// Main Logic
 	Create();
-	for (Layer *layer : Layers) layer->Create();
+	for (Layer *layer : mLayers) layer->Create();
 	applog << Log::Caption << "Main Loop"s << "\n";
 
 	while (Running) {
@@ -103,38 +104,45 @@ void Application::Run() {
 			float msPF = 1000.0f / (float)frames;
 
 			statistics = title + " [FPS:" + std::to_string(frames) + " | msPF:" + std::to_string(msPF) + "]";
-			pWindow->SetTitle(statistics);
+			mWindow->SetTitle(statistics);
 
 			frames = 0;
 			delay = 0.0f;
 		}
 
 		// Update
-		pContext->Attach();
-        for (Layer *layer : Layers) layer->Update(deltaTime);
+		mContext->Attach();
+        for (Layer *layer : mLayers) layer->Update(deltaTime);
         Update(deltaTime);
-        if (pWindow->GetState(WindowState::Alive)) {
-            CoreLayer->Prepare();
-            for (Layer *layer : Layers) layer->GuiUpdate();
-            CoreLayer->Finish();
+        if (mWindow->GetState(WindowState::Alive)) {
+            pCoreLayer->Prepare();
+            for (Layer *layer : mLayers) layer->GuiUpdate();
+            pCoreLayer->Finish();
         }
-		pContext->SwapBuffers();
-		pContext->Detach();
+		mContext->SwapBuffers();
+		mContext->Detach();
 	}
 
 	// Termination
 	applog << Log::Caption << "Termination" << "\n";
-	for (Layer *layer : Layers) layer->Destroy();
+	for (Layer *layer : mLayers) layer->Destroy();
 	Destroy();
 	APP_PROFILE_END_SESSION();
+}
+
+void Application::Exit() {
+    Running = false;
 }
 
 // Workflow
 void Application::Create() {}
 void Application::Destroy() {}
+void Application::Update(Timestamp deltaTime) {}
+
+// Danger-Zone
 void Application::Reload() {
-    auto &context = Get().pContext;
-    auto &layers = Get().Layers;
+    auto &context = Get().mContext;
+    auto &layers = Get().mLayers;
     auto &reloaded = Get().Reloaded;
 
     reloaded = true;
@@ -150,10 +158,6 @@ void Application::Reload() {
     for (auto *layer : layers) layer->Detach();
     for (auto *layer : layers) layer->Attach();
 }
-void Application::Update(Timestamp deltaTime) {}
-void Application::Exit() {
-	Running = false;
-}
 
 
 // Event System
@@ -166,12 +170,11 @@ void Application::WindowEvent(WindowEventData &data) {}
 
 // Layer System
 void Application::PushLayer(Layer *layer) {
-	Layers.PushLayer(layer);
+	mLayers.PushLayer(layer);
 	layer->Attach();
 }
-
 void Application::PushOverlay(Layer *overlay) {
-	Layers.PushOverlay(overlay);
+	mLayers.PushOverlay(overlay);
 	overlay->Attach();
 }
 
@@ -185,10 +188,10 @@ void Application::AutoPowerEvent(PowerEventData &data) {
 }
 
 void Application::AutoControllerEvent(ControllerEventData &data) {
-	for (auto layer : Layers) { layer->ControllerEvent(data); }
+	for (auto layer : mLayers) { layer->ControllerEvent(data); }
 }
 void Application::AutoKeyboardEvent(KeyboardEventData &data) {
-	for (auto layer : Layers) { layer->KeyboardEvent(data); }
+	for (auto layer : mLayers) { layer->KeyboardEvent(data); }
 
 	//// Left for debugging purposes
 	//if (data.Action == KeyboardAction::Input) {
@@ -208,7 +211,7 @@ void Application::AutoKeyboardEvent(KeyboardEventData &data) {
 	//}
 }
 void Application::AutoMouseEvent(MouseEventData &data) {
-	for (auto layer : Layers) { layer->MouseEvent(data); }
+	for (auto layer : mLayers) { layer->MouseEvent(data); }
 
 	// Left for debugging purposes
 	//applog << data.Source << ": [" << 
@@ -223,10 +226,10 @@ void Application::AutoMouseEvent(MouseEventData &data) {
 	//	"-] \n";
 }
 void Application::AutoTouchEvent(TouchEventData &data) {
-	for (auto layer : Layers) { layer->TouchEvent(data); }
+	for (auto layer : mLayers) { layer->TouchEvent(data); }
 }
 void Application::AutoWindowEvent(WindowEventData &data) {
-	for (auto layer : Layers) { layer->WindowEvent(data); }
+	for (auto layer : mLayers) { layer->WindowEvent(data); }
 
 	//if (data.Action == WindowAction::Draw) return;
 	//if (data.Action == WindowAction::Focus) return;
@@ -250,7 +253,7 @@ void Application::AutoWindowEvent(WindowEventData &data) {
 		}
 
 		case WindowAction::Resize: {
-			pContext->SetViewport(pWindow->GetContexttSize().Width, pWindow->GetContexttSize().Height);
+			mContext->SetViewport(mWindow->GetContexttSize().Width, mWindow->GetContexttSize().Height);
 			break;
 		}
 

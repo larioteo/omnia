@@ -1,27 +1,34 @@
 ﻿#pragma once
 
-#include <queue>
-
 #include "Omnia/Core.h"
 #include "Omnia/Config.h"
+#include "Omnia/Log.h"
 #include "Omnia/Core/LayerStack.h"
 #include "Omnia/GFX/Context.h"
+#include "Omnia/UI/Dialog.h"
 #include "Omnia/UI/Event.h"
 #include "Omnia/UI/GuiLayer.h"
-#include "Omnia/UI/Dialog.h"
 #include "Omnia/UI/Window.h"
 #include "Omnia/Utility/Timer.h"
 
 namespace Omnia {
 
+// The title, resolution and graphics API can be passed as structure.
 struct ApplicationProperties {
     string Title;
     string Resolution;
-
-    ApplicationProperties(): Title { "Omnia" }, Resolution { "800x600" } { CalculateResolution(); }
-    ApplicationProperties(string title, string resolution): Title(title), Resolution(resolution) { CalculateResolution(); }
-
     GraphicsAPI GfxApi = GraphicsAPI::OpenGL;
+
+    ApplicationProperties(): Title("Omnia"), Resolution("800x600") {
+        CalculateResolution();
+    }
+    ApplicationProperties(string title, string resolution): Title(title), Resolution(resolution) {
+        CalculateResolution();
+    }
+    ApplicationProperties(string title, string resolution, GraphicsAPI api): Title(title), Resolution(resolution), GfxApi(api) {
+        CalculateResolution();
+    }
+
     uint32_t Width;
     uint32_t Height;
 
@@ -46,111 +53,108 @@ private:
     }
 };
 
+// This class contains the main workflow of the Omnia library, it can be used only once (as singleton).
 class Application {
     // Types
     struct Statistics {
         std::queue<float> fpsData;
         std::queue<float> msPFData;
+
         double fps = {};
         double msPF = {};
     };
 
 public:
+    // Default
+    static Application *pAppInstance;
     Application(const ApplicationProperties &properties = {});
 	virtual ~Application();
+    static Application &Get() { return *pAppInstance; }
 
 	// Accessors
-	static Application &Get() { return *AppInstance; }
-	static Config &GetConfig() { return *Get().pConfig; }
-	static Context &GetContext() { return *Get().pContext; }
-    static Dialog &GetDialog() { return *Get().pDialog; }
     static ApplicationProperties &GetProperties() { return Get().mProperties; }
-	static Window &GetWindow() { return *Get().pWindow; }
-	static Statistics GetStatistics() { return Get().statistics; };
+	static Config &GetConfig() { return *Get().mConfig; }
+	static Context &GetContext() { return *Get().mContext; }
+    static Dialog &GetDialog() { return *Get().mDialog; }
+    static Statistics GetStatistics() { return Get().statistics; };
+	static Window &GetWindow() { return *Get().mWindow; }
 
-	/**
-	* @brief	With this method, everything begins.
-	*/
+    // With this method, everything begins.
 	void Run();
 
-	/**
-	 * @brief	These methods offer an easy to use applicaiton workflow.
-	*/
-	
-	/** This method executes your initialization code. */
+    // These methods offer an easy to use applicaiton workflow.
+	/// This method executes your initialization code.
 	virtual void Create();
-	/** This method executes your termination code. */
+    /// This method executes your termination code.
 	virtual void Destroy();
-    /** This method executes the internal GraphicsAPI switch. */
-    static void Reload();
-	/** This method executes your main logic code. */
+    /// This method executes your main logic code.
 	virtual void Update(Timestamp deltaTime);
 
-	/** This method exits the application */
+    // Danger-Zone
+    /// Attention: Call this method only if you want to reload/switch the graphics context.
+    static void Reload();
+
+    // With this method, everything ends.
 	void Exit();
 
-	/**
-	* @brief	These methods offer an easy to use layer system.
-	*/
-
+    // These methods offer an easy to use layer system.
 	void PushLayer(Layer *layer);
 	void PushOverlay(Layer *overlay);
 
-	/**
-	* @brief	These methods offer an easy to use event system.
-	*/
-
-	/** This method delivers controller events. */
+	// These methods offer an easy to use event system.
+	/// This method delivers controller events.
 	virtual void ControllerEvent(ControllerEventData &data);
-	/** This method delivers keyboard events. */
+    /// This method delivers keyboard events.
 	virtual void KeyboardEvent(KeyboardEventData &data);
-	/** This method delivers you mouse events. */
+    /// This method delivers you mouse events.
 	virtual void MouseEvent(MouseEventData &data);
-	/** This method delivers controller events. */
+    /// This method delivers controller events.
 	virtual void TouchEvent(TouchEventData &data);
-	/** This method delivers you window events. */
+    /// This method delivers you window events.
 	virtual void WindowEvent(WindowEventData &data);
-private:
-	/**
-	* @brief	These methods are used internally to handle critical events or pass them to the provided layers.
-	*/
 
-	/** This method dispatches device events. */
+private:
+	//These methods are used internally to handle critical events or pass them to the provided layers.
+    /// This method dispatches device events.
 	void AutoDeviceEvent(DeviceEventData &data);
-	/** This method dispatches power events. */
+    /// This method dispatches power events.
 	void AutoPowerEvent(PowerEventData &data);
 
-	/** This method dispatches controller events. */
+    /// This method dispatches controller events.
 	void AutoControllerEvent(ControllerEventData &data);
-	/** This method dispatches keyboard events. */
+    /// This method dispatches keyboard events.
 	void AutoKeyboardEvent(KeyboardEventData &data);
-	/** This method dispatches mouse events. */
+    /// This method dispatches mouse events.
 	void AutoMouseEvent(MouseEventData &data);
-	/** This method dispatches controller events. */
+    /// This method dispatches controller events.
 	void AutoTouchEvent(TouchEventData &data);
-	/** This method dispatches window events. */
+    /// This method dispatches window events.
 	void AutoWindowEvent(WindowEventData &data);
-
-	/** This method dispatches context events. */
+    
+    /// This method dispatches context events.
 	void AutoContextEvent(ContextEventData &data);
 
-    // Properties
-    static Application *AppInstance;
-    LayerStack Layers;
-    GuiLayer *CoreLayer;
-    Reference<Config> pConfig;
-    Reference<Dialog> pDialog;
-    Reference<Window> pWindow;
 public:
-    Reference<Context> pContext;
-private:
-    ApplicationProperties mProperties;
-    Reference<EventListener> pListener;
+    // ToDo: Used sadly externally during tests, need to figure out where...
+    Reference<Context> mContext;
 
-    bool Reloaded;
-    bool Paused;
-    bool Running;
+private:
+    // Properties
+    ApplicationProperties mProperties;
     Statistics statistics;
+
+    // States
+    bool Paused;
+    bool Reloaded;
+    bool Running;
+    
+    // Ojbects
+    LayerStack mLayers;
+    GuiLayer *pCoreLayer;
+    Reference<Config> mConfig;
+    Reference<Dialog> mDialog;
+    Reference<EventListener> pListener;
+    Reference<Window> mWindow;
 };
 
 }

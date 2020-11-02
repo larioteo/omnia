@@ -53,7 +53,7 @@ static void GLAPIENTRY GLMessageCallback(GLenum source, GLenum type, GLuint id, 
 		case GL_DEBUG_TYPE_OTHER:					{ applog << Log::Trace;		break; }
 		default:									{ applog << Log::Critical;	break; }
 	}
-	applog << "[Application::Context::GL]" << message << "{" <<
+	applog << "[Context::GL]" << message << "{" <<
 		"ID:"		<< id		<< " | " <<
 		"Source:"	<< source	<< " | " <<
 		"Severity:" << severity	<<
@@ -134,7 +134,7 @@ GLContext::GLContext(void *window) {
 		default:
 			properties.VersionMajor = 4;
 			properties.VersionMinor = 6;
-			applog << Log::Error << "[Application::Context::GL]: Unknown version specified, using default version!" << "\n";
+			applog << Log::Error << "[Context::GL]: Unknown version specified, using default version!" << "\n";
 			break;
 	}
 
@@ -142,12 +142,12 @@ GLContext::GLContext(void *window) {
 	#if defined(APP_PLATFORM_WINDOWS)
         // This should be only triggered once during application lifecycle
         static bool once = true;
-		if(!GetExtensions() && once) { AppLogCritical("[Application::Context::GL]: Could not load OpenGL extensions!"); return; }
+		if(!GetExtensions() && once) { AppLogCritical("[Context::GL]: Could not load OpenGL extensions!"); return; }
         once = false;
 
 		// Get Device Context
 		Data->hDeviceContext = GetDC(Data->hWindow);
-		if (!Data->hDeviceContext) { AppLogCritical("[Application::Context::GL]: Error occured while acquiring device context!"); return; }
+		if (!Data->hDeviceContext) { AppLogCritical("[Context::GL]: Error occured while acquiring device context!"); return; }
 		
 		/* Legacy Code (it took a lot of effort to get used to it, so I will leave it here forever) */
 		// Drawing Surface Pixel Format: https://docs.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-pixelformatdescriptor
@@ -205,7 +205,7 @@ GLContext::GLContext(void *window) {
 			0,
 		};
 		wglChoosePixelFormatARB(Data->hDeviceContext, pixelAttribIList, NULL, formatsMax, &pixelFormats, &formatsCount);
-		if (!formatsCount) { AppLogCritical("[Application::Context::GL]: Error no suiteable pixel format found!"); return; }
+		if (!formatsCount) { AppLogCritical("[Context::GL]: Error no suiteable pixel format found!"); return; }
 		DescribePixelFormat(Data->hDeviceContext, pixelFormats, sizeof(pfDescription), &pfDescription);
 		if (!SetPixelFormat(Data->hDeviceContext, pixelFormats, &pfDescription)) { AppLogCritical("[Context::GL]: Error setting pixel format failed!"); return; }
 
@@ -222,7 +222,7 @@ GLContext::GLContext(void *window) {
             0            
 		};
 		Data->hRenderingContext = wglCreateContextAttribsARB(Data->hDeviceContext, NULL, glContextAttributes);
-		if (!Data->hRenderingContext) { AppLogCritical("[Application::Context::GL]: Error occured while creating GL-Context!"); return; }
+		if (!Data->hRenderingContext) { AppLogCritical("[Context::GL]: Error occured while creating GL-Context!"); return; }
 	#endif
 }
 

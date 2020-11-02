@@ -1,7 +1,6 @@
 ﻿#pragma once
 
-#include "Omnia.pch"
-#include "Core.h"
+#include "Omnia/Core.h"
 #include "Omnia/Log.h"
 
 #pragma warning(push, 0)

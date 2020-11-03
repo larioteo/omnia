@@ -6,6 +6,7 @@
 //  [x] Platform: Multi-viewport / platform windows. With issues (flickering when creating a new viewport).
 // Missing features:
 //  [ ] Renderer: User texture binding. Changes of ImTextureID aren't supported by this backend! See https://github.com/ocornut/imgui/pull/914
+//  ->  Workaround: ImTextureID is used to store a 'VkDescriptorSet' texture identifier. Read the FAQ about ImTextureID in imgui.cpp.
 
 // You can copy and use unmodified imgui_impl_* files in your project. See examples/ folder for examples of using this.
 // If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.

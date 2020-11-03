@@ -60,7 +60,6 @@ static void GLAPIENTRY GLMessageCallback(GLenum source, GLenum type, GLuint id, 
 	"}\n";
 }
 
-
 struct ContextData {
 	#if defined(APP_PLATFORM_WINDOWS)
 	HWND hWindow;
@@ -185,7 +184,7 @@ GLContext::GLContext(void *window) {
 		//pixelFormat = ChoosePixelFormat(Data->hDeviceContext, &pfDrawingSurface);
 
 		// Describe GL-Context
-		PIXELFORMATDESCRIPTOR pfDescription;
+        PIXELFORMATDESCRIPTOR pfDescription = {};
 		int pixelFormats = 0;
 		unsigned int formatsMax = 1;
 		unsigned int formatsCount = 2;
@@ -207,7 +206,7 @@ GLContext::GLContext(void *window) {
 		wglChoosePixelFormatARB(Data->hDeviceContext, pixelAttribIList, NULL, formatsMax, &pixelFormats, &formatsCount);
 		if (!formatsCount) { AppLogCritical("[Context::GL]: Error no suiteable pixel format found!"); return; }
 		DescribePixelFormat(Data->hDeviceContext, pixelFormats, sizeof(pfDescription), &pfDescription);
-		if (!SetPixelFormat(Data->hDeviceContext, pixelFormats, &pfDescription)) { AppLogCritical("[Context::GL]: Error setting pixel format failed!"); return; }
+		if (!SetPixelFormat(Data->hDeviceContext, pixelFormats, &pfDescription)) { AppLogCritical("[Context::GL]: Error setting pixel format failed {Code:", GetLastError(), "}!"); return; }
 
 		// Create GL-Context
         int flags = WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;

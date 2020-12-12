@@ -134,10 +134,6 @@ private:
     /// This method dispatches context events.
 	void AutoContextEvent(ContextEventData &data);
 
-public:
-    // ToDo: Used sadly externally during tests, need to figure out where...
-    Reference<Context> mContext;
-
 private:
     // Properties
     ApplicationProperties mProperties;
@@ -154,6 +150,7 @@ private:
     Reference<Config> mConfig;
     Reference<Dialog> mDialog;
     Reference<EventListener> pListener;
+    Reference<Context> mContext;
     Reference<Window> mWindow;
 };
 

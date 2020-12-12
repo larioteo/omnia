@@ -1,11 +1,10 @@
-#pragma once
+﻿#pragma once
 
 #include "Omnia/GFX/Context.h"
 #include "Omnia/Utility/Property.h"
 
 namespace Omnia {
 
-// ToDo: These properties should work an all apis...
 struct ContextProperties {
 	Property<bool> Compatible = false;
 	ArithmeticProperty<short> AlphaDepth {0, 8};

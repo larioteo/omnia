@@ -62,7 +62,7 @@ public:
     void Present();
 
     // Accessors
-    const VKSurfaceProperties &GetSurfaceProperties() const { return mSurfaceProperties; }
+    VKSurfaceProperties &GetSurfaceProperties() { return mSurfaceProperties; }
     const vk::CommandBuffer &GetCurrentDrawCommandBuffer() const;
     const vk::Framebuffer &GetCurrentFramebuffer() const;
     const uint32_t GetImageCount() const;
@@ -96,7 +96,7 @@ private:
     uint32_t mImageCount = 0;
     uint32_t mMaxImageCount = 3;
     uint32_t ComputeQueueIndex = 0;
-    uint32_t GraphicsQueueIndex = 0; // ToDo:: Remove
+    uint32_t GraphicsQueueIndex = 0;
     bool mRebuildRequested = false;
 
     // SwapChain

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 /*
 	These values are used to control platform specific features like window creation.
@@ -143,11 +143,11 @@ namespace Omnia {
 	#define APP_GRAPHICS_API "OpenGL"
 #endif
 
-// ToDo: Should work on any compiler and shown only once.
-#if 0
-	#pragma message(once: "#> Compiler: " APP_COMPILER " [" APP_COMPILER_VERSION "]")
-	#pragma message(once: "#> Platform: " APP_PLATFORM)
-	#pragma message(once: "#> PlatformAPI: " APP_PLATFORM_API)
-	#pragma message(once: "#> GraphicsAPI: " APP_GRAPHICS_API)
+// ToDo: Support for other compilers and show only once
+#ifdef APP_COMPILER_MSVC_DISABLED
+	#pragma message("#> Compiler: " APP_COMPILER " [" APP_COMPILER_VERSION "]")
+	#pragma message("#> Platform: " APP_PLATFORM)
+	#pragma message("#> PlatformAPI: " APP_PLATFORM_API)
+	#pragma message("#> GraphicsAPI: " APP_GRAPHICS_API)
 #endif
 }

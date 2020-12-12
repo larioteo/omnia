@@ -6,6 +6,7 @@
 #pragma warning(push, 0)
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
+#include <ImGuizmo/ImGuizmo.h>
 #pragma warning(pop)
 
 namespace Omnia {

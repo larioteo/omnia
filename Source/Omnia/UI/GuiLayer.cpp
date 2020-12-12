@@ -154,6 +154,7 @@ void GuiLayer::Prepare() {
     if (Context::API == GraphicsAPI::Vulkan) ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
+    ImGuizmo::BeginFrame();
 
 	// Properties
 	ImGuiIO& io = ImGui::GetIO();

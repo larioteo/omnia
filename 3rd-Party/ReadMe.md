@@ -8,6 +8,7 @@
 | :------ | :-----: | :-----: | :------ |
 | [Dear ImGui](https://github.com/ocornut/imgui.git "imgui")                                    | MIT           | 2020-10-31 | commit\{0bdd426b89feb030a4ed0cbe3e2ef1cd75a099ea} |
 | [Vulkan/GL/GLES/EGL/GLX/WGL Loader](https://github.com/Dav1dde/glad "glad")                   | MIT           | 2020-10-18 | commit\{b5d260b65b3edbbd9e75f5a6c9924fe0ff4f04dd} |
+| [ImViewGizmo](https://github.com/CedricGuillemet/ImGuizmo.git "ImGuizmo")                     | MIT           | 2020-12-06 | commit\{f14713cc0ec12382ef26cff72848ef076380f25a} |
 | [OpenGL-Registry](https://github.com/KhronosGroup/OpenGL-Registry.git "OpenGL-Registry")      | MIT?          | 2020-10-28 | commit\{69ceb7f70d4147367ea85f85406d05c1b028c328} |
 | [yaml-cpp](https://github.com/jbeder/yaml-cpp.git "yaml-cpp")                                 | MIT           | 2020-07-27 | commit\{98acc5a8874faab28b82c28936f4b400b389f5d6} |
 | [Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers.git "Vulkan-Headers")         | Apache-2.0    | 2020-10-19 | commit\{320af06cbdd29848e1d7100d9b8e4e517db1dfd5} |

@@ -1,37 +1,38 @@
 ﻿#■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# ☰ 3rd-Party-Libraries
+# ☰ Library: ImViewGizmo
 #■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # ☲ Properties
 #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# The needed headers and sources to build the library.
+set(IMGUIZMO_HEADRES
+	"ImGuizmo/ImGuizmo.h"
+	"ImGuizmo/ImCurveEdit.h"
+	"ImGuizmo/ImGradient.h"
+	"ImGuizmo/ImSequencer.h"
+	"ImGuizmo/ImZoomSlider.h"
+)
+set(IMGUIZMO_SOURCES
+	"ImGuizmo/ImGuizmo.cpp"
+	"ImGuizmo/ImCurveEdit.cpp"
+	"ImGuizmo/ImGradient.cpp"
+	"ImGuizmo/ImSequencer.cpp"
+)
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-# ☷ Modules
+# ☷ Build
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-include("Library#glad.cmake")
-include("Library#imgui.cmake")
-include("Library#ImGuizmo.cmake")
-include("Library#OpenGL-Registry.cmake")
-include("Library#Vulkan-Headers.cmake")
-include("Library#yaml-cpp.cmake")
+add_library(ImGuizmo ${IMGUIZMO_HEADRES} ${IMGUIZMO_SOURCES})
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-# These are leftovers which where used in the prototype, left them here, cause maybe they will be needed again.
-#include("Library#EGL-Registry.cmake")
-#include("Library#imgui-node-editor.cmake")
-#include("Library#MagicEnum.cmake")
+# ☷ IDE
+#‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+set_property(TARGET ImGuizmo PROPERTY FOLDER 3rd-Party/ImGuizmo)
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 # ☷ Linker
 #‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-target_include_directories(${PROJECT_NAME}
+# Patch: If not specified, imgui doesn't find itself...
+target_include_directories(ImGuizmo
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/.Library>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/.Library/imgui>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_include_directories(glad
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/.Library>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-#‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-# Some tests due to cmake include header hell...
-#include_directories(SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/.Library)
 #■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■

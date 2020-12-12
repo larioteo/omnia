@@ -13,3 +13,6 @@
 [submodule "3rd-Party/Vulkan-Headers"]
 	path = 3rd-Party/Vulkan-Headers
 	url = https://github.com/KhronosGroup/Vulkan-Headers
+[submodule "3rd-Party/ImGuizmo"]
+	path = 3rd-Party/ImGuizmo
+	url = https://github.com/CedricGuillemet/ImGuizmo.git

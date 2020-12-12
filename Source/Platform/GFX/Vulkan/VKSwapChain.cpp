@@ -74,7 +74,7 @@ void VKSwapChain::Create(uint32_t width, uint32_t height, bool synchronizedDraw)
     createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
     createInfo.imageArrayLayers = 1;
     createInfo.imageSharingMode = vk::SharingMode::eExclusive;
-    createInfo.queueFamilyIndexCount = 0; // ToDo: Look after presentFamily!
+    createInfo.queueFamilyIndexCount = GraphicsQueueIndex;
     createInfo.preTransform = surfaceTransform;
     createInfo.pQueueFamilyIndices = nullptr;
     createInfo.compositeAlpha = compositeAlpha;
@@ -145,7 +145,7 @@ void VKSwapChain::Resize(uint32_t width, uint32_t height) {
         mDevice->Call().destroyFramebuffer(buffer.FrameBuffer, nullptr);
     }
 
-    Create(width, height, mSurfaceProperties.SynchronizedDraw); // ToDo:: Causes currently a VRAM memory leak!
+    Create(width, height, mSurfaceProperties.SynchronizedDraw);
 }
 
 void VKSwapChain::Destroy() {

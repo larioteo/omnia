@@ -195,10 +195,12 @@ static void SetStyle(ColorThemes theme = ColorThemes::Dark, ColorPalette accentP
 	colors[ImGuiCol_Header]					= ConvertColorRgbaVec(appTheme->surface);
 	colors[ImGuiCol_HeaderHovered]			= ConvertColorRgbaVec(accent->s200, 0.32f);
 	colors[ImGuiCol_HeaderActive]			= ConvertColorRgbaVec(accent->s500);
+    //~
 	colors[ImGuiCol_CheckMark]				= ConvertColorRgbaVec(accent->s500);
+    //~
 	colors[ImGuiCol_SliderGrab]				= ConvertColorRgbaVec(accent->s500);
 	colors[ImGuiCol_SliderGrabActive]		= ConvertColorRgbaVec(accent->s700);
-	// ToDo: Check alternatives...
+    //~
 	colors[ImGuiCol_Button]					= ConvertColorRgbaVec(appTheme->surface);
 	colors[ImGuiCol_ButtonHovered]			= ConvertColorRgbaVec(accent->s200, 0.32f);
 	colors[ImGuiCol_ButtonActive]			= ConvertColorRgbaVec(accent->s300, 0.32f);
@@ -206,31 +208,25 @@ static void SetStyle(ColorThemes theme = ColorThemes::Dark, ColorPalette accentP
 	colors[ImGuiCol_NavHighlight]			= ConvertColorRgbaVec(primary->s700);
 	colors[ImGuiCol_NavWindowingHighlight]	= ConvertColorRgbaVec(primary->s700);
 	colors[ImGuiCol_NavWindowingDimBg]		= ConvertColorRgbaVec(appTheme->background, 0.72f);
-	
+    //~
 	colors[ImGuiCol_ScrollbarBg]			= ConvertColorRgbaVec(appTheme->surface);
 	colors[ImGuiCol_ScrollbarGrab]			= ConvertColorRgbaVec(accent->s500);
 	colors[ImGuiCol_ScrollbarGrabHovered]	= ConvertColorRgbaVec(accent->s300);
 	colors[ImGuiCol_ScrollbarGrabActive]	= ConvertColorRgbaVec(accent->s700);
+    //~
 	colors[ImGuiCol_Separator]				= ConvertColorRgbaVec(appTheme->surface);
 	colors[ImGuiCol_SeparatorHovered]		= ConvertColorRgbaVec(accent->s200, 0.32f);
 	colors[ImGuiCol_SeparatorActive]		= ConvertColorRgbaVec(accent->s300, 0.32f);
+    //~
 	colors[ImGuiCol_PlotLines]				= ConvertColorRgbaVec(accent->s500);
 	colors[ImGuiCol_PlotLinesHovered]		= ConvertColorRgbaVec(accent->s700);
 	colors[ImGuiCol_PlotHistogram]			= ConvertColorRgbaVec(accent->s500);
 	colors[ImGuiCol_PlotHistogramHovered]	= ConvertColorRgbaVec(accent->s700);
+    //~
 	colors[ImGuiCol_ResizeGrip]				= ConvertColorRgbaVec(appTheme->surface);
 	colors[ImGuiCol_ResizeGripHovered]		= ConvertColorRgbaVec(accent->s200, 0.32f);
 	colors[ImGuiCol_ResizeGripActive]		= ConvertColorRgbaVec(accent->s300, 0.32f);
 	
-	// ToDo: Missing
-	//style->Colors[ImGuiCol_ComboBg] = ImVec4(0.19f, 0.18f, 0.21f, 1.00f);
-	//style.Colors[ImGuiCol_Column] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
-	//style.Colors[ImGuiCol_ColumnHovered] = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
-	//style.Colors[ImGuiCol_ColumnActive] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
-	//style->Colors[ImGuiCol_CloseButton] = ImVec4(0.40f, 0.39f, 0.38f, 0.16f);
-	//style->Colors[ImGuiCol_CloseButtonHovered] = ImVec4(0.40f, 0.39f, 0.38f, 0.39f);
-	//style->Colors[ImGuiCol_CloseButtonActive] = ImVec4(0.40f, 0.39f, 0.38f, 1.00f);
-
 	/* Rendering */
 	style.AntiAliasedLines			= true;
 	style.AntiAliasedFill			= true;

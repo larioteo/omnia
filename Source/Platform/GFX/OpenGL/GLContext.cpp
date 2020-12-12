@@ -288,7 +288,6 @@ void GLContext::SetVSync(bool activate) {
 
 void GLContext::SwapBuffers() {
 	#if defined(APP_PLATFORM_WINDOWS)
-		// ToDo: DerImgui SwapBuffer magic destorys this neat function sometimes, there is need for synchronisation...
 		::SwapBuffers(Data->hDeviceContext);
 	#endif
 }
